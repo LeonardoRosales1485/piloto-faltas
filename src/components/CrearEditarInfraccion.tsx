@@ -60,7 +60,7 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
   const params = useParams();
   const router = useRouter();
   const notify = useNotify();
-  const layout = useLayout();
+  const { setOcultarTopbar } = useLayout();
 
   const tipo = (params.tipo as string) ?? 'multas';
   const uuid = uuidProp ?? (params.uuid as string | undefined);
@@ -91,19 +91,19 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
     (n: number) => {
       const next = Math.min(TOTAL_PASOS, Math.max(1, n));
       setPaso(next);
-      layout.setOcultarTopbar(next > 1);
+      setOcultarTopbar(next > 1);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     },
-    [layout],
+    [setOcultarTopbar],
   );
 
   useEffect(() => {
-    return () => layout.setOcultarTopbar(false);
-  }, [layout]);
+    return () => setOcultarTopbar(false);
+  }, [setOcultarTopbar]);
 
   useEffect(() => {
     setPaso(1);
-    layout.setOcultarTopbar(false);
+    setOcultarTopbar(false);
     setBusquedaLey('');
     apiClient.constantes().then((c) => {
       setDocumentoTipos(c.documentoTipos ?? []);
@@ -149,7 +149,7 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
       setImagenes([]);
       setIndiceImagen(0);
     }
-  }, [tipo, uuid, router, notify, layout]);
+  }, [tipo, uuid, router, notify, setOcultarTopbar]);
 
   const leyesSeleccionadas = useMemo(
     () =>
