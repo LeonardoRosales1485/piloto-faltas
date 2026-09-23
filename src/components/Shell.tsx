@@ -171,7 +171,7 @@ function ShellInner({ children }: { children: ReactNode }) {
     <>
       <div className="sidebar-brand-v2">
         <div className="sidebar-brand-logo">
-          <i className="fa-solid fa-shield-halved" aria-hidden="true" />
+          <img src="/images/Municipio_malvinas_argentinas_logo.png" alt="Municipio de Malvinas Argentinas" />
         </div>
         <div className="sidebar-brand-texto">
           <strong>SISTEMA DE FALTAS</strong>
@@ -281,7 +281,7 @@ function ShellInner({ children }: { children: ReactNode }) {
           <div className="sidebar-movil-topbar">
             <div className="sidebar-movil-brand">
               <div className="sidebar-bo sidebar-bo-movil">
-                <i className="fa-solid fa-shield-halved" aria-hidden="true" />
+                <img src="/images/Municipio_malvinas_argentinas_logo.png" alt="Municipio de Malvinas Argentinas" />
               </div>
               <div className="sidebar-movil-texto">
                 <strong>SISTEMA DE FALTAS</strong>

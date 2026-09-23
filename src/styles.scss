@@ -227,16 +227,19 @@ body {
 }
 
 .sidebar-brand-logo {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, var(--bo-azul), var(--bo-azul-oscuro));
-  color: #fff;
+  width: 36px;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.125rem;
   flex-shrink: 0;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+  }
 }
 
 .sidebar-brand-texto {
@@ -503,15 +506,19 @@ body {
 }
 
 .sidebar-bo-movil {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, var(--bo-azul), var(--bo-azul-oscuro));
-  color: #fff;
+  width: 28px;
+  height: 34px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.875rem;
+  flex-shrink: 0;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+  }
 }
 
 .sidebar-movil-texto {
@@ -2216,6 +2223,46 @@ textarea.form-control {
 // ---------------------------------------------------------------------------
 //  Acta preview
 // ---------------------------------------------------------------------------
+.acta-link-publico {
+  margin: 0 0 1rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--bo-borde);
+  border-radius: var(--bo-radio);
+  background: #f8fafc;
+  word-break: break-all;
+  font-size: 0.9rem;
+
+  a {
+    color: var(--bo-azul);
+  }
+}
+
+.acta-publica {
+  min-height: 100vh;
+  background: #e5e7eb;
+  padding: 1.5rem 0.75rem 2.5rem;
+}
+
+.acta-publica-estado {
+  max-width: 28rem;
+  margin: 4rem auto;
+  text-align: center;
+  color: #111;
+
+  h1 {
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+  }
+
+  i {
+    margin-right: 0.5rem;
+  }
+}
+
+.acta-preview-scroll {
+  overflow-x: auto;
+}
+
 .acta-preview {
   font-size: 0.9375rem;
 
@@ -2450,6 +2497,11 @@ textarea.form-control {
     background-color: #334155;
     color: #cbd5e1;
     border-color: #475569;
+  }
+
+  .acta-link-publico {
+    background: #1e293b;
+    border-color: var(--bo-borde);
   }
 
   .sidebar-grupo-header {

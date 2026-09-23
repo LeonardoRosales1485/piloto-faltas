@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { actaOficialCss, actaOficialHtml } from '@/lib/acta-oficial';
 import { apiClient } from '@/lib/api-client';
+import { actaPublicaUrl, printTicket } from '@/lib/print';
 import { useLayout } from '@/lib/layout-context';
 import type { FiltrosInfraccion, Infraccion, Paginado } from '@/lib/types';
 import { useNotify } from './NotifyProvider';
@@ -33,60 +34,121 @@ function haceUnMes(): string {
   return d.toISOString().split('T')[0];
 }
 
-function AccionesFila({ i, tipo, onDeleted }: { i: Infraccion; tipo: string; onDeleted: () => void }) {
+function AccionesFila({
+  i,
+  tipo,
+  onDeleted,
+  conEtiqueta = false,
+}: {
+  i: Infraccion;
+  tipo: string;
+  onDeleted: () => void;
+  conEtiqueta?: boolean;
+}) {
   const notify = useNotify();
   const [eliminar, setEliminar] = useState<Infraccion | null>(null);
   const [pdf, setPdf] = useState<Infraccion | null>(null);
+  const [linkActa, setLinkActa] = useState<string | null>(null);
 
-  const imprimir = useCallback((item: Infraccion) => {
-    const win = window.open('', '_blank', 'width=820,height=640');
-    if (!win) return;
-    win.document.write(`<!doctype html><html lang="es"><head><meta charset="utf-8" /><title>Acta de Infracción</title>
-      <style>*{box-sizing:border-box}html,body{margin:0;padding:0;background:#fff}${actaOficialCss()}</style>
-      </head><body>${actaOficialHtml(item)}</body></html>`);
-    win.document.close();
-    win.focus();
-    setTimeout(() => win.print(), 450);
-  }, []);
+  const cerrarActa = () => {
+    setPdf(null);
+    setLinkActa(null);
+  };
+
+  const verLinkActa = async (item: Infraccion) => {
+    if (!item.uuid) return;
+    const url = actaPublicaUrl(item.uuid);
+    setLinkActa(url);
+    try {
+      await navigator.clipboard.writeText(url);
+      notify.success('Link del acta', 'Se copió el link al portapapeles.');
+    } catch {
+      notify.success('Link del acta', url);
+    }
+  };
 
   return (
     <>
       <div className="acciones-fila">
-        <Link className="btn-accion-redondo btn-accion-editar" href={`/private/crear-editar/${tipo}/${i.uuid}`} title="Editar">
+        <Link
+          className="btn-accion-redondo btn-accion-editar"
+          href={`/private/crear-editar/${tipo}/${i.uuid}`}
+          title="Editar"
+          aria-label="Editar"
+        >
           <i className="fa-solid fa-pen" aria-hidden="true" />
+          {conEtiqueta ? <span>Editar</span> : null}
         </Link>
-        <button type="button" className="btn-accion-redondo btn-accion-eliminar" title="Eliminar" onClick={() => setEliminar(i)}>
+        <button
+          type="button"
+          className="btn-accion-redondo btn-accion-eliminar"
+          title="Eliminar"
+          aria-label="Eliminar"
+          onClick={() => setEliminar(i)}
+        >
           <i className="fa-solid fa-trash" aria-hidden="true" />
+          {conEtiqueta ? <span>Eliminar</span> : null}
         </button>
-        <button type="button" className="btn-accion-redondo btn-accion-pdf" title="Ver acta" onClick={() => setPdf(i)}>
+        <button
+          type="button"
+          className="btn-accion-redondo btn-accion-pdf"
+          title="Ver acta"
+          aria-label="Ver acta"
+          onClick={() => {
+            setLinkActa(null);
+            setPdf(i);
+          }}
+        >
           <i className="fa-solid fa-file-lines" aria-hidden="true" />
+          {conEtiqueta ? <span>Ver acta</span> : null}
         </button>
-        <button type="button" className="btn-accion-redondo btn-accion-imprimir" title="Imprimir" onClick={() => imprimir(i)}>
+        <button
+          type="button"
+          className="btn-accion-redondo btn-accion-imprimir"
+          title="Imprimir"
+          aria-label="Imprimir"
+          onClick={() => void printTicket(i)}
+        >
           <i className="fa-solid fa-print" aria-hidden="true" />
+          {conEtiqueta ? <span>Imprimir</span> : null}
         </button>
       </div>
       {pdf ? (
-        <div className="modal-fake-overlay" onClick={(e) => e.target === e.currentTarget && setPdf(null)}>
+        <div className="modal-fake-overlay" onClick={(e) => e.target === e.currentTarget && cerrarActa()}>
           <div className="modal-fake modal-fake-xl" role="dialog" aria-modal="true" aria-label="Acta de Infracción">
             <div className="modal-fake-header">
               <i className="fa-solid fa-file-lines" aria-hidden="true" />
               <h2>Acta de Infracción</h2>
-              <button type="button" aria-label="Cerrar" onClick={() => setPdf(null)}>
+              <button type="button" aria-label="Cerrar" onClick={cerrarActa}>
                 &times;
               </button>
             </div>
             <div className="modal-fake-body">
+              {linkActa ? (
+                <p className="acta-link-publico">
+                  <a href={linkActa} target="_blank" rel="noreferrer">
+                    {linkActa}
+                  </a>
+                </p>
+              ) : null}
               <div
                 className="acta-preview-scroll"
                 dangerouslySetInnerHTML={{ __html: `<style>${actaOficialCss()}</style>${actaOficialHtml(pdf)}` }}
               />
             </div>
             <div className="modal-fake-footer">
-              <button type="button" className="btn btn-outline-secondary" onClick={() => setPdf(null)}>
+              <button type="button" className="btn btn-outline-secondary" onClick={cerrarActa}>
                 Cerrar
               </button>
-              <button type="button" className="btn btn-primary" onClick={() => imprimir(pdf)}>
-                <i className="fa-solid fa-print" aria-hidden="true" /> Imprimir
+              <button type="button" className="btn btn-outline-primary" onClick={() => void verLinkActa(pdf)}>
+                <i className="fa-solid fa-link" aria-hidden="true" /> Ver link del acta
+              </button>
+              <button
+                type="button"
+                className="btn btn-success"
+                onClick={() => notify.success('Copia enviada', 'Se envió una copia del acta al infractor.')}
+              >
+                <i className="fa-solid fa-paper-plane" aria-hidden="true" /> Enviar una copia al infractor
               </button>
             </div>
           </div>
@@ -460,7 +522,7 @@ export function ListaInfracciones() {
                     <div className="card-body">
                       <div className="d-flex justify-content-between align-items-start mb-2">
                         <span className={badge(i.estado)}>{i.estado}</span>
-                        <AccionesFila i={i} tipo={tipo} onDeleted={reloadAfterDelete} />
+                        <AccionesFila i={i} tipo={tipo} onDeleted={reloadAfterDelete} conEtiqueta />
                       </div>
                       <div className="fila-movil">
                         <span>LEGAJO</span>
