@@ -1,0 +1,46 @@
+import { NextRequest } from 'next/server';
+import { subjectFromToken } from './jwt';
+import { createServerClient } from './supabase-server';
+import type { Usuario, UsuarioRow } from './types';
+
+export function bearerToken(req: NextRequest): string | null {
+  const header = req.headers.get('authorization') || req.headers.get('Authorization');
+  if (!header) return null;
+  const match = header.match(/^Bearer\s+(.+)$/i);
+  return match?.[1]?.trim() || null;
+}
+
+export async function requireUser(req: NextRequest): Promise<UsuarioRow> {
+  const token = bearerToken(req);
+  if (!token) {
+    throw Object.assign(new Error('Sin sesión'), { status: 401 });
+  }
+  let username: string;
+  try {
+    username = await subjectFromToken(token);
+  } catch {
+    throw Object.assign(new Error('Token inválido'), { status: 401 });
+  }
+  const supabase = createServerClient();
+  const { data, error } = await supabase
+    .from('usuario')
+    .select('*')
+    .eq('username', username)
+    .maybeSingle();
+  if (error || !data) {
+    throw Object.assign(new Error('Sin sesión'), { status: 401 });
+  }
+  return data as UsuarioRow;
+}
+
+export function toUsuarioDto(row: UsuarioRow, token?: string | null): Usuario {
+  return {
+    username: row.username,
+    nombre: row.nombre,
+    apellido: row.apellido,
+    email: row.email ?? '',
+    sector: row.sector ?? '',
+    rol: row.rol,
+    ...(token ? { token } : {}),
+  };
+}

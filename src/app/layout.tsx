@@ -1,0 +1,35 @@
+import type { Metadata } from 'next';
+import '@fortawesome/fontawesome-free/css/all.min.css';
+import '../styles.scss';
+import { AuthBootstrap } from '@/components/AuthBootstrap';
+import { NotifyProvider } from '@/components/NotifyProvider';
+
+export const metadata: Metadata = {
+  title: 'Sistema de Faltas · Piloto',
+  description: 'Sistema de Faltas · Piloto',
+};
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    <html lang="es">
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap"
+          rel="stylesheet"
+        />
+      </head>
+      <body>
+        <NotifyProvider>
+          <AuthBootstrap />
+          {children}
+        </NotifyProvider>
+      </body>
+    </html>
+  );
+}
