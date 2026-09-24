@@ -2798,6 +2798,37 @@ textarea.form-control {
     flex-wrap: wrap;
   }
 
+  .acciones-card-movil {
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--bo-borde);
+
+    .acciones-fila {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 0.5rem;
+      width: 100%;
+    }
+
+    .btn-accion-redondo {
+      width: 100%;
+      height: auto;
+      min-height: 64px;
+      border-radius: 12px;
+      flex-direction: column;
+      gap: 0.3rem;
+      padding: 0.45rem 0.2rem;
+      font-size: 1.05rem;
+
+      span {
+        font-size: 0.68rem;
+        font-weight: 600;
+        line-height: 1.15;
+        text-align: center;
+      }
+    }
+  }
+
   .tabla-objetivo {
     min-width: 720px;
   }

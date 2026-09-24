@@ -520,9 +520,8 @@ export function ListaInfracciones() {
                 <div key={i.uuid} className="col-12">
                   <div className="card card-movil-lista">
                     <div className="card-body">
-                      <div className="d-flex justify-content-between align-items-start mb-2">
+                      <div className="mb-2">
                         <span className={badge(i.estado)}>{i.estado}</span>
-                        <AccionesFila i={i} tipo={tipo} onDeleted={reloadAfterDelete} conEtiqueta />
                       </div>
                       <div className="fila-movil">
                         <span>LEGAJO</span>
@@ -550,6 +549,9 @@ export function ListaInfracciones() {
                           Lic: {i.retencionDeLicencia === 1 ? 'Sí' : 'No'} / Veh:{' '}
                           {i.retencionDeVehiculo === 1 ? 'Sí' : 'No'}
                         </span>
+                      </div>
+                      <div className="acciones-card-movil">
+                        <AccionesFila i={i} tipo={tipo} onDeleted={reloadAfterDelete} conEtiqueta />
                       </div>
                     </div>
                   </div>

@@ -91,11 +91,11 @@ function ticketCss(): string {
       break-inside: avoid;
     }
     .ticket-logo-wrap {
-      height: 26mm;
+      height: 22mm;
       display: flex;
       align-items: center;
       justify-content: center;
-      margin: 0 0 3mm;
+      margin: 0 0 2mm;
     }
     .ticket-logo {
       height: 24mm;
@@ -134,11 +134,10 @@ function ticketCss(): string {
     }
     .ticket-pie { margin-top: auto; text-align: center; }
     .ticket-qr svg {
-      width: 34mm;
-      height: 34mm;
+      width: 40mm;
+      height: 40mm;
       display: block;
       margin: 0 auto;
-      shape-rendering: crispEdges;
     }
     .ticket-leyenda {
       margin: 1.5mm 0 0;
@@ -153,6 +152,20 @@ export function printActa(infraccion: Infraccion): void {
   abrirVentana('Acta de Infracción', actaOficialHtml(infraccion), actaOficialCss());
 }
 
+function svgQr(url: string): string {
+  const qr = QRCode.create(url, { errorCorrectionLevel: 'M' });
+  const n = qr.modules.size;
+  const quiet = 2;
+  const side = n + quiet * 2;
+  const celdas: string[] = [];
+  for (let y = 0; y < n; y += 1) {
+    for (let x = 0; x < n; x += 1) {
+      if (qr.modules.get(x, y)) celdas.push(`<rect x="${x}" y="${y}" width="1" height="1"/>`);
+    }
+  }
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${-quiet} ${-quiet} ${side} ${side}" width="40mm" height="40mm"><rect x="${-quiet}" y="${-quiet}" width="${side}" height="${side}" fill="#ffffff"/><g fill="#000000">${celdas.join('')}</g></svg>`;
+}
+
 export async function printTicket(infraccion: Infraccion): Promise<void> {
   const leyes = Array.isArray(infraccion.leyesNombre) ? infraccion.leyesNombre.filter(Boolean) : [];
   const lugar =
@@ -162,12 +175,7 @@ export async function printTicket(infraccion: Infraccion): Promise<void> {
   const reparticion =
     infraccion.infraccionTipoNombre === 'contravenciones' ? 'CONTRAVENCIONES' : 'MULTAS';
   const url = infraccion.uuid ? actaPublicaUrl(infraccion.uuid) : window.location.origin;
-  const qr = await QRCode.toString(url, {
-    type: 'svg',
-    margin: 1,
-    errorCorrectionLevel: 'L',
-    color: { dark: '#000000', light: '#ffffff' },
-  });
+  const qr = svgQr(url);
   const items =
     leyes.length > 0
       ? leyes.map((ley) => `<li>${escapeHtml(ley)}</li>`).join('')
