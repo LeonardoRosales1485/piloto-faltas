@@ -1,16 +1,27 @@
 import type { Infraccion } from '@/lib/types';
+import type { TipoActa } from '@/lib/dominio';
 
 export const MAX_IMAGENES = 5;
-export const TOTAL_PASOS = 6;
 
-export const PASOS = [
-  { numero: 1, corto: 'Expediente' },
-  { numero: 2, corto: 'Infractor' },
-  { numero: 3, corto: 'Vehículo' },
-  { numero: 4, corto: 'Domicilio' },
-  { numero: 5, corto: 'Artículos' },
-  { numero: 6, corto: 'Fotos' },
+export type Paso = { id: 'acta' | 'lugar' | 'infractor' | 'vehiculo' | 'articulos' | 'fotos' | 'firma'; corto: string; titulo: string; ayuda: string };
+
+const TODOS: Paso[] = [
+  { id: 'acta', corto: 'Acta', titulo: 'Datos del acta', ayuda: 'Número, legajo y fecha se asignan solos' },
+  { id: 'lugar', corto: 'Lugar', titulo: 'Lugar del hecho', ayuda: 'Use el GPS para completar la ubicación' },
+  { id: 'infractor', corto: 'Infractor', titulo: 'Datos del infractor', ayuda: 'Obligatorios si el infractor está presente' },
+  { id: 'vehiculo', corto: 'Vehículo', titulo: 'Datos del vehículo', ayuda: 'Vehículo involucrado' },
+  { id: 'articulos', corto: 'Artículos', titulo: 'Artículos y medidas', ayuda: 'Normas infringidas y medidas adoptadas' },
+  { id: 'fotos', corto: 'Fotos', titulo: 'Imágenes y observaciones', ayuda: 'Hasta 5 imágenes' },
+  { id: 'firma', corto: 'Firma', titulo: 'Revisión y firma', ayuda: 'Revise los datos antes de firmar: después no se pueden modificar' },
 ];
+
+export function pasosPara(tipo: TipoActa, situacion?: string): Paso[] {
+  return TODOS.filter((p) => {
+    if (p.id === 'vehiculo' && tipo === 'contravenciones') return false;
+    if (p.id === 'infractor' && situacion === 'nn') return false;
+    return true;
+  });
+}
 
 function pad(n: number) {
   return String(n).padStart(2, '0');
@@ -37,9 +48,17 @@ export function toDateInput(value?: string) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
+/**
+ * Ejido urbano aproximado del partido de Malvinas Argentinas (piloto).
+ * El polígono oficial lo debe proveer Catastro; mientras tanto se usa un rectángulo.
+ */
+export function ejidoPorGps(lat: number, lng: number): 'dentro' | 'fuera' {
+  return lat <= -34.42 && lat >= -34.54 && lng <= -58.62 && lng >= -58.77 ? 'dentro' : 'fuera';
+}
+
 export function vacia(tipo: string): Infraccion {
   return {
-    uuid: crypto.randomUUID(),
+    uuid: '',
     infraccionTipoNombre: tipo,
     legajoNumber: '',
     legajoAnio: '',
@@ -58,9 +77,6 @@ export function vacia(tipo: string): Infraccion {
     infractorProvinciaNombre: 'Buenos Aires',
     infractorLocalidadNombre: '',
     infractorPartidoNombre: 'Malvinas Argentinas',
-    infractorFechaNacimiento: '',
-    infractorCodigoPostal: '',
-    infractorActividadEconomica: '',
     vehiculoNumeroDominio: '',
     vehiculoNumeroControlInterno: '',
     vehiculoNumeroLicencia: '',
@@ -74,39 +90,30 @@ export function vacia(tipo: string): Infraccion {
     retencionDeVehiculo: 0,
     estado: 'Activo',
     metadata: {},
-    dateCreated: Date.now(),
+    situacionInfractor: 'presente',
+    medidasPreventivas: [],
+    acarreo: 0,
   };
 }
 
 export function readImageFile(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onerror = () => reject(new Error('No se pudo leer el archivo'));
     reader.onload = () => {
-      const raw = reader.result as string;
       const img = new Image();
       img.onload = () => {
-        const max = 1024;
-        let { width, height } = img;
-        if (width > max || height > max) {
-          const scale = Math.min(max / width, max / height);
-          width = Math.round(width * scale);
-          height = Math.round(height * scale);
-        }
+        const max = 1280;
+        const scale = Math.min(1, max / Math.max(img.width, img.height));
         const canvas = document.createElement('canvas');
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) {
-          resolve(raw);
-          return;
-        }
-        ctx.drawImage(img, 0, 0, width, height);
-        resolve(canvas.toDataURL('image/jpeg', 0.75));
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
+        canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL('image/jpeg', 0.8));
       };
-      img.onerror = () => resolve(raw);
-      img.src = raw;
+      img.onerror = () => resolve(String(reader.result));
+      img.src = String(reader.result);
     };
+    reader.onerror = reject;
     reader.readAsDataURL(file);
   });
 }

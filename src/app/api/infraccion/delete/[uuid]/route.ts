@@ -1,23 +1,10 @@
 import { NextRequest } from 'next/server';
-import { requireUser } from '@/lib/auth';
-import { jsonFail, jsonOk } from '@/lib/http-data';
-import { createServerClient } from '@/lib/supabase-server';
+import { jsonFail } from '@/lib/http-data';
 
-type Ctx = { params: Promise<{ uuid: string }> };
-
-export async function DELETE(req: NextRequest, ctx: Ctx) {
-  try {
-    await requireUser(req);
-    const { uuid } = await ctx.params;
-    const supabase = createServerClient();
-    const { data } = await supabase.from('infraccion').select('id').eq('uuid', uuid).maybeSingle();
-    if (!data) return jsonFail(404, 'Infracción no encontrada');
-    const { error } = await supabase.from('infraccion').delete().eq('uuid', uuid);
-    if (error) return jsonFail(500, error.message);
-    return jsonOk(null);
-  } catch (e) {
-    const status = (e as { status?: number }).status ?? 500;
-    const msg = e instanceof Error ? e.message : 'Error';
-    return jsonFail(status, msg);
-  }
+/**
+ * Las actas no se eliminan (RN de inmutabilidad y trazabilidad).
+ * Un borrador se descarta con /api/acta/anular; una causa se desestima con /api/causa/accion.
+ */
+export async function DELETE(_req: NextRequest) {
+  return jsonFail(409, 'Las actas no se eliminan. Descarte el borrador o desestime la causa dejando el motivo.');
 }

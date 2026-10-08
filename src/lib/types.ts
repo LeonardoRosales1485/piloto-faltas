@@ -45,6 +45,32 @@ export type Infraccion = {
   estado?: string;
   metadata?: Record<string, string>;
   dateCreated?: number;
+  estadoFaltas?: string;
+  situacionInfractor?: string;
+  infractorCuit?: string;
+  infractorRazonSocial?: string;
+  infractorEmail?: string;
+  infractorCalleAltura?: string;
+  entreCalle1?: string;
+  entreCalle2?: string;
+  gpsLat?: number | null;
+  gpsLng?: number | null;
+  ejido?: string;
+  nomenclaturaCatastral?: string;
+  acarreo?: number;
+  medidasPreventivas?: string[];
+  medidaVigente?: number;
+  sustanciasDescripcion?: string;
+  inspectorUsername?: string;
+  inspectorNombre?: string;
+  firmaInfractor?: string;
+  firmaInspectorHash?: string;
+  firmadaAt?: number | null;
+  anuladaMotivo?: string;
+  notificadaAt?: number | null;
+  vencePlazoAt?: number | null;
+  visiblePortal?: number;
+  montoEstimado?: number | null;
 };
 
 export type ImgModel = {
@@ -84,6 +110,9 @@ export type Constantes = {
   leyes: Ley[];
   leyCategorias: OpcionCatalogo[];
   infraccionTipos: OpcionCatalogo[];
+  medidasContravencion?: OpcionCatalogo[];
+  tiposSocietarios?: OpcionCatalogo[];
+  motivosArchivo?: OpcionCatalogo[];
 };
 
 export type FiltrosInfraccion = {
@@ -188,6 +217,32 @@ export type InfraccionRow = {
   estado: string | null;
   metadata_json: string | null;
   date_created: number;
+  estado_faltas: string | null;
+  situacion_infractor: string | null;
+  infractor_cuit: string | null;
+  infractor_razon_social: string | null;
+  infractor_email: string | null;
+  infractor_calle_altura: string | null;
+  entre_calle_1: string | null;
+  entre_calle_2: string | null;
+  gps_lat: number | null;
+  gps_lng: number | null;
+  ejido: string | null;
+  nomenclatura_catastral: string | null;
+  acarreo: number | null;
+  medidas_preventivas: string | null;
+  medida_vigente: number | null;
+  sustancias_descripcion: string | null;
+  inspector_username: string | null;
+  inspector_nombre: string | null;
+  firma_infractor: string | null;
+  firma_inspector_hash: string | null;
+  firmada_at: number | null;
+  anulada_motivo: string | null;
+  notificada_at: number | null;
+  vence_plazo_at: number | null;
+  visible_portal: number | null;
+  monto_estimado: number | null;
 };
 
 export type LeyRow = {

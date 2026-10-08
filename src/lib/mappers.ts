@@ -78,7 +78,43 @@ export function infraccionFromRow(
     estado: i.estado ?? 'Activo',
     dateCreated: i.date_created,
     metadata: readMetadata(i.metadata_json),
+    estadoFaltas: i.estado_faltas ?? 'Iniciado',
+    situacionInfractor: i.situacion_infractor ?? 'presente',
+    infractorCuit: i.infractor_cuit ?? undefined,
+    infractorRazonSocial: i.infractor_razon_social ?? undefined,
+    infractorEmail: i.infractor_email ?? undefined,
+    infractorCalleAltura: i.infractor_calle_altura ?? undefined,
+    entreCalle1: i.entre_calle_1 ?? undefined,
+    entreCalle2: i.entre_calle_2 ?? undefined,
+    gpsLat: i.gps_lat == null ? null : Number(i.gps_lat),
+    gpsLng: i.gps_lng == null ? null : Number(i.gps_lng),
+    ejido: i.ejido ?? undefined,
+    nomenclaturaCatastral: i.nomenclatura_catastral ?? undefined,
+    acarreo: i.acarreo ?? 0,
+    medidasPreventivas: readList(i.medidas_preventivas),
+    medidaVigente: i.medida_vigente ?? 0,
+    sustanciasDescripcion: i.sustancias_descripcion ?? undefined,
+    inspectorUsername: i.inspector_username ?? undefined,
+    inspectorNombre: i.inspector_nombre ?? undefined,
+    firmaInfractor: i.firma_infractor ?? undefined,
+    firmaInspectorHash: i.firma_inspector_hash ?? undefined,
+    firmadaAt: i.firmada_at ?? null,
+    anuladaMotivo: i.anulada_motivo ?? undefined,
+    notificadaAt: i.notificada_at ?? null,
+    vencePlazoAt: i.vence_plazo_at ?? null,
+    visiblePortal: i.visible_portal ?? 1,
+    montoEstimado: i.monto_estimado == null ? null : Number(i.monto_estimado),
   };
+}
+
+function readList(json: string | null): string[] {
+  if (!json) return [];
+  try {
+    const v = JSON.parse(json);
+    return Array.isArray(v) ? v.map(String) : [];
+  } catch {
+    return [];
+  }
 }
 
 export function infraccionToRow(d: Infraccion, existing?: Partial<InfraccionRow>): Partial<InfraccionRow> {
@@ -87,7 +123,7 @@ export function infraccionToRow(d: Infraccion, existing?: Partial<InfraccionRow>
     ...existing,
     uuid: d.uuid,
     infraccion_tipo_nombre: tipoNombre,
-    infraccion_tipo_id: tipoNombre === 'contravenciones' ? 2 : 1,
+    infraccion_tipo_id: tipoNombre === 'contravenciones' ? 2 : tipoNombre === 'sustancias' ? 3 : 1,
     legajo_number: d.legajoNumber ?? null,
     legajo_anio: d.legajoAnio ?? null,
     legajo_caratula: d.legajoCaratula ?? null,
@@ -119,6 +155,20 @@ export function infraccionToRow(d: Infraccion, existing?: Partial<InfraccionRow>
     retencion_de_vehiculo: d.retencionDeVehiculo ?? 0,
     estado: d.estado ?? 'Activo',
     metadata_json: writeMetadata(d.metadata),
+    situacion_infractor: d.situacionInfractor ?? 'presente',
+    infractor_cuit: d.infractorCuit ?? null,
+    infractor_razon_social: d.infractorRazonSocial ?? null,
+    infractor_email: d.infractorEmail ?? null,
+    infractor_calle_altura: d.infractorCalleAltura ?? null,
+    entre_calle_1: d.entreCalle1 ?? null,
+    entre_calle_2: d.entreCalle2 ?? null,
+    gps_lat: d.gpsLat ?? null,
+    gps_lng: d.gpsLng ?? null,
+    ejido: d.ejido ?? null,
+    nomenclatura_catastral: d.nomenclaturaCatastral ?? null,
+    acarreo: d.acarreo ?? 0,
+    medidas_preventivas: JSON.stringify(d.medidasPreventivas ?? []),
+    sustancias_descripcion: d.sustanciasDescripcion ?? null,
   };
 }
 
@@ -133,7 +183,7 @@ export function leyToRow(d: Ley, existing?: Partial<LeyRow>): Partial<LeyRow> {
     categoria_nombre: d.categoriaNombre ?? null,
     multiplicador: d.multiplicador ?? 1,
     infraccion_tipo_nombre: tipoNombre,
-    infraccion_tipo_id: tipoNombre === 'contravenciones' ? 2 : 1,
+    infraccion_tipo_id: tipoNombre === 'contravenciones' ? 2 : tipoNombre === 'sustancias' ? 3 : 1,
   };
 }
 

@@ -22,6 +22,9 @@ export async function GET(req: NextRequest) {
       'dependencia',
       'estado',
       'ley_categoria',
+      'medida_contravencion',
+      'tipo_societario',
+      'motivo_archivo',
     ] as const;
 
     const byTipo: Record<string, { id: number; nombre: string }[]> = {};
@@ -41,8 +44,11 @@ export async function GET(req: NextRequest) {
       estados: byTipo.estado ?? [],
       leyCategorias: byTipo.ley_categoria ?? [],
       leyes: ((leyesData ?? []) as LeyRow[]).map(leyFromRow),
-      infraccionTipos: [opt(1, 'multas'), opt(2, 'contravenciones')],
-    };
+      infraccionTipos: [opt(1, 'multas'), opt(2, 'contravenciones'), opt(3, 'sustancias')],
+      medidasContravencion: byTipo.medida_contravencion ?? [],
+      tiposSocietarios: byTipo.tipo_societario ?? [],
+      motivosArchivo: byTipo.motivo_archivo ?? [],
+    } as Constantes;
     return jsonOk(dto);
   } catch (e) {
     const status = (e as { status?: number }).status ?? 500;

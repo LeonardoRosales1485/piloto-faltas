@@ -1,4 +1,5 @@
 'use client';
+import { inicioPara } from '@/lib/role-guard';
 
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -17,8 +18,8 @@ export function LoginPage() {
     setLoading(true);
     setError('');
     try {
-      await login(username, password);
-      router.push('/private/lista-infracciones/multas');
+      const u = await login(username, password);
+      router.push(inicioPara(u.rol));
     } catch {
       setError('Usuario o contraseña incorrectos.');
       setLoading(false);
@@ -84,8 +85,9 @@ export function LoginPage() {
         {error ? <p className="err mt-2">{error}</p> : null}
         <div className="login-cred">
           <p>
-            Credenciales de prueba: <strong>admin/admin123</strong> · <strong>operador/operador123</strong> ·{' '}
-            <strong>inspector/inspector123</strong>
+            Credenciales de prueba: <strong>inspector/inspector123</strong> (labrado) · <strong>operador/operador123</strong> (agente) ·{' '}
+            <strong>directora/directora123</strong> · <strong>tributario/tributario123</strong> · <strong>becario/becario123</strong> · <strong>admin/admin123</strong>.
+            Portal de infractores: <a href="/portal">/portal</a> (valeria@example.com / ciudadano123)
           </p>
         </div>
         <div className="login-footer">

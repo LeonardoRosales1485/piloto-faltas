@@ -10,6 +10,9 @@ export const INFRACCION_COLS: Record<string, string> = {
   vehiculo_numero_dominio: 'vehiculo_numero_dominio',
   legajo_fecha: 'legajo_fecha',
   estado: 'estado',
+  estado_faltas: 'estado_faltas',
+  inspector_username: 'inspector_username',
+  infractor_documento_numero: 'infractor_documento_numero',
   uuid: 'uuid',
 };
 

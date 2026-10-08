@@ -9,9 +9,11 @@ import { actaPublicaUrl, printTicket } from '@/lib/print';
 import { useLayout } from '@/lib/layout-context';
 import type { FiltrosInfraccion, Infraccion, Paginado } from '@/lib/types';
 import { useNotify } from './NotifyProvider';
+import { EstadoChip } from './EstadoChip';
+import { ESTADOS_CAUSA, TIPOS_ACTA, tipoActa } from '@/lib/dominio';
 
 const SIZE = 10;
-const ESTADOS = ['Activo', 'Pendiente', 'Cerrado'];
+const ESTADOS = ['Borrador', ...ESTADOS_CAUSA.map((e) => e.nombre)];
 type Periodo = 'todos' | 'ultimo_mes' | 'periodo_manual';
 
 const vacios = (): FiltrosInfraccion => ({
@@ -73,22 +75,24 @@ function AccionesFila({
         <Link
           className="btn-accion-redondo btn-accion-editar"
           href={`/private/crear-editar/${tipo}/${i.uuid}`}
-          title="Editar"
+          title={i.estadoFaltas === 'Borrador' ? 'Continuar labrado' : 'Ver acta'}
           aria-label="Editar"
         >
           <i className="fa-solid fa-pen" aria-hidden="true" />
           {conEtiqueta ? <span>Editar</span> : null}
         </Link>
-        <button
-          type="button"
-          className="btn-accion-redondo btn-accion-eliminar"
-          title="Eliminar"
-          aria-label="Eliminar"
-          onClick={() => setEliminar(i)}
-        >
-          <i className="fa-solid fa-trash" aria-hidden="true" />
-          {conEtiqueta ? <span>Eliminar</span> : null}
-        </button>
+        {i.estadoFaltas !== 'Borrador' && i.estadoFaltas !== 'Anulada' ? (
+          <Link
+            className="btn-accion-redondo btn-accion-eliminar"
+            style={{ backgroundColor: '#7c3aed' }}
+            href={`/private/causa/${i.uuid}`}
+            title="Ver causa"
+            aria-label="Ver causa"
+          >
+            <i className="fa-solid fa-folder-open" aria-hidden="true" />
+            {conEtiqueta ? <span>Causa</span> : null}
+          </Link>
+        ) : null}
         <button
           type="button"
           className="btn-accion-redondo btn-accion-pdf"
@@ -142,13 +146,6 @@ function AccionesFila({
               </button>
               <button type="button" className="btn btn-outline-primary" onClick={() => void verLinkActa(pdf)}>
                 <i className="fa-solid fa-link" aria-hidden="true" /> Ver link del acta
-              </button>
-              <button
-                type="button"
-                className="btn btn-success"
-                onClick={() => notify.success('Copia enviada', 'Se envió una copia del acta al infractor.')}
-              >
-                <i className="fa-solid fa-paper-plane" aria-hidden="true" /> Enviar una copia al infractor
               </button>
             </div>
           </div>
@@ -499,7 +496,7 @@ export function ListaInfracciones() {
         <div className="card-seccion-header border-0">
           <h2 className="h5 m-0">
             <i className="fa-solid fa-list me-2" aria-hidden="true" />
-            {tipo === 'multas' ? 'Multas de Tránsito' : 'Contravenciones'}
+            {TIPOS_ACTA[tipoActa(tipo)].plural}
           </h2>
         </div>
 
@@ -521,7 +518,7 @@ export function ListaInfracciones() {
                   <div className="card card-movil-lista">
                     <div className="card-body">
                       <div className="mb-2">
-                        <span className={badge(i.estado)}>{i.estado}</span>
+                        <EstadoChip estado={i.estadoFaltas} medida={i.medidaVigente === 1} />
                       </div>
                       <div className="fila-movil">
                         <span>LEGAJO</span>
@@ -610,7 +607,7 @@ export function ListaInfracciones() {
                         )}
                       </td>
                       <td className="text-center">
-                        <span className={badge(i.estado)}>{i.estado}</span>
+                        <EstadoChip estado={i.estadoFaltas} medida={i.medidaVigente === 1} />
                       </td>
                     </tr>
                   ))}

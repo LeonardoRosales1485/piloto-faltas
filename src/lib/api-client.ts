@@ -79,7 +79,21 @@ async function del(path: string): Promise<void> {
   }
 }
 
+export const http = { get, post, del };
+
 export const apiClient = {
+  iniciarActa(tipo: string) {
+    return post<Infraccion>('/api/acta/iniciar', { tipo });
+  },
+
+  firmarActa(uuid: string, firmaInfractor: string | null) {
+    return post<{ uuid: string; hash: string }>('/api/acta/firmar', { uuid, firmaInfractor });
+  },
+
+  anularActa(uuid: string, motivo: string) {
+    return post<{ ok: boolean }>('/api/acta/anular', { uuid, motivo });
+  },
+
   login(username: string, password: string) {
     return post<Usuario>('/api/auth/login', { username, password });
   },
@@ -94,7 +108,7 @@ export const apiClient = {
 
   infracciones(tipo: string, filtros: FiltrosInfraccion, page = 0, size = 10) {
     const body = paginate(page, size);
-    addFiltro(body, 't', 'infraccion_tipo_id', '=', tipo === 'contravenciones' ? 2 : 1);
+    addFiltro(body, 't', 'infraccion_tipo_id', '=', tipo === 'contravenciones' ? 2 : tipo === 'sustancias' ? 3 : 1);
     addFiltro(body, 't', 'infractor_nombre', 'like', filtros.nombreInfractor);
     addFiltro(body, 't', 'legajo_numero_acta', 'like', filtros.acta);
     addFiltro(body, 't', 'legajo_number', 'like', filtros.legajo);
@@ -105,7 +119,8 @@ export const apiClient = {
         ? `${filtros.fechaHasta}T23:59`
         : filtros.fechaHasta;
     addFiltro(body, 't', 'legajo_fecha', '<=', hasta);
-    addFiltro(body, 't', 'estado', '=', filtros.estado);
+    addFiltro(body, 't', 'estado_faltas', '=', filtros.estado);
+    addFiltro(body, 't', 'inspector_username', '=', (filtros as FiltrosInfraccion & { inspector?: string }).inspector);
     body.ordenes.push({ tabla: 't', columna: 'id', direccion: 'desc' });
     return post<Paginado<Infraccion>>('/api/infraccion/paginate', body);
   },
@@ -124,7 +139,7 @@ export const apiClient = {
 
   leyes(tipo: string, filtros: FiltrosLey, page = 0, size = 10) {
     const body = paginate(page, size);
-    addFiltro(body, 't', 'infraccion_tipo_id', '=', tipo === 'contravenciones' ? 2 : 1);
+    addFiltro(body, 't', 'infraccion_tipo_id', '=', tipo === 'multas' ? 1 : 2);
     addFiltro(body, 'ley_categoria', 'nombre', '=', filtros.categoria);
     addFiltro(body, 't', 'articulo', '=', filtros.articulo);
     addFiltro(body, 't', 'nombre', 'like', filtros.nombre);

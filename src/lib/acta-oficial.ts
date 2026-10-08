@@ -497,7 +497,7 @@ export function actaOficialHtml(infraccion: Infraccion): string {
         <div class="acta-section-title">Datos del Infractor</div>
         <table class="acta-table">
           <tr>
-            <td class="acta-cell-6"><span class="acta-label">Apellido y Nombre / Razón Social</span><span class="acta-value">${escapeHtml(infraccion.infractorNombre || '')}</span></td>
+            <td class="acta-cell-6"><span class="acta-label">Apellido y Nombre / Razón Social</span><span class="acta-value">${escapeHtml(infraccion.infractorRazonSocial || infraccion.infractorNombre || '')}</span></td>
             <td class="acta-cell-2"><span class="acta-label">Tipo</span><span class="acta-value">${escapeHtml((infraccion.infractorDocumentoTipoNombre || '').toUpperCase())}</span></td>
             <td class="acta-cell-4"><span class="acta-label">N° Documento</span><span class="acta-value">${escapeHtml(infraccion.infractorDocumentoNumero || '')}</span></td>
           </tr>
@@ -520,8 +520,9 @@ export function actaOficialHtml(infraccion: Infraccion): string {
             <td class="acta-cell-12" colspan="4">
               <div class="acta-check-row">
                 <span class="acta-check"><i></i> Se dió a la fuga</span>
-                <span class="acta-check"><i></i> Negó a identificarse</span>
-                <span class="acta-check"><i></i> No identif. (NN)</span>
+                <span class="acta-check"><i>${infraccion.situacionInfractor === 'se_niega' ? 'X' : ''}</i> Negó a firmar</span>
+                <span class="acta-check"><i>${infraccion.situacionInfractor === 'nn' ? 'X' : ''}</i> No identif. (NN)</span>
+                <span class="acta-check"><i>${infraccion.situacionInfractor === 'ausente' ? 'X' : ''}</i> Ausente</span>
               </div>
             </td>
           </tr>
@@ -610,10 +611,12 @@ export function actaOficialHtml(infraccion: Infraccion): string {
 
       <div class="acta-signatures">
         <div class="acta-signature-box">
+          <div style="min-height:44px;font-size:7pt;text-align:center">${infraccion.firmaInspectorHash ? `Firmado digitalmente por ${escapeHtml(infraccion.inspectorNombre || '')}<br/>Código ${escapeHtml(String(infraccion.firmaInspectorHash).slice(0, 16).toUpperCase())}` : ''}</div>
           <div class="acta-signature-line"></div>
           <div class="acta-signature-label">Firma, Aclaración y Repartición del Agente de Comprobación</div>
         </div>
         <div class="acta-signature-box">
+          <div style="min-height:44px;text-align:center">${infraccion.firmaInfractor ? `<img src="${infraccion.firmaInfractor}" alt="" style="height:44px"/>` : infraccion.situacionInfractor && infraccion.situacionInfractor !== 'presente' ? '<span style="font-size:7pt">No firma: ' + (infraccion.situacionInfractor === 'nn' ? 'NN' : infraccion.situacionInfractor === 'ausente' ? 'ausente' : 'se negó') + '</span>' : ''}</div>
           <div class="acta-signature-line"></div>
           <div class="acta-signature-label">Firma del Presunto Infractor</div>
         </div>

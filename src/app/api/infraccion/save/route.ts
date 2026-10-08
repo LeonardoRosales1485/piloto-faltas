@@ -1,77 +1,37 @@
 import { NextRequest } from 'next/server';
-import { randomUUID } from 'crypto';
-import { requireUser } from '@/lib/auth';
-import { jsonFail, jsonOk } from '@/lib/http-data';
-import { infraccionFromRow, infraccionToRow } from '@/lib/mappers';
-import { createServerClient } from '@/lib/supabase-server';
+import { iniciarActa } from '@/lib/acta-srv';
+import { syncInfraccionRelations } from '@/lib/infraccion-relations';
+import { loadInfraccionByUuid } from '@/lib/load-infraccion';
+import { infraccionToRow } from '@/lib/mappers';
+import { check, handle, HttpError, uuid as nuevoUuid } from '@/lib/srv';
 import type { Infraccion, InfraccionRow } from '@/lib/types';
 
-async function syncRelations(
-  supabase: ReturnType<typeof createServerClient>,
-  infraccionId: number,
-  leyesNombre: string[] | undefined,
-  dependenciasNombre: string[] | undefined,
-) {
-  await supabase.from('infraccion_ley').delete().eq('infraccion_id', infraccionId);
-  await supabase.from('infraccion_dependencia').delete().eq('infraccion_id', infraccionId);
-  if (leyesNombre?.length) {
-    await supabase.from('infraccion_ley').insert(
-      leyesNombre.map((ley_nombre) => ({ infraccion_id: infraccionId, ley_nombre })),
-    );
-  }
-  if (dependenciasNombre?.length) {
-    await supabase.from('infraccion_dependencia').insert(
-      dependenciasNombre.map((dependencia_nombre) => ({
-        infraccion_id: infraccionId,
-        dependencia_nombre,
-      })),
-    );
-  }
-}
+/** Campos que solo asigna el sistema: nunca se toman del cliente (numeración, fecha, firma, estado). */
+const PROTEGIDOS = [
+  'legajo_number', 'legajo_anio', 'legajo_numero_acta', 'legajo_fecha', 'legajo_caratula',
+  'infraccion_tipo_id', 'infraccion_tipo_nombre', 'date_created', 'uuid',
+] as const;
 
 export async function POST(req: NextRequest) {
-  try {
-    await requireUser(req);
-    const dto = (await req.json()) as Infraccion;
-    const supabase = createServerClient();
-
+  const dto = (await req.json()) as Infraccion;
+  return handle(req, async ({ user, db }) => {
     let existing: InfraccionRow | null = null;
     if (dto.uuid) {
-      const { data } = await supabase.from('infraccion').select('*').eq('uuid', dto.uuid).maybeSingle();
+      const { data } = await db.from('infraccion').select('*').eq('uuid', dto.uuid).maybeSingle();
       existing = (data as InfraccionRow) ?? null;
     }
-
-    const uuid = dto.uuid && dto.uuid.trim() ? dto.uuid : randomUUID();
-    const row = infraccionToRow(
-      { ...dto, uuid },
-      existing
-        ? { id: existing.id, date_created: existing.date_created, uuid: existing.uuid }
-        : { date_created: Date.now(), uuid },
-    );
-
-    if (existing) {
-      const { data, error } = await supabase
-        .from('infraccion')
-        .update(row)
-        .eq('id', existing.id)
-        .select('*')
-        .single();
-      if (error || !data) return jsonFail(500, error?.message ?? 'No se pudo guardar');
-      const saved = data as InfraccionRow;
-      await syncRelations(supabase, saved.id, dto.leyesNombre, dto.dependenciasNombre);
-      return jsonOk(
-        infraccionFromRow(saved, dto.leyesNombre ?? [], dto.dependenciasNombre ?? []),
-      );
+    if (!existing) {
+      const creada = await iniciarActa(db, user, dto.infraccionTipoNombre, dto.uuid || nuevoUuid());
+      const { data } = await db.from('infraccion').select('*').eq('id', creada.id).single();
+      existing = data as InfraccionRow;
     }
+    check(existing.estado_faltas === 'Borrador', 'El acta ya fue firmada: es inmutable. Use «Subsanar» desde la causa para dejar constancia de una corrección.', 409);
 
-    const { data, error } = await supabase.from('infraccion').insert(row).select('*').single();
-    if (error || !data) return jsonFail(500, error?.message ?? 'No se pudo guardar');
-    const saved = data as InfraccionRow;
-    await syncRelations(supabase, saved.id, dto.leyesNombre, dto.dependenciasNombre);
-    return jsonOk(infraccionFromRow(saved, dto.leyesNombre ?? [], dto.dependenciasNombre ?? []));
-  } catch (e) {
-    const status = (e as { status?: number }).status ?? 500;
-    const msg = e instanceof Error ? e.message : 'Error';
-    return jsonFail(status, msg);
-  }
+    const row = infraccionToRow({ ...dto, uuid: existing.uuid }) as Record<string, unknown>;
+    for (const k of PROTEGIDOS) delete row[k];
+    const { error } = await db.from('infraccion').update(row).eq('id', existing.id);
+    if (error) throw new HttpError(500, error.message);
+    await syncInfraccionRelations(db, existing.id, dto.leyesNombre, dto.dependenciasNombre);
+    return loadInfraccionByUuid(existing.uuid);
+  }, 'labrar');
 }

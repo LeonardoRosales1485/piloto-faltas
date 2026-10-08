@@ -38,13 +38,14 @@ async function loadRelations(
 
 export async function POST(req: NextRequest) {
   try {
-    await requireUser(req);
+    const user = await requireUser(req);
     const body = (await req.json()) as PaginateListModel;
     const { from, to, page, size } = pageRange(body);
     const supabase = createServerClient();
 
     let query = supabase.from('infraccion').select('*', { count: 'exact' });
     query = applyInfraccionFiltros(query as never, body) as typeof query;
+    if (user.rol === 'Inspector') query = query.eq('inspector_username', user.username);
     query = applyOrdenes(query as never, body.ordenes) as typeof query;
     query = query.range(from, to);
 

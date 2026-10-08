@@ -1,57 +1,29 @@
 'use client';
-
+import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { apiClient } from '@/lib/api-client';
 import { useLayout } from '@/lib/layout-context';
+import { printActa, printTicket } from '@/lib/print';
+import { SITUACIONES, TIPOS_ACTA, claveLey, fechaHora, tipoActa } from '@/lib/dominio';
 import type { ImgModel, Infraccion, Ley, OpcionCatalogo } from '@/lib/types';
-import {
-  MAX_IMAGENES,
-  PASOS,
-  TOTAL_PASOS,
-  readImageFile,
-  toDateInput,
-  toDateTimeLocal,
-  vacia,
-} from './crear-editar-utils';
+import { MAX_IMAGENES, ejidoPorGps, pasosPara, readImageFile, toDateTimeLocal, vacia } from './crear-editar-utils';
 import { useNotify } from './NotifyProvider';
+import { SignaturePad } from './SignaturePad';
 
-const PERSONAS = [
-  { v: 0, t: 'Persona Física' },
-  { v: 1, t: 'Persona Jurídica' },
-  { v: 2, t: 'Otro' },
+const ALCOHOLEMIA = [
+  { v: '', t: 'No realizada' },
+  { v: 'negativa', t: 'Negativa' },
+  { v: 'positiva', t: 'Positiva' },
 ];
 
-function WizardNav({
-  paso,
-  totalPasos,
-  edicionHabilitada,
-  guardando,
-  irAPaso,
-  guardar,
-}: {
-  paso: number;
-  totalPasos: number;
-  edicionHabilitada: boolean;
-  guardando: boolean;
-  irAPaso: (n: number) => void;
-  guardar: () => void;
-}) {
+function Campo({ id, label, children, req }: { id: string; label: string; children: React.ReactNode; req?: boolean }) {
   return (
-    <div className="wizard-nav">
-      <button type="button" className="btn btn-lg btn-secondary" disabled={paso === 1} onClick={() => irAPaso(paso - 1)}>
-        Anterior
-      </button>
-      {paso === totalPasos ? (
-        <button type="button" className="btn btn-lg btn-primary" disabled={!edicionHabilitada || guardando} onClick={guardar}>
-          {guardando ? <i className="fa-solid fa-spinner fa-spin" aria-hidden="true" /> : null}
-          Guardar
-        </button>
-      ) : (
-        <button type="button" className="btn btn-lg btn-primary" onClick={() => irAPaso(paso + 1)}>
-          Siguiente
-        </button>
-      )}
+    <div className="form-group">
+      <label htmlFor={id}>
+        {label} {req ? <span className="requerido">*</span> : null}
+      </label>
+      {children}
     </div>
   );
 }
@@ -61,631 +33,785 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
   const router = useRouter();
   const notify = useNotify();
   const { setOcultarTopbar } = useLayout();
-
-  const tipo = (params.tipo as string) ?? 'multas';
+  const tipo = tipoActa((params.tipo as string) ?? 'multas');
+  const info = TIPOS_ACTA[tipo];
   const uuid = uuidProp ?? (params.uuid as string | undefined);
 
-  const [cargando, setCargando] = useState(Boolean(uuid));
-  const [esEdicion] = useState(Boolean(uuid));
-  const [edicionHabilitada, setEdicionHabilitada] = useState(!uuid);
+  const [cargando, setCargando] = useState(true);
   const [guardando, setGuardando] = useState(false);
   const [mostrarLeyes, setMostrarLeyes] = useState(false);
-  const [paso, setPaso] = useState(1);
+  const [descartar, setDescartar] = useState(false);
+  const [motivoDescarte, setMotivoDescarte] = useState('');
+  const [idx, setIdx] = useState(0);
   const [busquedaLey, setBusquedaLey] = useState('');
   const [indiceImagen, setIndiceImagen] = useState(0);
   const [form, setForm] = useState<Infraccion>(() => vacia(tipo));
   const [leyes, setLeyes] = useState<Ley[]>([]);
   const [imagenes, setImagenes] = useState<ImgModel[]>([]);
-  const [dependencias, setDependencias] = useState<OpcionCatalogo[]>([]);
-  const [documentoTipos, setDocumentoTipos] = useState<OpcionCatalogo[]>([]);
-  const [localidades, setLocalidades] = useState<OpcionCatalogo[]>([]);
-  const [partidos, setPartidos] = useState<OpcionCatalogo[]>([]);
-  const [provincias, setProvincias] = useState<OpcionCatalogo[]>([]);
-  const [vehiculoTipos, setVehiculoTipos] = useState<OpcionCatalogo[]>([]);
+  const [firma, setFirma] = useState<string | null>(null);
+  const [gpsEstado, setGpsEstado] = useState<'' | 'buscando' | 'ok' | 'error'>('');
+  const [cat, setCat] = useState<Record<string, OpcionCatalogo[]>>({});
+  const iniciado = useRef(false);
 
-  const patchForm = useCallback((partial: Partial<Infraccion>) => {
-    setForm((prev) => ({ ...prev, ...partial }));
-  }, []);
+  const soloLectura = form.estadoFaltas !== undefined && form.estadoFaltas !== 'Borrador';
+  const habilitado = !soloLectura && !guardando;
+  const pasos = useMemo(() => pasosPara(tipo, form.situacionInfractor), [tipo, form.situacionInfractor]);
+  const paso = pasos[Math.min(idx, pasos.length - 1)];
 
-  const irAPaso = useCallback(
-    (n: number) => {
-      const next = Math.min(TOTAL_PASOS, Math.max(1, n));
-      setPaso(next);
-      setOcultarTopbar(next > 1);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    },
-    [setOcultarTopbar],
-  );
+  const patch = useCallback((partial: Partial<Infraccion>) => setForm((prev) => ({ ...prev, ...partial })), []);
+  const patchMeta = (k: string, v: string) => setForm((prev) => ({ ...prev, metadata: { ...(prev.metadata ?? {}), [k]: v } }));
+
+  useEffect(() => () => setOcultarTopbar(false), [setOcultarTopbar]);
 
   useEffect(() => {
-    return () => setOcultarTopbar(false);
-  }, [setOcultarTopbar]);
-
-  useEffect(() => {
-    setPaso(1);
-    setOcultarTopbar(false);
-    setBusquedaLey('');
     apiClient.constantes().then((c) => {
-      setDocumentoTipos(c.documentoTipos ?? []);
-      setLocalidades(c.localidades ?? []);
-      setPartidos(c.partidos ?? []);
-      setProvincias(c.provincias ?? []);
-      setVehiculoTipos(c.vehiculoTipos ?? []);
-      setDependencias(c.dependencias ?? []);
-    });
-    apiClient.leyes(tipo, { articulo: '', nombre: '', categoria: '' }, 0, 200).then((res) => {
-      setLeyes(res.content ?? []);
-    });
-
-    if (uuid) {
-      setEdicionHabilitada(false);
-      setCargando(true);
-      apiClient
-        .getInfraccion(uuid)
-        .then((inf) => {
-          setForm({
-            ...vacia(tipo),
-            ...inf,
-            legajoFecha: toDateTimeLocal(inf.legajoFecha),
-            infractorFechaNacimiento: toDateInput(inf.infractorFechaNacimiento),
-            dependenciasNombre: inf.dependenciasNombre ?? [],
-            leyesNombre: inf.leyesNombre ?? [],
-          });
-          setCargando(false);
-        })
-        .catch(() => {
-          notify.error('No encontrada', 'La infracción solicitada no existe.');
-          router.push(`/private/lista-infracciones/${tipo}`);
-          setCargando(false);
-        });
-      apiClient.imagenes(uuid).then((res) => {
-        setImagenes(res.content ?? []);
-        setIndiceImagen(0);
+      const extra = c as unknown as Record<string, OpcionCatalogo[]>;
+      setCat({
+        documento: c.documentoTipos ?? [],
+        localidad: c.localidades ?? [],
+        partido: c.partidos ?? [],
+        provincia: c.provincias ?? [],
+        vehiculo: c.vehiculoTipos ?? [],
+        dependencia: c.dependencias ?? [],
+        medida: extra.medidasContravencion ?? [],
       });
-    } else {
-      setEdicionHabilitada(true);
-      setCargando(false);
-      setForm(vacia(tipo));
-      setImagenes([]);
-      setIndiceImagen(0);
-    }
-  }, [tipo, uuid, router, notify, setOcultarTopbar]);
+    });
+    apiClient.leyes(tipo, { articulo: '', nombre: '', categoria: '' }, 0, 300).then((res) => setLeyes(res.content ?? []));
+  }, [tipo]);
+
+  useEffect(() => {
+    if (iniciado.current) return;
+    iniciado.current = true;
+    setCargando(true);
+    const carga = uuid ? apiClient.getInfraccion(uuid) : apiClient.iniciarActa(tipo);
+    carga
+      .then((inf) => {
+        setForm({ ...vacia(tipo), ...inf, legajoFecha: toDateTimeLocal(inf.legajoFecha) });
+        setFirma(inf.firmaInfractor ?? null);
+        if (uuid) apiClient.imagenes(uuid).then((r) => setImagenes(r.content ?? []));
+        if (!uuid && inf.uuid) window.history.replaceState(null, '', `/private/crear-editar/${tipo}/${inf.uuid}`);
+      })
+      .catch((e: Error) => {
+        notify.error('No se pudo abrir el acta', e.message);
+        router.push(`/private/lista-infracciones/${tipo}`);
+      })
+      .finally(() => setCargando(false));
+  }, [uuid, tipo, notify, router]);
 
   const leyesSeleccionadas = useMemo(
-    () =>
-      (form.leyesNombre ?? []).map(
-        (nombre) =>
-          leyes.find((l) => l.nombre === nombre) ?? {
-            uuid: nombre,
-            nombre,
-            articulo: '',
-            descripcion: '',
-            categoriaNombre: '',
-            multiplicador: 0,
-            infraccionTipoNombre: tipo,
-          },
-      ),
-    [form.leyesNombre, leyes, tipo],
+    () => (form.leyesNombre ?? []).map((n) => leyes.find((l) => claveLey(l) === n) ?? leyes.find((l) => l.nombre === n) ?? ({ uuid: n, nombre: n, articulo: '', multiplicador: 0 } as Ley)),
+    [form.leyesNombre, leyes],
   );
+  const unidades = leyesSeleccionadas.reduce((a, l) => a + Number(l.multiplicador ?? 0), 0);
 
   const leyesVisibles = useMemo(() => {
     const q = busquedaLey.toLowerCase().trim();
     if (!q) return leyes;
-    return leyes.filter(
-      (ley) =>
-        (ley.articulo ?? '').toLowerCase().includes(q) ||
-        ley.nombre.toLowerCase().includes(q) ||
-        (ley.descripcion ?? '').toLowerCase().includes(q),
-    );
+    return leyes.filter((l) => `${l.articulo} ${l.nombre} ${l.descripcion ?? ''}`.toLowerCase().includes(q));
   }, [busquedaLey, leyes]);
 
-  function dependenciaMarcada(id: number) {
-    return (form.dependenciasNombre ?? []).includes(String(id));
+  function toggleLista(campo: 'dependenciasNombre' | 'leyesNombre' | 'medidasPreventivas', valor: string) {
+    const actual = (form[campo] as string[] | undefined) ?? [];
+    patch({ [campo]: actual.includes(valor) ? actual.filter((v) => v !== valor) : [...actual, valor] } as Partial<Infraccion>);
   }
 
-  function todasDependencias() {
-    return dependencias.length > 0 && dependencias.every((d) => dependenciaMarcada(d.id));
+  function usarGps() {
+    if (!navigator.geolocation) {
+      setGpsEstado('error');
+      return;
+    }
+    setGpsEstado('buscando');
+    navigator.geolocation.getCurrentPosition(
+      (p) => {
+        const lat = Number(p.coords.latitude.toFixed(6));
+        const lng = Number(p.coords.longitude.toFixed(6));
+        patch({ gpsLat: lat, gpsLng: lng, ejido: ejidoPorGps(lat, lng) });
+        setGpsEstado('ok');
+        fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=es`)
+          .then((r) => r.json())
+          .then((j) => {
+            const a = j?.address ?? {};
+            setForm((prev) => ({
+              ...prev,
+              domicilioInfraccionCalle: prev.domicilioInfraccionCalle || a.road || '',
+              domicilioInfraccionNumero: prev.domicilioInfraccionNumero || a.house_number || '',
+              domicilioInfraccionLocalidadNombre: prev.domicilioInfraccionLocalidadNombre || a.suburb || a.town || a.city || '',
+            }));
+          })
+          .catch(() => undefined);
+      },
+      () => setGpsEstado('error'),
+      { enableHighAccuracy: true, timeout: 10000 },
+    );
   }
 
-  function toggleDependencia(id: number) {
-    const key = String(id);
-    const actual = form.dependenciasNombre ?? [];
-    patchForm({
-      dependenciasNombre: actual.includes(key) ? actual.filter((v) => v !== key) : [...actual, key],
-    });
+  async function guardarBorrador(silencioso = true): Promise<Infraccion | null> {
+    if (soloLectura) return form;
+    try {
+      const g = await apiClient.saveInfraccion(form);
+      const persistidas = await apiClient.imagenes(g.uuid ?? '');
+      const keep = new Set(imagenes.filter((i) => i.uuid).map((i) => i.uuid));
+      for (const p of persistidas.content) if (p.uuid && !keep.has(p.uuid)) await apiClient.deleteImagen(p.uuid);
+      const nuevas: ImgModel[] = [];
+      for (const img of imagenes) nuevas.push(img.uuid ? img : await apiClient.saveImagen({ ...img, infraccionUuid: g.uuid }));
+      setImagenes(nuevas);
+      if (!silencioso) notify.success('Borrador guardado', `Acta ${g.legajoNumeroActa}`);
+      return g;
+    } catch (e) {
+      notify.error('No se pudo guardar', (e as Error).message);
+      return null;
+    }
   }
 
-  function toggleTodasDependencias() {
-    patchForm({
-      dependenciasNombre: todasDependencias() ? [] : dependencias.map((d) => String(d.id)),
-    });
+  async function irA(n: number) {
+    const next = Math.min(pasos.length - 1, Math.max(0, n));
+    if (!soloLectura && next !== idx) void guardarBorrador();
+    setIdx(next);
+    setOcultarTopbar(next > 0);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  function leyMarcada(ley: Ley) {
-    return (form.leyesNombre ?? []).includes(ley.nombre);
+  async function firmarYConfirmar() {
+    if (form.situacionInfractor === 'presente' && !firma) {
+      notify.error('Falta la firma', 'El infractor presente debe firmar el acta. Si se niega, cambie la situación en el paso 1.');
+      return;
+    }
+    setGuardando(true);
+    try {
+      const g = await guardarBorrador();
+      if (!g) return;
+      await apiClient.firmarActa(g.uuid!, form.situacionInfractor === 'presente' ? firma : null);
+      const final = await apiClient.getInfraccion(g.uuid!);
+      setForm({ ...final, legajoFecha: toDateTimeLocal(final.legajoFecha) });
+      notify.success('Acta firmada', `${final.legajoNumeroActa} ingresó como causa. Ya puede imprimir el ticket.`);
+    } catch (e) {
+      notify.error('No se pudo firmar', (e as Error).message);
+    } finally {
+      setGuardando(false);
+    }
   }
 
-  function toggleLey(ley: Ley) {
-    const actual = form.leyesNombre ?? [];
-    patchForm({
-      leyesNombre: actual.includes(ley.nombre) ? actual.filter((n) => n !== ley.nombre) : [...actual, ley.nombre],
-    });
-  }
-
-  function quitarLey(nombre: string) {
-    patchForm({ leyesNombre: (form.leyesNombre ?? []).filter((n) => n !== nombre) });
-  }
-
-  function srcImagen(img?: ImgModel) {
-    return img?.previewRaw || img?.fullRaw || '';
-  }
-
-  function quitarImagen() {
-    setImagenes((prev) => prev.filter((_, i) => i !== indiceImagen));
-    setIndiceImagen(0);
+  async function confirmarDescarte() {
+    if (!motivoDescarte.trim()) return;
+    try {
+      await apiClient.anularActa(form.uuid!, motivoDescarte);
+      notify.success('Borrador descartado', `El número ${form.legajoNumeroActa} quedó anulado.`);
+      router.push(`/private/lista-infracciones/${tipo}`);
+    } catch (e) {
+      notify.error('No se pudo descartar', (e as Error).message);
+    }
   }
 
   async function onImagenes(event: React.ChangeEvent<HTMLInputElement>) {
     const files = event.target.files;
     if (!files) return;
     const disponibles = MAX_IMAGENES - imagenes.length;
-    if (files.length > disponibles) {
-      notify.warning('Límite de imágenes', `Solo se pueden cargar hasta ${MAX_IMAGENES} imágenes en total.`);
-    }
-    const nuevos = [...imagenes];
+    if (files.length > disponibles) notify.warning('Límite de imágenes', `Solo se pueden cargar hasta ${MAX_IMAGENES} imágenes.`);
+    const nuevas = [...imagenes];
     for (const file of Array.from(files).slice(0, Math.max(0, disponibles))) {
       const dataUrl = await readImageFile(file);
-      nuevos.push({
-        uuid: '',
-        status: 1,
-        dateCreated: Date.now(),
-        infraccionUuid: form.uuid,
-        previewRaw: dataUrl,
-        fullRaw: dataUrl,
-      });
+      nuevas.push({ uuid: '', status: 1, dateCreated: Date.now(), infraccionUuid: form.uuid, previewRaw: dataUrl, fullRaw: dataUrl });
     }
-    setImagenes(nuevos);
+    setImagenes(nuevas);
     event.target.value = '';
   }
-
-  async function guardar() {
-    if (!form.infractorNombre?.trim() || !form.infractorDocumentoNumero?.trim()) {
-      notify.error('Datos incompletos', 'Complete nombre y documento del infractor.');
-      return;
-    }
-    if (!(form.leyesNombre ?? []).length) {
-      notify.error('Datos incompletos', 'Seleccione al menos un artículo.');
-      return;
-    }
-    setGuardando(true);
-    try {
-      const guardada = await apiClient.saveInfraccion(form);
-      const persistidas = await apiClient.imagenes(guardada.uuid ?? '');
-      const keep = new Set(imagenes.filter((img) => img.uuid).map((img) => img.uuid));
-      for (const previa of persistidas.content) {
-        if (previa.uuid && !keep.has(previa.uuid)) {
-          await apiClient.deleteImagen(previa.uuid);
-        }
-      }
-      for (const img of imagenes) {
-        if (!img.uuid) {
-          await apiClient.saveImagen({ ...img, infraccionUuid: guardada.uuid });
-        }
-      }
-      notify.success(
-        esEdicion ? 'Infracción actualizada' : 'Infracción creada',
-        `Acta N.° ${guardada.legajoNumeroActa}`,
-      );
-      router.push(`/private/lista-infracciones/${tipo}`);
-    } catch {
-      notify.error('No se pudo guardar', 'Revise los datos e intente nuevamente.');
-    } finally {
-      setGuardando(false);
-    }
-  }
-
-  function cancelar() {
-    setForm(vacia(tipo));
-    setImagenes([]);
-    setIndiceImagen(0);
-    irAPaso(1);
-    notify.success('Formulario reiniciado');
-  }
-
-  const imagenActual = imagenes[Math.min(indiceImagen, Math.max(0, imagenes.length - 1))];
 
   if (cargando) {
     return (
       <div className="pagina pagina-steps">
         <div className="card-step">
           <div className="celda-cargando">
-            <i className="fa-solid fa-spinner fa-spin" aria-hidden="true" /> Cargando...
+            <i className="fa-solid fa-spinner fa-spin" aria-hidden="true" /> {uuid ? 'Cargando...' : 'Reservando número de acta...'}
           </div>
         </div>
       </div>
     );
   }
 
+  const imagenActual = imagenes[Math.min(indiceImagen, Math.max(0, imagenes.length - 1))];
+  const esJuridica = form.infractorPersonaTipo === 1;
+  const sel = (lista: OpcionCatalogo[] | undefined, value: string | undefined, onChange: (v: string) => void, id: string, vacioTxt = 'Seleccionar...') => (
+    <select id={id} className="form-select" disabled={!habilitado} value={value ?? ''} onChange={(e) => onChange(e.target.value)}>
+      <option value="">{vacioTxt}</option>
+      {(lista ?? []).map((o) => (
+        <option key={o.nombre} value={o.nombre}>
+          {o.nombre}
+        </option>
+      ))}
+    </select>
+  );
+  const inp = (id: keyof Infraccion, props: React.InputHTMLAttributes<HTMLInputElement> = {}) => (
+    <input id={String(id)} className="form-control" disabled={!habilitado} value={(form[id] as string | undefined) ?? ''} onChange={(e) => patch({ [id]: e.target.value } as Partial<Infraccion>)} {...props} />
+  );
+
+  // ---------------------------------------------------------------- acta firmada
+  if (soloLectura) {
+    return (
+      <div className="pagina pagina-steps">
+        <article className="card-step">
+          <div className="card-step-header">
+            <h2>
+              {info.titulo} {form.legajoNumeroActa}
+            </h2>
+            <p>
+              Legajo {form.legajoNumber}/{form.legajoAnio} · {form.estadoFaltas === 'Anulada' ? `Número anulado: ${form.anuladaMotivo ?? ''}` : `Firmada el ${fechaHora(form.firmadaAt ?? undefined)} por ${form.inspectorNombre ?? '-'}`}
+            </p>
+          </div>
+          <div className="card-step-body">
+            {form.estadoFaltas === 'Anulada' ? (
+              <div className="aviso aviso-alerta">Este número fue anulado y no puede reutilizarse.</div>
+            ) : (
+              <>
+                <div className="aviso aviso-ok">
+                  <i className="fa-solid fa-lock" aria-hidden="true" /> El acta está firmada y no se puede modificar. Las correcciones se registran desde la causa como subsanación.
+                </div>
+                <div className="botonera">
+                  <button type="button" className="btn btn-primary btn-lg" onClick={() => void printTicket(form)}>
+                    <i className="fa-solid fa-print" aria-hidden="true" /> Imprimir ticket
+                  </button>
+                  <button type="button" className="btn btn-outline-primary btn-lg" onClick={() => printActa(form)}>
+                    <i className="fa-solid fa-file-pdf" aria-hidden="true" /> Ver acta (PDF)
+                  </button>
+                  <Link className="btn btn-outline-secondary btn-lg" href={`/private/crear-editar/${tipo}`} onClick={() => (iniciado.current = false)}>
+                    <i className="fa-solid fa-plus" aria-hidden="true" /> Labrar otra acta
+                  </Link>
+                  <Link className="btn btn-outline-secondary btn-lg" href={`/private/causa/${form.uuid}`}>
+                    <i className="fa-solid fa-folder-open" aria-hidden="true" /> Ver causa
+                  </Link>
+                </div>
+              </>
+            )}
+          </div>
+        </article>
+      </div>
+    );
+  }
+
+  // ---------------------------------------------------------------- wizard
+  const nav = (
+    <div className="wizard-nav">
+      <button type="button" className="btn btn-lg btn-secondary" disabled={idx === 0} onClick={() => void irA(idx - 1)}>
+        Anterior
+      </button>
+      {paso.id === 'firma' ? (
+        <button type="button" className="btn btn-lg btn-success" disabled={guardando} onClick={() => void firmarYConfirmar()}>
+          {guardando ? <i className="fa-solid fa-spinner fa-spin" aria-hidden="true" /> : <i className="fa-solid fa-signature" aria-hidden="true" />} Firmar y confirmar
+        </button>
+      ) : (
+        <button type="button" className="btn btn-lg btn-primary" onClick={() => void irA(idx + 1)}>
+          Siguiente
+        </button>
+      )}
+    </div>
+  );
+
   return (
     <div className="pagina pagina-steps">
+      <div className="acta-encabezado-numero">
+        <span className="acta-numero-chip">
+          <i className="fa-solid fa-hashtag" aria-hidden="true" /> {form.legajoNumeroActa}
+        </span>
+        <span>Legajo {form.legajoNumber}/{form.legajoAnio}</span>
+        <span className="acta-borrador-chip">Borrador sin firmar</span>
+      </div>
+
       <nav className="wizard-pasos" aria-label="Pasos del formulario">
-        {PASOS.map((p) => (
-          <button
-            key={p.numero}
-            type="button"
-            className={`wizard-paso ${p.numero === paso ? 'activo' : ''} ${p.numero < paso ? 'completado' : ''}`}
-            onClick={() => irAPaso(p.numero)}
-          >
-            <span className="wizard-paso-num">{p.numero}</span>
+        {pasos.map((p, i) => (
+          <button key={p.id} type="button" className={`wizard-paso ${i === idx ? 'activo' : ''} ${i < idx ? 'completado' : ''}`} onClick={() => void irA(i)}>
+            <span className="wizard-paso-num">{i + 1}</span>
             <span className="wizard-paso-label">{p.corto}</span>
           </button>
         ))}
       </nav>
 
-      <WizardNav paso={paso} totalPasos={TOTAL_PASOS} edicionHabilitada={edicionHabilitada} guardando={guardando} irAPaso={irAPaso} guardar={guardar} />
+      {nav}
 
-      {paso === 1 ? (
-        <article className="card-step card-step-wizard">
-          <div className="card-step-header">
-            <h2>1. Datos Del Expediente/Legajo</h2>
-            <p>Información básica del expediente</p>
-          </div>
-          <div className="card-step-body">
+      <article className="card-step card-step-wizard">
+        <div className="card-step-header">
+          <h2>
+            {idx + 1}. {paso.titulo}
+          </h2>
+          <p>{paso.ayuda}</p>
+        </div>
+        <div className="card-step-body">
+          {paso.id === 'acta' ? (
             <div className="row g-3">
               <div className="col-12 col-md-4">
-                <div className="form-group">
-                  <label htmlFor="legajoNumber">Legajo</label>
-                  <input id="legajoNumber" className="form-control" maxLength={10} disabled={!edicionHabilitada} value={form.legajoNumber ?? ''} onChange={(e) => patchForm({ legajoNumber: e.target.value })} />
-                </div>
+                <Campo id="nroActa" label="Número de acta">
+                  <input id="nroActa" className="form-control" disabled value={form.legajoNumeroActa ?? ''} />
+                </Campo>
               </div>
-              <div className="col-12 col-md-4">
-                <div className="form-group">
-                  <label htmlFor="legajoAnio">Año</label>
-                  <input id="legajoAnio" className="form-control" maxLength={4} disabled={!edicionHabilitada} value={form.legajoAnio ?? ''} onChange={(e) => patchForm({ legajoAnio: e.target.value })} />
-                </div>
+              <div className="col-6 col-md-4">
+                <Campo id="nroLegajo" label="Legajo">
+                  <input id="nroLegajo" className="form-control" disabled value={`${form.legajoNumber ?? ''}/${form.legajoAnio ?? ''}`} />
+                </Campo>
               </div>
-              <div className="col-12 col-md-4">
-                <div className="form-group">
-                  <label htmlFor="legajoCaratula">Caratula</label>
-                  <input id="legajoCaratula" className="form-control" disabled={!edicionHabilitada} value={form.legajoCaratula ?? ''} onChange={(e) => patchForm({ legajoCaratula: e.target.value })} />
-                </div>
+              <div className="col-6 col-md-4">
+                <Campo id="fecha" label="Fecha y hora">
+                  <input id="fecha" type="datetime-local" className="form-control" disabled value={form.legajoFecha ?? ''} />
+                </Campo>
               </div>
               <div className="col-12">
-                <div className="checkbox-list">
-                  <label className="checkbox-list-titulo">
-                    <input type="checkbox" className="form-check-input form-check-input-lg" checked={todasDependencias()} disabled={!edicionHabilitada} onChange={toggleTodasDependencias} />
-                    <span>Marcar todo</span>
-                  </label>
-                  <div className="row">
-                    {dependencias.map((d) => (
-                      <div key={d.id} className="col-6">
-                        <label className="checkbox-list-item">
-                          <input type="checkbox" className="form-check-input form-check-input-lg" checked={dependenciaMarcada(d.id)} disabled={!edicionHabilitada} onChange={() => toggleDependencia(d.id)} />
-                          <span>{d.nombre}</span>
-                        </label>
-                      </div>
+                <fieldset className="form-group" disabled={!habilitado}>
+                  <legend>Situación del infractor</legend>
+                  <div className="opciones-grandes">
+                    {SITUACIONES.map((s) => (
+                      <label key={s.v} className={`opcion-grande ${form.situacionInfractor === s.v ? 'activa' : ''}`}>
+                        <input type="radio" name="situacion" checked={form.situacionInfractor === s.v} onChange={() => patch({ situacionInfractor: s.v })} />
+                        {s.t}
+                      </label>
                     ))}
                   </div>
-                </div>
+                </fieldset>
               </div>
-              <div className="col-12 col-md-4">
-                <div className="form-group">
-                  <label htmlFor="legajoNumeroActa">Numero de Acta *</label>
-                  <input id="legajoNumeroActa" className="form-control" maxLength={10} disabled={!edicionHabilitada} value={form.legajoNumeroActa ?? ''} onChange={(e) => patchForm({ legajoNumeroActa: e.target.value })} />
+              {tipo !== 'multas' ? (
+                <div className="col-12">
+                  <div className="checkbox-list">
+                    <span className="checkbox-list-titulo">Dependencia labrante</span>
+                    <div className="row">
+                      {(cat.dependencia ?? []).map((d) => (
+                        <div key={d.id} className="col-12 col-md-6">
+                          <label className="checkbox-list-item">
+                            <input type="checkbox" className="form-check-input form-check-input-lg" checked={(form.dependenciasNombre ?? []).includes(String(d.id))} disabled={!habilitado} onChange={() => toggleLista('dependenciasNombre', String(d.id))} />
+                            <span>{d.nombre}</span>
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
-              </div>
-              <div className="col-12 col-md-4">
-                <div className="form-group">
-                  <label htmlFor="legajoFecha">Fecha *</label>
-                  <input id="legajoFecha" type="datetime-local" className="form-control" disabled={!edicionHabilitada} value={form.legajoFecha ?? ''} onChange={(e) => patchForm({ legajoFecha: e.target.value })} />
-                </div>
-              </div>
-              <div className="col-12">
-                <div className="form-check">
-                  <input className="form-check-input" type="checkbox" id="legajoObservada" checked={form.legajoObservada === 1} disabled={!edicionHabilitada} onChange={(e) => patchForm({ legajoObservada: e.target.checked ? 1 : 0 })} />
-                  <label className="form-check-label" htmlFor="legajoObservada">Observada</label>
-                </div>
-              </div>
+              ) : null}
             </div>
-          </div>
-        </article>
-      ) : null}
+          ) : null}
 
-      {paso === 2 ? (
-        <article className="card-step card-step-wizard">
-          <div className="card-step-header">
-            <h2>2. Datos del Infractor</h2>
-            <p>Información personal del infractor (opcional)</p>
-          </div>
-          <div className="card-step-body">
+          {paso.id === 'lugar' ? (
             <div className="row g-3">
-              <div className="col-12 col-md-6">
-                <div className="form-group">
-                  <label htmlFor="infractorNombre">* Nombre <span className="requerido">*</span></label>
-                  <input id="infractorNombre" className="form-control" required disabled={!edicionHabilitada} value={form.infractorNombre ?? ''} onChange={(e) => patchForm({ infractorNombre: e.target.value })} />
-                </div>
+              <div className="col-12">
+                <button type="button" className="btn btn-outline-primary btn-lg w-100" disabled={!habilitado} onClick={usarGps}>
+                  <i className={`fa-solid ${gpsEstado === 'buscando' ? 'fa-spinner fa-spin' : 'fa-location-crosshairs'}`} aria-hidden="true" /> Usar mi ubicación (GPS)
+                </button>
+                {form.gpsLat ? (
+                  <p className="texto-ayuda mt-2">
+                    GPS: {form.gpsLat}, {form.gpsLng} · Ejido: <strong>{form.ejido === 'dentro' ? 'dentro del ejido urbano' : 'fuera del ejido urbano'}</strong>
+                  </p>
+                ) : null}
+                {gpsEstado === 'error' ? <p className="texto-ayuda texto-error mt-2">No se pudo obtener la ubicación. Complete la dirección a mano.</p> : null}
               </div>
-              <div className="col-12 col-md-6">
-                <fieldset className="form-group" disabled={!edicionHabilitada}>
+              <div className="col-8 col-md-5">
+                <Campo id="domicilioInfraccionCalle" label="Calle" req>
+                  {inp('domicilioInfraccionCalle')}
+                </Campo>
+              </div>
+              <div className="col-4 col-md-2">
+                <Campo id="domicilioInfraccionNumero" label="Altura">
+                  {inp('domicilioInfraccionNumero', { inputMode: 'numeric' })}
+                </Campo>
+              </div>
+              <div className="col-12 col-md-5">
+                <Campo id="domicilioInfraccionLocalidadNombre" label="Ciudad / localidad">
+                  {sel(cat.localidad, form.domicilioInfraccionLocalidadNombre, (v) => patch({ domicilioInfraccionLocalidadNombre: v }), 'domicilioInfraccionLocalidadNombre')}
+                </Campo>
+              </div>
+              <div className="col-6">
+                <Campo id="entreCalle1" label="Entre calle (opcional)">
+                  {inp('entreCalle1')}
+                </Campo>
+              </div>
+              <div className="col-6">
+                <Campo id="entreCalle2" label="Y calle (opcional)">
+                  {inp('entreCalle2')}
+                </Campo>
+              </div>
+              {!form.gpsLat ? (
+                <div className="col-12 col-md-4">
+                  <Campo id="ejido" label="Ejido urbano">
+                    <select id="ejido" className="form-select" disabled={!habilitado} value={form.ejido ?? ''} onChange={(e) => patch({ ejido: e.target.value })}>
+                      <option value="">Sin determinar</option>
+                      <option value="dentro">Dentro del ejido</option>
+                      <option value="fuera">Fuera del ejido</option>
+                    </select>
+                  </Campo>
+                </div>
+              ) : null}
+              {tipo !== 'multas' ? (
+                <div className="col-12 col-md-8">
+                  <Campo id="nomenclaturaCatastral" label="Nomenclatura catastral (opcional) · Circ. / Secc. / Manz. / Parc.">
+                    {inp('nomenclaturaCatastral', { placeholder: 'Ej.: IV / B / 12 / 7' })}
+                  </Campo>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+
+          {paso.id === 'infractor' ? (
+            <div className="row g-3">
+              {form.situacionInfractor !== 'presente' ? (
+                <div className="col-12">
+                  <div className="aviso aviso-info">El infractor {form.situacionInfractor === 'ausente' ? 'está ausente' : 'se niega a firmar'}: cargue los datos que pueda constatar (por ejemplo, del titular del vehículo).</div>
+                </div>
+              ) : null}
+              <div className="col-12">
+                <fieldset className="form-group" disabled={!habilitado}>
                   <legend>Tipo de persona</legend>
                   <div className="d-flex gap-3 flex-wrap">
-                    {PERSONAS.map((op) => (
+                    {[
+                      { v: 0, t: 'Persona física' },
+                      { v: 1, t: 'Persona jurídica' },
+                    ].map((op) => (
                       <div key={op.v} className="form-check">
-                        <input className="form-check-input" type="radio" name="infractorPersonaTipo" id={`tipoP-${op.v}`} checked={form.infractorPersonaTipo === op.v} onChange={() => patchForm({ infractorPersonaTipo: op.v })} />
-                        <label className="form-check-label" htmlFor={`tipoP-${op.v}`}>{op.t}</label>
+                        <input className="form-check-input" type="radio" name="persona" id={`p-${op.v}`} checked={(form.infractorPersonaTipo ?? 0) === op.v} onChange={() => patch({ infractorPersonaTipo: op.v })} />
+                        <label className="form-check-label" htmlFor={`p-${op.v}`}>
+                          {op.t}
+                        </label>
                       </div>
                     ))}
                   </div>
                 </fieldset>
               </div>
-              <div className="col-12 col-md-4">
-                <div className="form-group">
-                  <label htmlFor="infractorDocumentoTipoNombre">Tipo Documento</label>
-                  <select id="infractorDocumentoTipoNombre" className="form-select" disabled={!edicionHabilitada} value={form.infractorDocumentoTipoNombre ?? ''} onChange={(e) => patchForm({ infractorDocumentoTipoNombre: e.target.value })}>
-                    <option value="">Seleccionar...</option>
-                    {documentoTipos.map((o) => (
-                      <option key={o.nombre} value={o.nombre}>{o.nombre}</option>
-                    ))}
-                  </select>
-                </div>
+              {esJuridica ? (
+                <>
+                  <div className="col-12 col-md-8">
+                    <Campo id="infractorRazonSocial" label="Razón social" req>
+                      {inp('infractorRazonSocial')}
+                    </Campo>
+                  </div>
+                  <div className="col-12 col-md-4">
+                    <Campo id="infractorCuit" label="CUIT" req>
+                      {inp('infractorCuit', { inputMode: 'numeric', placeholder: '30-12345678-9' })}
+                    </Campo>
+                  </div>
+                  <div className="col-12 col-md-8">
+                    <Campo id="infractorNombre" label="Nombre de quien atiende (opcional)">
+                      {inp('infractorNombre')}
+                    </Campo>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="col-12 col-md-6">
+                    <Campo id="infractorNombre" label="Nombre y apellido" req>
+                      {inp('infractorNombre')}
+                    </Campo>
+                  </div>
+                  <div className="col-5 col-md-2">
+                    <Campo id="infractorDocumentoTipoNombre" label="Tipo doc.">
+                      {sel(cat.documento?.filter((d) => d.nombre !== 'CUIT'), form.infractorDocumentoTipoNombre, (v) => patch({ infractorDocumentoTipoNombre: v }), 'infractorDocumentoTipoNombre')}
+                    </Campo>
+                  </div>
+                  <div className="col-7 col-md-4">
+                    <Campo id="infractorDocumentoNumero" label="Número de documento" req>
+                      {inp('infractorDocumentoNumero', { inputMode: 'numeric' })}
+                    </Campo>
+                  </div>
+                </>
+              )}
+              <div className="col-8 col-md-6">
+                <Campo id="infractorDomicilio" label="Domicilio (calle)" req={form.situacionInfractor !== 'ausente'}>
+                  {inp('infractorDomicilio')}
+                </Campo>
+              </div>
+              <div className="col-4 col-md-2">
+                <Campo id="infractorCalleAltura" label="Altura">
+                  {inp('infractorCalleAltura', { inputMode: 'numeric' })}
+                </Campo>
               </div>
               <div className="col-12 col-md-4">
-                <div className="form-group">
-                  <label htmlFor="infractorDocumentoNumero">Número Documento <span className="requerido">*</span></label>
-                  <input id="infractorDocumentoNumero" className="form-control" required disabled={!edicionHabilitada} value={form.infractorDocumentoNumero ?? ''} onChange={(e) => patchForm({ infractorDocumentoNumero: e.target.value })} />
-                </div>
+                <Campo id="infractorDepartamento" label="Piso / depto.">
+                  {inp('infractorDepartamento')}
+                </Campo>
               </div>
               <div className="col-12 col-md-4">
-                <div className="form-group">
-                  <label htmlFor="infractorFechaNacimiento">Fecha Nacimiento</label>
-                  <input id="infractorFechaNacimiento" type="date" className="form-control" disabled={!edicionHabilitada} value={form.infractorFechaNacimiento ?? ''} onChange={(e) => patchForm({ infractorFechaNacimiento: e.target.value })} />
-                </div>
-              </div>
-              <div className="col-12 col-md-6">
-                <div className="form-group">
-                  <label htmlFor="infractorDomicilio">Domicilio</label>
-                  <input id="infractorDomicilio" className="form-control" disabled={!edicionHabilitada} value={form.infractorDomicilio ?? ''} onChange={(e) => patchForm({ infractorDomicilio: e.target.value })} />
-                </div>
-              </div>
-              <div className="col-12 col-md-3">
-                <div className="form-group">
-                  <label htmlFor="infractorDepartamento">Piso/Departamento</label>
-                  <input id="infractorDepartamento" className="form-control" disabled={!edicionHabilitada} value={form.infractorDepartamento ?? ''} onChange={(e) => patchForm({ infractorDepartamento: e.target.value })} />
-                </div>
-              </div>
-              <div className="col-12 col-md-3">
-                <div className="form-group">
-                  <label htmlFor="infractorCodigoPostal">Codigo Postal</label>
-                  <input id="infractorCodigoPostal" className="form-control" maxLength={8} disabled={!edicionHabilitada} value={form.infractorCodigoPostal ?? ''} onChange={(e) => patchForm({ infractorCodigoPostal: e.target.value })} />
-                </div>
+                <Campo id="infractorProvinciaNombre" label="Provincia">
+                  {sel(cat.provincia, form.infractorProvinciaNombre, (v) => patch({ infractorProvinciaNombre: v }), 'infractorProvinciaNombre')}
+                </Campo>
               </div>
               <div className="col-12 col-md-4">
-                <div className="form-group">
-                  <label htmlFor="infractorProvinciaNombre">Provincia</label>
-                  <select id="infractorProvinciaNombre" className="form-select" disabled={!edicionHabilitada} value={form.infractorProvinciaNombre ?? ''} onChange={(e) => patchForm({ infractorProvinciaNombre: e.target.value })}>
-                    <option value="">Seleccionar...</option>
-                    {provincias.map((o) => (
-                      <option key={o.nombre} value={o.nombre}>{o.nombre}</option>
-                    ))}
-                  </select>
-                </div>
+                <Campo id="infractorPartidoNombre" label="Partido">
+                  {sel(cat.partido, form.infractorPartidoNombre, (v) => patch({ infractorPartidoNombre: v }), 'infractorPartidoNombre')}
+                </Campo>
               </div>
               <div className="col-12 col-md-4">
-                <div className="form-group">
-                  <label htmlFor="infractorLocalidadNombre">Localidad</label>
-                  <select id="infractorLocalidadNombre" className="form-select" disabled={!edicionHabilitada} value={form.infractorLocalidadNombre ?? ''} onChange={(e) => patchForm({ infractorLocalidadNombre: e.target.value })}>
-                    <option value="">Seleccionar...</option>
-                    {localidades.map((o) => (
-                      <option key={o.nombre} value={o.nombre}>{o.nombre}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-              <div className="col-12 col-md-4">
-                <div className="form-group">
-                  <label htmlFor="infractorPartidoNombre">Partido</label>
-                  <select id="infractorPartidoNombre" className="form-select" disabled={!edicionHabilitada} value={form.infractorPartidoNombre ?? ''} onChange={(e) => patchForm({ infractorPartidoNombre: e.target.value })}>
-                    <option value="">Seleccionar...</option>
-                    {partidos.map((o) => (
-                      <option key={o.nombre} value={o.nombre}>{o.nombre}</option>
-                    ))}
-                  </select>
-                </div>
+                <Campo id="infractorLocalidadNombre" label="Ciudad / localidad">
+                  {sel(cat.localidad, form.infractorLocalidadNombre, (v) => patch({ infractorLocalidadNombre: v }), 'infractorLocalidadNombre')}
+                </Campo>
               </div>
               <div className="col-12">
-                <div className="form-group">
-                  <label htmlFor="infractorActividadEconomica">Actividad Economica</label>
-                  <input id="infractorActividadEconomica" className="form-control" disabled={!edicionHabilitada} value={form.infractorActividadEconomica ?? ''} onChange={(e) => patchForm({ infractorActividadEconomica: e.target.value })} />
+                <Campo id="infractorEmail" label="Correo electrónico de contacto (opcional)">
+                  {inp('infractorEmail', { type: 'email', inputMode: 'email' })}
+                </Campo>
+                <p className="texto-ayuda">Es solo un dato de contacto: no habilita notificaciones. Para recibirlas por correo, el infractor constituye domicilio electrónico en el portal.</p>
+              </div>
+            </div>
+          ) : null}
+
+          {paso.id === 'vehiculo' ? (
+            <div className="row g-3">
+              <div className="col-6 col-md-4">
+                <Campo id="vehiculoNumeroDominio" label="Dominio">
+                  {inp('vehiculoNumeroDominio', { style: { textTransform: 'uppercase' } })}
+                </Campo>
+              </div>
+              <div className="col-6 col-md-4">
+                <Campo id="vehiculoTipoNombre" label="Tipo de vehículo">
+                  {sel(cat.vehiculo, form.vehiculoTipoNombre, (v) => patch({ vehiculoTipoNombre: v }), 'vehiculoTipoNombre')}
+                </Campo>
+              </div>
+              <div className="col-12 col-md-4">
+                <Campo id="vehiculoNumeroControlInterno" label="N.° de control interno">
+                  {inp('vehiculoNumeroControlInterno')}
+                </Campo>
+              </div>
+              {tipo === 'multas' ? (
+                <>
+                  <div className="col-6">
+                    <Campo id="vehiculoNumeroLicencia" label="N.° de licencia">
+                      {inp('vehiculoNumeroLicencia')}
+                    </Campo>
+                  </div>
+                  <div className="col-6">
+                    <Campo id="vehiculoMunicipalidadEmisora" label="Municipio emisor">
+                      {inp('vehiculoMunicipalidadEmisora')}
+                    </Campo>
+                  </div>
+                </>
+              ) : (
+                <div className="col-12">
+                  <div className="form-group">
+                    <label htmlFor="sustanciasDescripcion">Sustancias transportadas</label>
+                    <textarea id="sustanciasDescripcion" className="form-control" rows={3} disabled={!habilitado} value={form.sustanciasDescripcion ?? ''} onChange={(e) => patch({ sustanciasDescripcion: e.target.value })} placeholder="Tipo, cantidad, estado de conservación, temperatura..." />
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
-          </div>
-        </article>
-      ) : null}
+          ) : null}
 
-      {paso === 3 ? (
-        <article className="card-step card-step-wizard">
-          <div className="card-step-header">
-            <h2>3. Datos del Vehículo</h2>
-            <p>Información del vehículo involucrado</p>
-          </div>
-          <div className="card-step-body">
-            <div className="row g-3">
-              <div className="col-12 col-md-4">
-                <div className="form-group"><label htmlFor="vehiculoNumeroDominio">Numero de Dominio</label>
-                  <input id="vehiculoNumeroDominio" className="form-control" disabled={!edicionHabilitada} value={form.vehiculoNumeroDominio ?? ''} onChange={(e) => patchForm({ vehiculoNumeroDominio: e.target.value })} /></div>
-              </div>
-              <div className="col-12 col-md-4">
-                <div className="form-group"><label htmlFor="vehiculoNumeroControlInterno">Numero Control Interno</label>
-                  <input id="vehiculoNumeroControlInterno" className="form-control" disabled={!edicionHabilitada} value={form.vehiculoNumeroControlInterno ?? ''} onChange={(e) => patchForm({ vehiculoNumeroControlInterno: e.target.value })} /></div>
-              </div>
-              <div className="col-12 col-md-4">
-                <div className="form-group"><label htmlFor="vehiculoTipoNombre">Tipo Vehículo</label>
-                  <select id="vehiculoTipoNombre" className="form-select" disabled={!edicionHabilitada} value={form.vehiculoTipoNombre ?? ''} onChange={(e) => patchForm({ vehiculoTipoNombre: e.target.value })}>
-                    <option value="">Seleccionar...</option>
-                    {vehiculoTipos.map((o) => (
-                      <option key={o.nombre} value={o.nombre}>{o.nombre}</option>
-                    ))}
-                  </select></div>
-              </div>
-              <div className="col-12 col-md-4">
-                <div className="form-group"><label htmlFor="vehiculoNumeroLicencia">Numero Licencia</label>
-                  <input id="vehiculoNumeroLicencia" className="form-control" disabled={!edicionHabilitada} value={form.vehiculoNumeroLicencia ?? ''} onChange={(e) => patchForm({ vehiculoNumeroLicencia: e.target.value })} /></div>
-              </div>
-              <div className="col-12 col-md-4">
-                <div className="form-group"><label htmlFor="vehiculoMunicipalidadEmisora">Municipalidad Emisora</label>
-                  <input id="vehiculoMunicipalidadEmisora" className="form-control" disabled={!edicionHabilitada} value={form.vehiculoMunicipalidadEmisora ?? ''} onChange={(e) => patchForm({ vehiculoMunicipalidadEmisora: e.target.value })} /></div>
-              </div>
-            </div>
-          </div>
-        </article>
-      ) : null}
-
-      {paso === 4 ? (
-        <article className="card-step card-step-wizard">
-          <div className="card-step-header">
-            <h2>4. Domicilio de Infracción</h2>
-            <p>Lugar donde ocurrió la infracción</p>
-          </div>
-          <div className="card-step-body">
-            <div className="row g-3">
-              <div className="col-12 col-md-4">
-                <div className="form-group"><label htmlFor="domicilioInfraccionCalle">Calle</label>
-                  <input id="domicilioInfraccionCalle" className="form-control" disabled={!edicionHabilitada} value={form.domicilioInfraccionCalle ?? ''} onChange={(e) => patchForm({ domicilioInfraccionCalle: e.target.value })} /></div>
-              </div>
-              <div className="col-12 col-md-4">
-                <div className="form-group"><label htmlFor="domicilioInfraccionNumero">Numero</label>
-                  <input id="domicilioInfraccionNumero" className="form-control" disabled={!edicionHabilitada} value={form.domicilioInfraccionNumero ?? ''} onChange={(e) => patchForm({ domicilioInfraccionNumero: e.target.value })} /></div>
-              </div>
-              <div className="col-12 col-md-4">
-                <div className="form-group"><label htmlFor="domicilioInfraccionLocalidadNombre">Localidad</label>
-                  <select id="domicilioInfraccionLocalidadNombre" className="form-select" disabled={!edicionHabilitada} value={form.domicilioInfraccionLocalidadNombre ?? ''} onChange={(e) => patchForm({ domicilioInfraccionLocalidadNombre: e.target.value })}>
-                    <option value="">Misma que el infractor</option>
-                    {localidades.map((o) => (
-                      <option key={o.nombre} value={o.nombre}>{o.nombre}</option>
-                    ))}
-                  </select></div>
-              </div>
-            </div>
-          </div>
-        </article>
-      ) : null}
-
-      {paso === 5 ? (
-        <article className="card-step card-step-wizard">
-          <div className="card-step-header">
-            <h2>5. Artículos (Leyes de Ordenanza) *</h2>
-            <p>Seleccione los artículos y leyes infringidos</p>
-          </div>
-          <div className="card-step-body">
-            <button type="button" className="btn btn-primary mb-3" disabled={!edicionHabilitada} onClick={() => setMostrarLeyes(true)}>
-              <i className="fa-solid fa-plus me-2" aria-hidden="true" /> Agregar Articulo
-            </button>
-            <div className="table-responsive">
-              <table className="table custom-table align-middle tabla-articulos">
-                <thead>
-                  <tr>
-                    <th>Ley</th><th>Artículo</th><th>Descripción</th><th>Categoría</th><th className="text-end">Acción</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {leyesSeleccionadas.map((ley) => (
-                    <tr key={ley.nombre}>
-                      <td>{ley.nombre}</td>
-                      <td>{ley.articulo || '-'}</td>
-                      <td>{ley.descripcion || '-'}</td>
-                      <td>{ley.categoriaNombre || '-'}</td>
-                      <td className="text-end">
-                        <button type="button" className="btn btn-danger btn-sm" disabled={!edicionHabilitada} onClick={() => quitarLey(ley.nombre)}>Eliminar</button>
-                      </td>
-                    </tr>
-                  ))}
-                  {!leyesSeleccionadas.length ? (
+          {paso.id === 'articulos' ? (
+            <>
+              <button type="button" className="btn btn-primary mb-3" disabled={!habilitado} onClick={() => setMostrarLeyes(true)}>
+                <i className="fa-solid fa-plus me-2" aria-hidden="true" /> Agregar artículo
+              </button>
+              <div className="table-responsive">
+                <table className="table custom-table align-middle tabla-articulos">
+                  <thead>
                     <tr>
-                      <td colSpan={5}>
-                        <div className="sin-resultados py-3"><p className="mb-0">No hay artículos seleccionados.</p></div>
-                      </td>
+                      <th>Norma</th>
+                      <th>Artículo</th>
+                      <th>Descripción</th>
+                      <th className="text-end">Unidades</th>
+                      <th className="text-end">Acción</th>
                     </tr>
-                  ) : null}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </article>
-      ) : null}
+                  </thead>
+                  <tbody>
+                    {leyesSeleccionadas.map((l) => (
+                      <tr key={claveLey(l)}>
+                        <td>{l.nombre}</td>
+                        <td>{l.articulo || '-'}</td>
+                        <td>{l.descripcion || '-'}</td>
+                        <td className="text-end">{l.multiplicador}</td>
+                        <td className="text-end">
+                          <button type="button" className="btn btn-danger btn-sm" disabled={!habilitado} onClick={() => patch({ leyesNombre: (form.leyesNombre ?? []).filter((k) => k !== claveLey(l) && k !== l.nombre) })}>
+                            Quitar
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                    {!leyesSeleccionadas.length ? (
+                      <tr>
+                        <td colSpan={5}>
+                          <div className="sin-resultados py-3">
+                            <p className="mb-0">No hay artículos seleccionados.</p>
+                          </div>
+                        </td>
+                      </tr>
+                    ) : null}
+                  </tbody>
+                </table>
+              </div>
+              <p className="texto-ayuda">Total: {unidades} unidades fijas. La valorización la revisa Faltas.</p>
 
-      {paso === 6 ? (
-        <article className="card-step card-step-wizard">
-          <div className="card-step-header">
-            <h2>6. Imagenes y observaciones de la infracción</h2>
-            <p>se pueden agregar hasta 5 imagenes.</p>
-          </div>
-          <div className="card-step-body">
+              {tipo === 'multas' ? (
+                <div className="row g-3 mt-1">
+                  <div className="col-12">
+                    <h3 className="subtitulo-paso">Medidas adoptadas</h3>
+                  </div>
+                  {[
+                    { k: 'retencionDeLicencia' as const, t: 'Retención de licencia' },
+                    { k: 'retencionDeVehiculo' as const, t: 'Retención de vehículo' },
+                    { k: 'acarreo' as const, t: 'Acarreo al depósito' },
+                  ].map((m) => (
+                    <div key={m.k} className="col-12 col-md-4">
+                      <label className={`opcion-grande ${form[m.k] === 1 ? 'activa' : ''}`}>
+                        <input type="checkbox" checked={form[m.k] === 1} disabled={!habilitado} onChange={(e) => patch({ [m.k]: e.target.checked ? 1 : 0 } as Partial<Infraccion>)} />
+                        {m.t}
+                      </label>
+                    </div>
+                  ))}
+                  <div className="col-12 col-md-4">
+                    <Campo id="alcoholemia" label="Control de alcoholemia">
+                      <select id="alcoholemia" className="form-select" disabled={!habilitado} value={form.metadata?.alcoholemia ?? ''} onChange={(e) => patchMeta('alcoholemia', e.target.value)}>
+                        {ALCOHOLEMIA.map((a) => (
+                          <option key={a.v} value={a.v}>
+                            {a.t}
+                          </option>
+                        ))}
+                      </select>
+                    </Campo>
+                  </div>
+                  {form.metadata?.alcoholemia === 'positiva' ? (
+                    <>
+                      {[
+                        ['alcoholimetroValor', 'Valor (g/l)'],
+                        ['alcoholimetroMarca', 'Equipo: marca'],
+                        ['alcoholimetroModelo', 'Modelo'],
+                        ['alcoholimetroSerie', 'N.° de serie'],
+                        ['alcoholimetroMedicion', 'N.° de medición'],
+                      ].map(([k, t]) => (
+                        <div key={k} className="col-6 col-md-4">
+                          <Campo id={k} label={t}>
+                            <input id={k} className="form-control" disabled={!habilitado} value={form.metadata?.[k] ?? ''} onChange={(e) => patchMeta(k, e.target.value)} />
+                          </Campo>
+                        </div>
+                      ))}
+                    </>
+                  ) : null}
+                </div>
+              ) : (
+                <div className="row g-3 mt-1">
+                  <div className="col-12">
+                    <h3 className="subtitulo-paso">Medidas preventivas</h3>
+                  </div>
+                  {(cat.medida ?? []).map((m) => (
+                    <div key={m.id} className="col-12 col-md-6">
+                      <label className={`opcion-grande ${(form.medidasPreventivas ?? []).includes(m.nombre) ? 'activa' : ''}`}>
+                        <input type="checkbox" checked={(form.medidasPreventivas ?? []).includes(m.nombre)} disabled={!habilitado} onChange={() => toggleLista('medidasPreventivas', m.nombre)} />
+                        {m.nombre}
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          ) : null}
+
+          {paso.id === 'fotos' ? (
             <div className="row g-3">
               <div className="col-12">
                 {!imagenes.length ? (
                   <div className="img-carrousel-vacio">
                     <i className="fa-solid fa-image" aria-hidden="true" />
-                    <p>No hay imágenes cargadas en esta infracción.</p>
+                    <p>No hay imágenes cargadas.</p>
                   </div>
                 ) : (
                   <div className="img-carrousel">
                     <div className="img-carrousel-principal">
-                      <img src={srcImagen(imagenActual)} alt={`Imagen ${indiceImagen + 1}`} />
-                      <div className="img-carrousel-contador">{indiceImagen + 1} / {imagenes.length}</div>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={imagenActual?.previewRaw || imagenActual?.fullRaw || ''} alt={`Imagen ${indiceImagen + 1}`} />
+                      <div className="img-carrousel-contador">
+                        {indiceImagen + 1} / {imagenes.length}
+                      </div>
                     </div>
                     <div className="img-carrousel-miniaturas">
-                      {imagenes.map((img, idx) => (
-                        <button key={idx} type="button" className={`img-carrousel-miniatura ${idx === indiceImagen ? 'activa' : ''}`} onClick={() => setIndiceImagen(idx)}>
-                          <img src={srcImagen(img)} alt={`Miniatura ${idx + 1}`} />
+                      {imagenes.map((img, i) => (
+                        <button key={i} type="button" className={`img-carrousel-miniatura ${i === indiceImagen ? 'activa' : ''}`} onClick={() => setIndiceImagen(i)}>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={img.previewRaw || img.fullRaw || ''} alt={`Miniatura ${i + 1}`} />
                         </button>
                       ))}
                     </div>
-                    {edicionHabilitada ? (
-                      <button type="button" className="btn btn-sm btn-outline-danger mt-2" onClick={quitarImagen}>
-                        <i className="fa-solid fa-trash-can" aria-hidden="true" /> Quitar imagen
-                      </button>
-                    ) : null}
+                    <button type="button" className="btn btn-sm btn-outline-danger mt-2" disabled={!habilitado} onClick={() => { setImagenes((p) => p.filter((_, i) => i !== indiceImagen)); setIndiceImagen(0); }}>
+                      <i className="fa-solid fa-trash-can" aria-hidden="true" /> Quitar imagen
+                    </button>
                   </div>
                 )}
               </div>
-              {edicionHabilitada && imagenes.length < MAX_IMAGENES ? (
+              {imagenes.length < MAX_IMAGENES ? (
                 <div className="col-12">
                   <label className="btn btn-outline-primary btn-subir-imagen">
-                    <i className="fa-solid fa-cloud-arrow-up" aria-hidden="true" /> Subir imágenes
-                    <input type="file" accept="image/*" multiple hidden onChange={onImagenes} />
+                    <i className="fa-solid fa-camera" aria-hidden="true" /> Tomar o subir imágenes
+                    <input type="file" accept="image/*" capture="environment" multiple hidden onChange={onImagenes} />
                   </label>
                 </div>
               ) : null}
-              <div className="col-12 col-md-4">
-                <div className="form-check">
-                  <input className="form-check-input" type="checkbox" id="retencionDeLicencia" checked={form.retencionDeLicencia === 1} disabled={!edicionHabilitada} onChange={(e) => patchForm({ retencionDeLicencia: e.target.checked ? 1 : 0 })} />
-                  <label className="form-check-label" htmlFor="retencionDeLicencia">Retención de licencia</label>
-                </div>
-              </div>
-              <div className="col-12 col-md-4">
-                <div className="form-check">
-                  <input className="form-check-input" type="checkbox" id="retencionDeVehiculo" checked={form.retencionDeVehiculo === 1} disabled={!edicionHabilitada} onChange={(e) => patchForm({ retencionDeVehiculo: e.target.checked ? 1 : 0 })} />
-                  <label className="form-check-label" htmlFor="retencionDeVehiculo">Retención de vehículo</label>
-                </div>
-              </div>
               <div className="col-12">
                 <div className="form-group">
                   <label htmlFor="observaciones">Observaciones</label>
-                  <textarea id="observaciones" className="form-control" rows={3} disabled={!edicionHabilitada} value={form.observaciones ?? ''} onChange={(e) => patchForm({ observaciones: e.target.value })} />
+                  <textarea id="observaciones" className="form-control" rows={4} disabled={!habilitado} value={form.observaciones ?? ''} onChange={(e) => patch({ observaciones: e.target.value })} />
                 </div>
               </div>
             </div>
-          </div>
-        </article>
-      ) : null}
+          ) : null}
 
-      <WizardNav paso={paso} totalPasos={TOTAL_PASOS} edicionHabilitada={edicionHabilitada} guardando={guardando} irAPaso={irAPaso} guardar={guardar} />
-      {esEdicion && !edicionHabilitada ? (
-        <button type="button" className="btn btn-warning" onClick={() => setEdicionHabilitada(true)}>Editar</button>
-      ) : null}
-      {edicionHabilitada && esEdicion ? (
-        <button type="button" className="btn btn-outline-secondary" onClick={cancelar}>Cancelar</button>
+          {paso.id === 'firma' ? (
+            <div className="row g-3">
+              <div className="col-12">
+                <dl className="resumen-acta">
+                  <div><dt>Acta</dt><dd>{form.legajoNumeroActa} · {info.corto}</dd></div>
+                  <div><dt>Fecha</dt><dd>{form.legajoFecha?.replace('T', ' ')}</dd></div>
+                  <div><dt>Lugar</dt><dd>{[form.domicilioInfraccionCalle, form.domicilioInfraccionNumero].filter(Boolean).join(' ') || <span className="texto-error">Falta</span>}{form.entreCalle1 ? ` (entre ${form.entreCalle1} y ${form.entreCalle2 ?? ''})` : ''}</dd></div>
+                  <div><dt>Infractor</dt><dd>{form.situacionInfractor === 'nn' ? 'No identificado (NN)' : (esJuridica ? `${form.infractorRazonSocial ?? ''} · CUIT ${form.infractorCuit ?? ''}` : `${form.infractorNombre || '—'} · ${form.infractorDocumentoTipoNombre ?? ''} ${form.infractorDocumentoNumero ?? ''}`)}</dd></div>
+                  {tipo !== 'contravenciones' ? <div><dt>Vehículo</dt><dd>{form.vehiculoNumeroDominio || '-'} {form.vehiculoTipoNombre ?? ''}</dd></div> : null}
+                  <div><dt>Artículos</dt><dd>{leyesSeleccionadas.map((l) => claveLey(l)).join(' · ') || <span className="texto-error">Falta</span>}</dd></div>
+                  <div><dt>Medidas</dt><dd>{[form.retencionDeLicencia ? 'Retención de licencia' : '', form.retencionDeVehiculo ? 'Retención de vehículo' : '', form.acarreo ? 'Acarreo' : '', ...(form.medidasPreventivas ?? [])].filter(Boolean).join(' · ') || 'Ninguna'}</dd></div>
+                  <div><dt>Valor estimado</dt><dd>{unidades} UF</dd></div>
+                  <div><dt>Imágenes</dt><dd>{imagenes.length}</dd></div>
+                </dl>
+              </div>
+              {form.situacionInfractor === 'presente' ? (
+                <div className="col-12 col-lg-7">
+                  <h3 className="subtitulo-paso">1. Firma del infractor</h3>
+                  <SignaturePad value={firma} onChange={setFirma} />
+                </div>
+              ) : (
+                <div className="col-12 col-lg-7">
+                  <div className="aviso aviso-info">
+                    {form.situacionInfractor === 'nn' ? 'Acta NN: firma solo el inspector.' : form.situacionInfractor === 'ausente' ? 'Infractor ausente: firma solo el inspector.' : 'El infractor se negó a firmar: se deja constancia y firma solo el inspector.'}
+                  </div>
+                </div>
+              )}
+              <div className="col-12 col-lg-5">
+                <h3 className="subtitulo-paso">{form.situacionInfractor === 'presente' ? '2. ' : ''}Firma del inspector</h3>
+                <div className="firma-inspector-box">
+                  <i className="fa-solid fa-user-shield" aria-hidden="true" />
+                  <div>
+                    <strong>{form.inspectorNombre}</strong>
+                    <span>Se aplica su firma digital vinculada al usuario al presionar «Firmar y confirmar». Firma simulada en el piloto (P-04).</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : null}
+        </div>
+      </article>
+
+      {nav}
+      <div className="botonera">
+        <button type="button" className="btn btn-outline-secondary" onClick={() => void guardarBorrador(false)}>
+          <i className="fa-solid fa-floppy-disk" aria-hidden="true" /> Guardar borrador
+        </button>
+        <button type="button" className="btn btn-outline-danger" onClick={() => setDescartar(true)}>
+          <i className="fa-solid fa-ban" aria-hidden="true" /> Descartar acta
+        </button>
+      </div>
+
+      {descartar ? (
+        <div className="modal-fake-overlay" onClick={(e) => e.target === e.currentTarget && setDescartar(false)}>
+          <div className="modal-fake modal-fake-sm" role="dialog" aria-modal="true" aria-label="Descartar acta">
+            <div className="modal-fake-header">
+              <i className="fa-solid fa-ban" aria-hidden="true" />
+              <h2>Descartar acta {form.legajoNumeroActa}</h2>
+              <button type="button" aria-label="Cerrar" onClick={() => setDescartar(false)}>&times;</button>
+            </div>
+            <div className="modal-fake-body">
+              <p>El número quedará anulado y no se volverá a usar.</p>
+              <label htmlFor="motivoDescarte">Motivo</label>
+              <textarea id="motivoDescarte" className="form-control" rows={3} value={motivoDescarte} onChange={(e) => setMotivoDescarte(e.target.value)} />
+            </div>
+            <div className="modal-fake-footer">
+              <button type="button" className="btn btn-outline-secondary" onClick={() => setDescartar(false)}>Cancelar</button>
+              <button type="button" className="btn btn-danger" disabled={!motivoDescarte.trim()} onClick={() => void confirmarDescarte()}>Descartar</button>
+            </div>
+          </div>
+        </div>
       ) : null}
 
       {mostrarLeyes ? (
@@ -698,18 +824,24 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
             </div>
             <div className="modal-fake-body">
               <div className="form-group mb-3">
-                <label htmlFor="busquedaLey"><i className="fa-solid fa-magnifying-glass" aria-hidden="true" /> Buscar por artículo / nombre / descripción</label>
-                <input id="busquedaLey" className="form-control" placeholder="Ej.: Art. 45" value={busquedaLey} onChange={(e) => setBusquedaLey(e.target.value)} />
+                <label htmlFor="busquedaLey">
+                  <i className="fa-solid fa-magnifying-glass" aria-hidden="true" /> Buscar por número o palabra clave
+                </label>
+                <input id="busquedaLey" className="form-control" placeholder="Ej.: 45, estacionar, licencia" value={busquedaLey} onChange={(e) => setBusquedaLey(e.target.value)} />
               </div>
               <div className="row g-3">
-                {leyesVisibles.map((ley) => (
-                  <div key={ley.uuid} className="col-12 col-md-6">
-                    <button type="button" className={`card-ley ${leyMarcada(ley) ? 'card-ley-seleccionada' : ''}`} disabled={!edicionHabilitada} onClick={() => toggleLey(ley)}>
-                      <div className="card-ley-articulo">{ley.nombre} · {ley.articulo}</div>
-                      <div className="card-ley-descripcion">{ley.descripcion}</div>
+                {leyesVisibles.map((l) => (
+                  <div key={l.uuid} className="col-12 col-md-6">
+                    <button type="button" className={`card-ley ${(form.leyesNombre ?? []).includes(claveLey(l)) ? 'card-ley-seleccionada' : ''}`} onClick={() => toggleLista('leyesNombre', claveLey(l))}>
+                      <div className="card-ley-articulo">
+                        {l.nombre} · {l.articulo}
+                      </div>
+                      <div className="card-ley-descripcion">{l.descripcion}</div>
                       <div className="card-ley-footer">
-                        <span>{ley.categoriaNombre}</span>
-                        <span className="card-ley-multiplicador">Unidades: <strong>{ley.multiplicador}</strong></span>
+                        <span>{l.categoriaNombre}</span>
+                        <span className="card-ley-multiplicador">
+                          Unidades: <strong>{l.multiplicador}</strong>
+                        </span>
                       </div>
                     </button>
                   </div>
@@ -717,8 +849,10 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
               </div>
             </div>
             <div className="modal-fake-footer">
-              <span>Seleccionados: <strong>{form.leyesNombre?.length ?? 0}</strong></span>
-              <button type="button" className="btn btn-outline-danger" onClick={() => patchForm({ leyesNombre: [] })}>Limpiar selección</button>
+              <span>
+                Seleccionados: <strong>{form.leyesNombre?.length ?? 0}</strong>
+              </span>
+              <button type="button" className="btn btn-outline-danger" onClick={() => patch({ leyesNombre: [] })}>Limpiar selección</button>
               <button type="button" className="btn btn-success" onClick={() => setMostrarLeyes(false)}>Listo</button>
             </div>
           </div>

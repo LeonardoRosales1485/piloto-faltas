@@ -173,7 +173,7 @@ export async function printTicket(infraccion: Infraccion): Promise<void> {
       .filter(Boolean)
       .join(' ') || '-';
   const reparticion =
-    infraccion.infraccionTipoNombre === 'contravenciones' ? 'CONTRAVENCIONES' : 'MULTAS';
+    infraccion.infraccionTipoNombre === 'contravenciones' ? 'CONTRAVENCIONES' : infraccion.infraccionTipoNombre === 'sustancias' ? 'SUSTANCIAS ALIMENTICIAS' : 'MULTAS';
   const url = infraccion.uuid ? actaPublicaUrl(infraccion.uuid) : window.location.origin;
   const qr = svgQr(url);
   const items =

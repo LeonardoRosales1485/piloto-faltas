@@ -1,15 +1,37 @@
-const PERMITIDO = [
-  '/private/lista-infracciones/multas',
-  '/private/lista-infracciones/contravenciones',
-  '/private/crear-editar/multas',
-  '/private/crear-editar/contravenciones',
+import { puede, type Permiso } from './dominio';
+
+/** Qué permiso exige cada sección del back office (P-22: matriz propuesta para el piloto). */
+const RUTAS: { prefijo: string; permiso: Permiso }[] = [
+  { prefijo: '/private/crear-editar', permiso: 'labrar' },
+  { prefijo: '/private/lista-infracciones', permiso: 'labrar' },
+  { prefijo: '/private/causas', permiso: 'verCausas' },
+  { prefijo: '/private/causa/', permiso: 'verCausas' },
+  { prefijo: '/private/presentaciones', permiso: 'verCausas' },
+  { prefijo: '/private/escritos', permiso: 'verCausas' },
+  { prefijo: '/private/escrito/', permiso: 'verCausas' },
+  { prefijo: '/private/pagos', permiso: 'verCausas' },
+  { prefijo: '/private/reportes', permiso: 'verCausas' },
+  { prefijo: '/private/correos', permiso: 'verCausas' },
+  { prefijo: '/private/plantillas', permiso: 'parametrizar' },
+  { prefijo: '/private/textos', permiso: 'parametrizar' },
+  { prefijo: '/private/feriados', permiso: 'parametrizar' },
+  { prefijo: '/private/auditoria', permiso: 'auditoria' },
+  { prefijo: '/private/finanzas', permiso: 'valores' },
+  { prefijo: '/private/ordenanzas', permiso: 'parametrizar' },
 ];
 
-export function rutaPermitidaInspector(url: string): boolean {
-  const path = url.split('?')[0];
-  return PERMITIDO.some((base) => path === base || path.startsWith(`${base}/`));
+export function rutaPermitida(path: string, rol?: string): boolean {
+  const r = RUTAS.find((x) => path.split('?')[0].startsWith(x.prefijo));
+  return !r || puede(rol, r.permiso);
 }
 
+export function inicioPara(rol?: string): string {
+  if (rol === 'Inspector') return '/private/lista-infracciones/multas';
+  if (rol === 'Tributario') return '/private/finanzas';
+  return '/private/causas';
+}
+
+/** Compatibilidad con el código anterior. */
 export function inspectorForbidden(pathname: string, rol?: string): boolean {
-  return rol === 'Inspector' && !rutaPermitidaInspector(pathname);
+  return !rutaPermitida(pathname, rol);
 }

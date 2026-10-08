@@ -1,0 +1,179 @@
+// ---------------------------------------------------------------------------
+//  Piloto v2: componentes nuevos (labrado, causa, escritos, portal)
+// ---------------------------------------------------------------------------
+
+.texto-ayuda { font-size: 0.82rem; color: var(--bo-texto-secundario); margin: 0.25rem 0 0; }
+.texto-error { color: var(--bo-peligro); }
+.subtitulo-paso { font-size: 1rem; font-weight: 700; margin: 0.25rem 0 0.75rem; }
+.botonera { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-top: 0.75rem; }
+
+.aviso {
+  border-radius: var(--bo-radio);
+  padding: 0.75rem 1rem;
+  font-size: 0.9rem;
+  margin-bottom: 0.75rem;
+  border: 1px solid transparent;
+  i { margin-right: 0.35rem; }
+}
+.aviso-info { background: #eff6ff; color: #1e3a8a; border-color: #bfdbfe; }
+.aviso-ok { background: #f0fdf4; color: #166534; border-color: #bbf7d0; }
+.aviso-alerta { background: #fffbeb; color: #92400e; border-color: #fde68a; }
+.aviso-peligro { background: #fef2f2; color: #991b1b; border-color: #fecaca; }
+[data-theme='dark'] {
+  .aviso-info { background: #172554; color: #bfdbfe; border-color: #1e40af; }
+  .aviso-ok { background: #052e16; color: #bbf7d0; border-color: #166534; }
+  .aviso-alerta { background: #451a03; color: #fde68a; border-color: #92400e; }
+  .aviso-peligro { background: #450a0a; color: #fecaca; border-color: #991b1b; }
+}
+
+// Encabezado del acta en labrado
+.acta-encabezado-numero {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem;
+  padding: 0.6rem 1rem; margin-bottom: 0.75rem;
+  background: var(--bo-card); border: 1px solid var(--bo-borde); border-radius: var(--bo-radio-lg);
+  font-size: 0.9rem; color: var(--bo-texto-secundario);
+}
+.acta-numero-chip { font-weight: 700; font-size: 1.15rem; color: var(--bo-azul); letter-spacing: 0.02em; }
+.acta-borrador-chip { margin-left: auto; background: #fef3c7; color: #92400e; border-radius: 999px; padding: 0.15rem 0.75rem; font-weight: 600; font-size: 0.78rem; }
+
+// Opciones grandes (táctiles)
+.opciones-grandes { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.6rem; }
+.opcion-grande {
+  display: flex; align-items: center; gap: 0.6rem; width: 100%;
+  min-height: 52px; padding: 0.6rem 0.9rem; cursor: pointer;
+  border: 2px solid var(--bo-borde); border-radius: var(--bo-radio); background: var(--bo-card);
+  font-weight: 600; font-size: 0.95rem;
+  input { width: 1.25rem; height: 1.25rem; accent-color: var(--bo-azul); }
+  &.activa { border-color: var(--bo-azul); background: var(--bo-azul-claro); }
+}
+
+// Firma
+.firma-pad { border: 2px dashed #94a3b8; border-radius: var(--bo-radio); background: #fff; overflow: hidden; }
+.firma-pad-canvas { display: block; width: 100%; height: 200px; touch-action: none; cursor: crosshair; }
+.firma-pad-pie { display: flex; justify-content: space-between; align-items: center; padding: 0.4rem 0.6rem; font-size: 0.8rem; color: #475569; border-top: 1px solid #e2e8f0; background: #f8fafc; }
+.firma-inspector-box {
+  display: flex; gap: 0.8rem; align-items: flex-start; padding: 0.9rem;
+  border: 1px solid var(--bo-borde); border-radius: var(--bo-radio); background: var(--bo-azul-claro);
+  i { font-size: 1.6rem; color: var(--bo-azul); margin-top: 0.15rem; }
+  strong { display: block; }
+  span { font-size: 0.82rem; color: var(--bo-texto-secundario); }
+}
+
+// Resumen tipo ficha (definición)
+.resumen-acta, .ficha {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 0.25rem 1.25rem; margin: 0;
+  > div { padding: 0.45rem 0; border-bottom: 1px solid var(--bo-borde); }
+  dt { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--bo-texto-secundario); font-weight: 600; }
+  dd { margin: 0; font-weight: 500; word-break: break-word; }
+}
+
+// Estados de causa por familia (Anexo I)
+.estado-chip {
+  display: inline-flex; align-items: center; gap: 0.35rem; white-space: nowrap;
+  padding: 0.2rem 0.7rem; border-radius: 999px; font-size: 0.75rem; font-weight: 600;
+  &::before { content: ''; width: 0.45rem; height: 0.45rem; border-radius: 50%; background: currentColor; opacity: 0.8; }
+}
+.estado-inicio { background: #dbeafe; color: #1e40af; }
+.estado-medida { background: #fee2e2; color: #991b1b; }
+.estado-presentacion { background: #fef3c7; color: #92400e; }
+.estado-fallo { background: #ede9fe; color: #5b21b6; }
+.estado-externo { background: #e0f2fe; color: #075985; }
+.estado-archivo { background: #e2e8f0; color: #334155; }
+.estado-otro { background: #f1f5f9; color: #475569; }
+.medida-chip { display: inline-flex; align-items: center; gap: 0.3rem; background: #dc2626; color: #fff; border-radius: 999px; padding: 0.15rem 0.6rem; font-size: 0.72rem; font-weight: 700; white-space: nowrap; }
+.plazo-chip { display: inline-flex; align-items: center; gap: 0.3rem; background: var(--bo-azul-claro); color: var(--bo-azul); border-radius: 999px; padding: 0.15rem 0.6rem; font-size: 0.75rem; font-weight: 600; white-space: nowrap; &.vencido { background: #fee2e2; color: #991b1b; } }
+
+// Bandejas: contadores
+.bandeja-tabs { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 0.75rem; }
+.bandeja-tab {
+  display: inline-flex; align-items: center; gap: 0.4rem; border: 1px solid var(--bo-borde); background: var(--bo-card);
+  border-radius: 999px; padding: 0.35rem 0.85rem; font-size: 0.82rem; font-weight: 600; color: var(--bo-texto); cursor: pointer;
+  .n { background: var(--bo-fondo); border-radius: 999px; padding: 0 0.45rem; font-size: 0.75rem; }
+  &.activa { background: var(--bo-azul); color: #fff; border-color: var(--bo-azul); .n { background: rgba(255,255,255,.25); } }
+}
+
+// Causa digital
+.causa-layout { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 1rem; align-items: start; }
+@media (max-width: 1100px) { .causa-layout { grid-template-columns: 1fr; } }
+.causa-cabecera {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem 1rem; padding: 1rem 1.25rem;
+  h1 { font-size: 1.35rem; font-weight: 700; margin: 0; }
+  .sub { color: var(--bo-texto-secundario); font-size: 0.88rem; width: 100%; }
+}
+.tabs-causa { display: flex; gap: 0.25rem; border-bottom: 1px solid var(--bo-borde); padding: 0 0.75rem; overflow-x: auto; }
+.tab-causa {
+  border: 0; background: transparent; padding: 0.7rem 0.9rem; font-weight: 600; font-size: 0.88rem; color: var(--bo-texto-secundario);
+  border-bottom: 3px solid transparent; white-space: nowrap;
+  &.activa { color: var(--bo-azul); border-bottom-color: var(--bo-azul); }
+  .n { font-size: 0.72rem; background: var(--bo-fondo); border-radius: 999px; padding: 0 0.4rem; margin-left: 0.25rem; }
+}
+.panel-acciones { position: sticky; top: 1rem; display: flex; flex-direction: column; gap: 0.75rem; }
+.acciones-lista { display: flex; flex-direction: column; gap: 0.45rem; }
+.btn-accion-causa { text-align: left; display: flex; align-items: center; gap: 0.55rem; i { width: 1.1rem; text-align: center; } }
+
+.timeline { list-style: none; margin: 0; padding: 0; }
+.timeline li { position: relative; padding: 0 0 1rem 1.4rem; border-left: 2px solid var(--bo-borde); margin-left: 0.4rem; }
+.timeline li::before { content: ''; position: absolute; left: -0.45rem; top: 0.2rem; width: 0.8rem; height: 0.8rem; border-radius: 50%; background: var(--bo-azul); border: 2px solid var(--bo-card); }
+.timeline .t-fecha { font-size: 0.75rem; color: var(--bo-texto-secundario); }
+.timeline .t-accion { font-weight: 600; }
+.timeline .t-detalle { font-size: 0.86rem; color: var(--bo-texto-secundario); }
+
+.lista-items { list-style: none; padding: 0; margin: 0; }
+.lista-items > li { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; align-items: center; justify-content: space-between; padding: 0.7rem 0; border-bottom: 1px solid var(--bo-borde); }
+.lista-items .li-titulo { font-weight: 600; }
+.lista-items .li-sub { font-size: 0.8rem; color: var(--bo-texto-secundario); }
+
+// Editor de escritos (A4, Times New Roman 12)
+.editor-escrito-wrap { background: #e5e7eb; padding: 1.25rem; border-radius: var(--bo-radio); overflow: auto; }
+[data-theme='dark'] .editor-escrito-wrap { background: #0b1220; }
+.editor-toolbar { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-bottom: 0.6rem; position: sticky; top: 0; z-index: 2; }
+.editor-toolbar button { min-width: 36px; }
+.hoja-a4 {
+  width: 210mm; min-height: 297mm; margin: 0 auto; background: #fff; color: #000;
+  padding: 25mm 25mm 20mm 30mm; box-shadow: 0 2px 12px rgba(0,0,0,.15);
+  font-family: 'Times New Roman', Times, serif; font-size: 12pt; line-height: 1.5;
+  outline: none;
+  p { margin: 0 0 0.6em; }
+  .membrete { text-align: center; border-bottom: 1px solid #000; padding-bottom: 6pt; margin-bottom: 14pt; font-size: 10pt; }
+  .membrete strong { display: block; font-size: 12pt; }
+  .campo-vacio { background: #fef08a; }
+}
+@media (max-width: 900px) { .hoja-a4 { width: 100%; min-height: auto; padding: 1.25rem; } }
+
+// Portal de infractores
+.portal-body { min-height: 100vh; background: var(--bo-fondo); }
+.portal-header {
+  background: var(--bo-card); border-bottom: 1px solid var(--bo-borde);
+  .portal-header-inner { max-width: 960px; margin: 0 auto; display: flex; align-items: center; gap: 0.75rem; padding: 0.7rem 1rem; }
+  img { height: 40px; }
+  strong { display: block; font-size: 0.95rem; color: var(--bo-azul); }
+  span { font-size: 0.75rem; color: var(--bo-texto-secundario); }
+  .portal-usuario { margin-left: auto; display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; }
+}
+.portal-main { max-width: 960px; margin: 0 auto; padding: 1.25rem 1rem 3rem; }
+.portal-card { background: var(--bo-card); border: 1px solid var(--bo-borde); border-radius: var(--bo-radio-lg); box-shadow: var(--bo-sombra-card); padding: 1.25rem; margin-bottom: 1rem; }
+.portal-card h1 { font-size: 1.35rem; font-weight: 700; }
+.portal-card h2 { font-size: 1.1rem; font-weight: 700; }
+.portal-acciones { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.75rem; }
+.portal-accion {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 0.25rem; text-align: left;
+  padding: 1rem; border: 2px solid var(--bo-borde); border-radius: var(--bo-radio); background: var(--bo-card); color: var(--bo-texto);
+  i { font-size: 1.3rem; color: var(--bo-azul); }
+  strong { font-size: 1rem; }
+  span { font-size: 0.82rem; color: var(--bo-texto-secundario); }
+  &:hover:not(:disabled) { border-color: var(--bo-azul); }
+  &:disabled { opacity: 0.5; }
+}
+.portal-footer { text-align: center; font-size: 0.78rem; color: var(--bo-texto-secundario); padding: 1rem; }
+.codigo-piloto { background: #fef9c3; border: 1px dashed #ca8a04; color: #713f12; border-radius: var(--bo-radio); padding: 0.5rem 0.75rem; font-size: 0.85rem; }
+
+@media print {
+  .no-print { display: none !important; }
+}
+.hoja-a4 .sello-firma, .editor-escrito-wrap .sello-firma { margin-top: 24pt; margin-left: auto; width: 70%; border: 1px solid #000; padding: 6pt 8pt; font-size: 10pt; line-height: 1.3; }
+.hoja-a4 input.campo-completar {
+  font: inherit; border: 0; border-bottom: 1.5px solid #2563eb; background: #eff6ff; color: #000;
+  padding: 0 3px; margin: 0 1px; border-radius: 2px; min-width: 6ch;
+  &.vacio { background: #fef9c3; border-bottom-color: #ca8a04; }
+  &:focus { outline: 2px solid #93c5fd; }
+}

@@ -17,12 +17,18 @@ export async function POST(req: NextRequest) {
       .select('*')
       .eq('username', username)
       .maybeSingle();
-    if (error || !data) {
+    if (error) {
+      console.error('[login] Error consultando usuario en Supabase:', error.message);
+      return jsonFail(500, `No se pudo consultar la base: ${error.message}`);
+    }
+    if (!data) {
+      console.warn(`[login] El usuario «${username}» no existe en la tabla usuario`);
       return jsonFail(401, 'Usuario o contraseña incorrectos');
     }
     const row = data as UsuarioRow;
     const match = await bcrypt.compare(password, row.password_hash);
     if (!match) {
+      console.warn(`[login] Contraseña incorrecta para «${username}»`);
       return jsonFail(401, 'Usuario o contraseña incorrectos');
     }
     const token = await issueToken(row.username);

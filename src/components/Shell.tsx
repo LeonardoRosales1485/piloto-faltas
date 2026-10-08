@@ -5,7 +5,8 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { logout } from '@/lib/auth-client';
 import { LayoutProvider, useLayout } from '@/lib/layout-context';
-import { inspectorForbidden } from '@/lib/role-guard';
+import { inicioPara, inspectorForbidden } from '@/lib/role-guard';
+import { puede, ROL_ETIQUETA, type Permiso } from '@/lib/dominio';
 import { useAuthUser } from '@/lib/use-auth-user';
 
 interface MenuChild {
@@ -21,49 +22,84 @@ interface MenuGroup {
   children?: MenuChild[];
 }
 
-const GRUPOS: MenuGroup[] = [
+type MenuItem = MenuGroup & { permiso: Permiso };
+
+const GRUPOS: MenuItem[] = [
+  { id: 'causas', titulo: 'Causas', icono: 'fa-solid fa-folder-tree', route: '/private/causas', permiso: 'verCausas' },
+  { id: 'presentaciones', titulo: 'Presentaciones', icono: 'fa-solid fa-inbox', route: '/private/presentaciones', permiso: 'verCausas' },
+  { id: 'escritos', titulo: 'Escritos y firma', icono: 'fa-solid fa-file-signature', route: '/private/escritos', permiso: 'verCausas' },
+  { id: 'pagos', titulo: 'Pagos', icono: 'fa-solid fa-money-check-dollar', route: '/private/pagos', permiso: 'verCausas' },
   {
     id: 'multas',
-    titulo: 'Multas transito',
+    titulo: 'Actas de tránsito',
     icono: 'fa-solid fa-car',
+    permiso: 'labrar',
     children: [
-      { titulo: 'Listado', route: '/private/lista-infracciones/multas' },
-      { titulo: 'Nueva', route: '/private/crear-editar/multas' },
+      { titulo: 'Mis actas', route: '/private/lista-infracciones/multas' },
+      { titulo: 'Labrar acta', route: '/private/crear-editar/multas' },
     ],
   },
   {
     id: 'contravenciones',
-    titulo: 'Multas contravencion',
+    titulo: 'Actas de contravención',
     icono: 'fa-solid fa-gavel',
+    permiso: 'labrar',
     children: [
-      { titulo: 'Listado', route: '/private/lista-infracciones/contravenciones' },
-      { titulo: 'Nueva', route: '/private/crear-editar/contravenciones' },
+      { titulo: 'Mis actas', route: '/private/lista-infracciones/contravenciones' },
+      { titulo: 'Labrar acta', route: '/private/crear-editar/contravenciones' },
     ],
   },
   {
-    id: 'ordenanzas',
-    titulo: 'Ordenanzas',
-    icono: 'fa-solid fa-scale-balanced',
+    id: 'sustancias',
+    titulo: 'Sustancias alimenticias',
+    icono: 'fa-solid fa-truck',
+    permiso: 'labrar',
     children: [
-      { titulo: 'Tránsito', route: '/private/ordenanzas/multas' },
-      { titulo: 'Contravención', route: '/private/ordenanzas/contravenciones' },
+      { titulo: 'Mis actas', route: '/private/lista-infracciones/sustancias' },
+      { titulo: 'Labrar acta', route: '/private/crear-editar/sustancias' },
     ],
   },
-  { id: 'inspectores', titulo: 'Inspectores', icono: 'fa-solid fa-users', route: '/private/proximamente/inspectores' },
-  { id: 'finanzas', titulo: 'Finanzas', icono: 'fa-solid fa-coins', route: '/private/finanzas' },
-  { id: 'gps', titulo: 'GPS', icono: 'fa-solid fa-location-dot', route: '/private/proximamente/gps' },
-  { id: 'escritos', titulo: 'Administrar Escritos', icono: 'fa-solid fa-file-lines', route: '/private/proximamente/escritos' },
-  { id: 'retenciones', titulo: 'Retenciones', icono: 'fa-solid fa-hand-holding-dollar', route: '/private/proximamente/retenciones' },
+  { id: 'reportes', titulo: 'Reportes', icono: 'fa-solid fa-chart-column', route: '/private/reportes', permiso: 'verCausas' },
+  { id: 'finanzas', titulo: 'Valores y tarifas', icono: 'fa-solid fa-coins', route: '/private/finanzas', permiso: 'valores' },
+  {
+    id: 'config',
+    titulo: 'Configuración',
+    icono: 'fa-solid fa-sliders',
+    permiso: 'parametrizar',
+    children: [
+      { titulo: 'Plantillas de escritos', route: '/private/plantillas' },
+      { titulo: 'Ordenanzas tránsito', route: '/private/ordenanzas/multas' },
+      { titulo: 'Ordenanzas contravención', route: '/private/ordenanzas/contravenciones' },
+      { titulo: 'Textos del portal', route: '/private/textos' },
+      { titulo: 'Feriados', route: '/private/feriados' },
+    ],
+  },
+  { id: 'correos', titulo: 'Correos enviados', icono: 'fa-solid fa-envelope', route: '/private/correos', permiso: 'verCausas' },
+  { id: 'auditoria', titulo: 'Auditoría', icono: 'fa-solid fa-user-shield', route: '/private/auditoria', permiso: 'auditoria' },
 ];
 
 const TITULOS: Record<string, string> = {
-  '/private/lista-infracciones/multas': 'Multas transito',
-  '/private/lista-infracciones/contravenciones': 'Multas contravencion',
-  '/private/crear-editar/multas': 'Nueva multa',
-  '/private/crear-editar/contravenciones': 'Nueva contravención',
-  '/private/finanzas': 'Finanzas',
+  '/private/lista-infracciones/multas': 'Actas de tránsito',
+  '/private/lista-infracciones/contravenciones': 'Actas de contravención',
+  '/private/lista-infracciones/sustancias': 'Actas de sustancias alimenticias',
+  '/private/crear-editar/multas': 'Acta de tránsito',
+  '/private/crear-editar/contravenciones': 'Acta de contravención',
+  '/private/crear-editar/sustancias': 'Acta de sustancias alimenticias',
+  '/private/finanzas': 'Valores y tarifas',
   '/private/ordenanzas/multas': 'Ordenanzas',
   '/private/ordenanzas/contravenciones': 'Ordenanzas',
+  '/private/causas': 'Causas',
+  '/private/causa': 'Causa digital',
+  '/private/presentaciones': 'Presentaciones',
+  '/private/escritos': 'Escritos y firma',
+  '/private/escrito': 'Escrito',
+  '/private/pagos': 'Pagos',
+  '/private/reportes': 'Reportes',
+  '/private/plantillas': 'Plantillas de escritos',
+  '/private/textos': 'Textos del portal',
+  '/private/feriados': 'Feriados',
+  '/private/correos': 'Correos enviados',
+  '/private/auditoria': 'Auditoría',
 };
 
 function ShellInner({ children }: { children: ReactNode }) {
@@ -77,7 +113,8 @@ function ShellInner({ children }: { children: ReactNode }) {
   const [abiertos, setAbiertos] = useState<Record<string, boolean>>({
     multas: true,
     contravenciones: true,
-    ordenanzas: true,
+    sustancias: true,
+    config: false,
   });
   const [sidebarAbierta, setSidebarAbierta] = useState(true);
   const [drawerAbierto, setDrawerAbierto] = useState(false);
@@ -102,16 +139,11 @@ function ShellInner({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (inspectorForbidden(pathname, user?.rol)) {
-      router.replace('/private/lista-infracciones/multas');
+      router.replace(inicioPara(user?.rol));
     }
   }, [pathname, user?.rol, router]);
 
-  const gruposVisibles = useMemo(() => {
-    if (user?.rol === 'Inspector') {
-      return GRUPOS.filter((g) => g.id === 'multas' || g.id === 'contravenciones');
-    }
-    return GRUPOS;
-  }, [user?.rol]);
+  const gruposVisibles = useMemo(() => GRUPOS.filter((g) => puede(user?.rol, g.permiso)), [user?.rol]);
 
   const margen = layout.isMobile ? 0 : sidebarAbierta ? 280 : 52;
 
@@ -132,35 +164,24 @@ function ShellInner({ children }: { children: ReactNode }) {
   }
 
   function rolCorto() {
-    const rol = user?.rol ?? 'Usuario';
-    const lower = rol.toLowerCase();
-    if (lower.includes('admin')) return 'ADMIN';
-    if (lower.includes('super')) return 'SUPER';
-    if (lower.includes('oper')) return 'OPER';
-    return rol.length > 8 ? `${rol.slice(0, 6)}…` : rol;
+    return ROL_ETIQUETA[user?.rol ?? ''] ?? user?.rol ?? '';
   }
 
   function titulo() {
     const path = pathname.split('?')[0];
     if (TITULOS[path]) return TITULOS[path];
-    if (path.startsWith('/private/proximamente/')) {
-      const segmento = path.split('/').filter(Boolean).pop() ?? '';
-      const nombres: Record<string, string> = {
-        inspectores: 'Inspectores',
-        gps: 'GPS',
-        escritos: 'Administrar Escritos',
-        retenciones: 'Retenciones',
-      };
-      return nombres[segmento] ?? 'Próximamente';
-    }
-    if (path.startsWith('/private/crear-editar/') && path.split('/').length > 4) return 'Editar infracción';
+    if (path.startsWith('/private/crear-editar/')) return TITULOS[path.split('/').slice(0, 4).join('/')] ?? 'Acta';
     if (path.startsWith('/private/ordenanzas/') && path.split('/').length > 4) return 'Editar ordenanza';
-    return 'Sistema de Faltas';
+    const base = '/' + path.split('/').filter(Boolean).slice(0, 2).join('/');
+    return TITULOS[base] ?? 'Sistema de Faltas';
   }
 
-  function tipoMulta(): 'multas' | 'contravenciones' | null {
+  function tipoMulta(): 'multas' | 'contravenciones' | 'sustancias' | null {
+    if (!pathname.startsWith('/private/lista-infracciones/')) return null;
+    if (!puede(user?.rol, 'labrar')) return null;
     if (pathname.includes('/multas')) return 'multas';
     if (pathname.includes('/contravenciones')) return 'contravenciones';
+    if (pathname.includes('/sustancias')) return 'sustancias';
     return null;
   }
 
@@ -339,7 +360,7 @@ function ShellInner({ children }: { children: ReactNode }) {
               {tipo && !enCrearEditar ? (
                 <button type="button" className="btn-nueva" onClick={() => router.push(`/private/crear-editar/${tipo}`)}>
                   <i className="fa-solid fa-plus" aria-hidden="true" />
-                  <span>{tipo === 'multas' ? 'Nueva multa' : 'Nueva contravención'}</span>
+                  <span>Labrar acta</span>
                 </button>
               ) : null}
             </div>
