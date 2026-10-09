@@ -2,6 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import Link from 'next/link';
+import { HojasPaginadas } from './HojasPaginadas';
 import { useParams, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { firmaHtml, PIE_INSTITUCIONAL } from '@/lib/membrete';
@@ -23,15 +24,14 @@ export function PortalDocumento() {
         <button type="button" className="btn btn-outline-primary" onClick={() => window.print()}><i className="fa-solid fa-download" aria-hidden="true" /> Descargar / imprimir</button>
       </div>
       <div className="editor-escrito-wrap">
-        <div className="hoja-a4">
+        <HojasPaginadas pie={PIE_INSTITUCIONAL} deps={[doc]}>
           <div className="membrete">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/images/Municipio_malvinas_argentinas_logo.png" alt="" style={{ height: 44, display: 'block', margin: '0 auto 4px' }} />
             <strong>MUNICIPALIDAD DE MALVINAS ARGENTINAS</strong>DIRECCIÓN DE FALTAS
           </div>
-          <div dangerouslySetInnerHTML={{ __html: `${doc.contenido_html ?? ''}${firmaHtml(doc)}` }} />
-          <div style={{ borderTop: '1px solid #000', marginTop: 18, paddingTop: 4, fontSize: '9pt', textAlign: 'center' }}>{PIE_INSTITUCIONAL}</div>
-        </div>
+          <div data-paginar="" dangerouslySetInnerHTML={{ __html: `${doc.contenido_html ?? ''}${firmaHtml(doc)}` }} />
+        </HojasPaginadas>
       </div>
     </>
   );

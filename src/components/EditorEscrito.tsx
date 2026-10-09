@@ -11,6 +11,7 @@ import { aplicarValores, camposCompletar, RE_COMPLETAR } from '@/lib/campos';
 import { fechaHora, puede } from '@/lib/dominio';
 import { firmaHtml, PIE_INSTITUCIONAL } from '@/lib/membrete';
 import { useAuthUser } from '@/lib/use-auth-user';
+import { HojasPaginadas, sinSaltos } from './HojasPaginadas';
 import { ModalForm } from './ModalForm';
 import { useNotify } from './NotifyProvider';
 
@@ -113,7 +114,7 @@ export function EditorEscrito() {
   const editable = puedeEditar;
   const campos = modo === 'campos' && editable ? camposCompletar(base.current) : [];
   const pendientes = campos.filter((c) => !(valores[c.k] ?? '').trim()).length;
-  const payload = () => (modo === 'libre' ? { modo, valores, html: ref.current?.innerHTML ?? '' } : { modo, valores });
+  const payload = () => (modo === 'libre' ? { modo, valores, html: sinSaltos(ref.current?.innerHTML ?? '') } : { modo, valores });
   const requiereRevision = Number(doc.plantilla?.requiere_revision ?? 0) === 1;
 
   async function enviar(accion: 'guardar' | 'revision' | 'definitivo') {
@@ -240,16 +241,15 @@ export function EditorEscrito() {
             ))}
           </div>
         ) : null}
-        <div className="hoja-a4">
+        <HojasPaginadas pie={PIE_INSTITUCIONAL} deps={[d, modo, puedeEditar, valores]}>
           <div className="membrete" contentEditable={false}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/images/Municipio_malvinas_argentinas_logo.png" alt="" style={{ height: 44, display: 'block', margin: '0 auto 4px' }} />
             <strong>MUNICIPALIDAD DE MALVINAS ARGENTINAS</strong>DIRECCIÓN DE FALTAS
           </div>
-          <div ref={ref} contentEditable={editable && modo === 'libre'} suppressContentEditableWarning onInput={onCampo} style={{ outline: 'none', minHeight: '180mm' }} aria-label="Texto del escrito" />
+          <div ref={ref} data-paginar="" contentEditable={editable && modo === 'libre'} suppressContentEditableWarning onInput={onCampo} style={{ outline: 'none', minHeight: '40mm' }} aria-label="Texto del escrito" />
           {doc.firmado_por ? <div dangerouslySetInnerHTML={{ __html: firmaHtml(doc) }} /> : null}
-          <div style={{ borderTop: '1px solid #000', marginTop: 18, paddingTop: 4, fontSize: '9pt', textAlign: 'center' }}>{PIE_INSTITUCIONAL}</div>
-        </div>
+        </HojasPaginadas>
       </div>
       </div>
 
