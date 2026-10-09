@@ -9,12 +9,15 @@ Guía paso a paso para recorrer un acta de tránsito de punta a punta: desde que
 
 | Quién | Usuario de prueba | Qué hace |
 |---|---|---|
-| Inspector | `inspector` / `inspector123` | Labra actas |
+| Inspector | `inspector` / `inspector123` | Labra actas. Entra directo a «Labrar acta» y sólo ve sus propios borradores: no ve actas firmadas ni causas |
 | Agente de Faltas | `operador` / `operador123` | Tramita las causas |
-| Directora | `directora` / `directora123` | Revisa y firma escritos |
+| Directora | `directora` / `directora123` | Revisa y firma escritos. Sólo ve causas de **tránsito** |
+| Abogada | `abogada` / `abogada123` | Mismos permisos que la Directora, pero sólo ve causas de **contravención** (y sustancias alimenticias) |
 | Usuario tributario | `tributario` / `tributario123` | Actualiza valores y tarifas |
 | Administrador | `admin` / `admin123` | Configura plantillas, textos y feriados |
 | Ciudadano | `valeria@example.com` / `ciudadano123` (DNI 30111222) | Consulta, paga y presenta descargos |
+
+> En la pantalla de ingreso hay botones de **acceso rápido** para cada rol: un clic y entrás.
 
 > Para probar el circuito completo con Valeria, cargá su **DNI 30111222** en el acta: así el acta le aparece sola en «Mis actas» del portal.
 
@@ -96,7 +99,7 @@ Para cualquier opción debe adjuntar el **DNI de frente y de dorso**, y el **est
 3. En la causa, el agente toca **«Dictar fallo»** y elige si es condenatorio o absolutorio. Se abre el escrito ya completado con los datos del acta:
    - completa los campos resaltados, si hay alguno;
    - toca **«Enviar a revisión»**.
-4. La **Directora** entra a **Escritos y firma**, pestaña **«En revisión»**. Abre el escrito y puede **corregirlo**, **devolverlo con una observación** o **firmarlo digitalmente**. Al firmar, el sistema le asigna número.
+4. La **Directora** (o la **Abogada**, si la causa es de contravención) entra a **Escritos y firma**, pestaña **«En revisión»**. Abre el escrito y puede **corregirlo**, **devolverlo con una observación** o **firmarlo digitalmente**. Al firmar, el sistema le asigna número.
 5. De vuelta en la causa, en la pestaña Escritos, el agente toca **Notificar**. El ciudadano queda notificado del fallo cuando lo abre en el portal, o al instante si tiene domicilio electrónico.
 6. Desde ahí corren **5 días hábiles**: el ciudadano puede **pagar el total** o **apelar**.
    - **Si apela** y se le concede, la causa pasa a **«En Juzgado»**.

@@ -5,11 +5,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { apiClient } from '@/lib/api-client';
 import { useLayout } from '@/lib/layout-context';
 import { printActa, printTicket } from '@/lib/print';
-import { SITUACIONES, TIPOS_ACTA, claveLey, fechaHora, tipoActa } from '@/lib/dominio';
+import { puede, SITUACIONES, TIPOS_ACTA, claveLey, fechaHora, tipoActa } from '@/lib/dominio';
 import type { ImgModel, Infraccion, Ley, OpcionCatalogo } from '@/lib/types';
 import { MAX_IMAGENES, ejidoPorGps, pasosPara, readImageFile, toDateTimeLocal, vacia } from './crear-editar-utils';
 import { useNotify } from './NotifyProvider';
 import { SignaturePad } from './SignaturePad';
+import { useAuthUser } from '@/lib/use-auth-user';
 
 const ALCOHOLEMIA = [
   { v: '', t: 'No realizada' },
@@ -32,6 +33,7 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
   const params = useParams();
   const router = useRouter();
   const notify = useNotify();
+  const user = useAuthUser();
   const { setOcultarTopbar } = useLayout();
   const tipo = tipoActa((params.tipo as string) ?? 'multas');
   const info = TIPOS_ACTA[tipo];
@@ -275,9 +277,11 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
                   <Link className="btn btn-outline-secondary btn-lg" href={`/private/crear-editar/${tipo}`} onClick={() => (iniciado.current = false)}>
                     <i className="fa-solid fa-plus" aria-hidden="true" /> Labrar otra acta
                   </Link>
-                  <Link className="btn btn-outline-secondary btn-lg" href={`/private/causa/${form.uuid}`}>
-                    <i className="fa-solid fa-folder-open" aria-hidden="true" /> Ver causa
-                  </Link>
+                  {puede(user?.rol, 'verCausas') ? (
+                    <Link className="btn btn-outline-secondary btn-lg" href={`/private/causa/${form.uuid}`}>
+                      <i className="fa-solid fa-folder-open" aria-hidden="true" /> Ver causa
+                    </Link>
+                  ) : null}
                 </div>
               </>
             )}

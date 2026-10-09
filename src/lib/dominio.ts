@@ -36,6 +36,7 @@ export const ROLES = {
   agente: 'Usuario',
   inspector: 'Inspector',
   directora: 'Directora',
+  abogada: 'Abogada',
   tributario: 'Tributario',
   becario: 'Becario',
 } as const;
@@ -45,26 +46,42 @@ export const ROL_ETIQUETA: Record<string, string> = {
   Usuario: 'Agente de Faltas',
   Inspector: 'Inspector',
   Directora: 'Directora de Faltas',
+  Abogada: 'Abogada (contravenciones)',
   Tributario: 'Usuario tributario',
   Becario: 'Becario',
 };
 
-const BACK_OFFICE = ['Administrador', 'Usuario', 'Directora', 'Becario'];
+const BACK_OFFICE = ['Administrador', 'Usuario', 'Directora', 'Abogada', 'Becario'];
 
 export const PERMISOS = {
   labrar: ['Inspector', 'Administrador'],
   verCausas: BACK_OFFICE,
-  gestionarCausas: ['Administrador', 'Usuario', 'Directora'],
-  cambiarEstadoManual: ['Administrador', 'Usuario', 'Directora'],
-  redactarEscritos: ['Administrador', 'Usuario', 'Directora', 'Becario'],
-  firmar: ['Directora'],
-  confirmarPagos: ['Administrador', 'Usuario', 'Directora'],
+  gestionarCausas: ['Administrador', 'Usuario', 'Directora', 'Abogada'],
+  cambiarEstadoManual: ['Administrador', 'Usuario', 'Directora', 'Abogada'],
+  redactarEscritos: ['Administrador', 'Usuario', 'Directora', 'Abogada', 'Becario'],
+  firmar: ['Directora', 'Abogada'],
+  confirmarPagos: ['Administrador', 'Usuario', 'Directora', 'Abogada'],
   parametrizar: ['Administrador'],
   valores: ['Tributario', 'Administrador'],
-  auditoria: ['Directora', 'Administrador'],
+  auditoria: ['Directora', 'Abogada', 'Administrador'],
 } as const;
 
 export type Permiso = keyof typeof PERMISOS;
+
+/**
+ * Alcance por tipo de acta: la Directora ve sólo tránsito (1); la Abogada, contravenciones (2) y
+ * sustancias alimenticias (3). null = sin restricción.
+ */
+export function tiposPermitidos(rol: string | undefined | null): number[] | null {
+  if (rol === 'Directora') return [1];
+  if (rol === 'Abogada') return [2, 3];
+  return null;
+}
+
+export function tipoVisible(rol: string | undefined | null, tipoId: number | string | null | undefined): boolean {
+  const t = tiposPermitidos(rol);
+  return !t || t.includes(Number(tipoId));
+}
 
 export function puede(rol: string | undefined | null, permiso: Permiso): boolean {
   if (!rol) return false;

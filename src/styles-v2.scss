@@ -177,3 +177,16 @@
   &.vacio { background: #fef9c3; border-bottom-color: #ca8a04; }
   &:focus { outline: 2px solid #93c5fd; }
 }
+
+// Login: accesos rápidos por rol
+.login-rapido { margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid #e5e7eb; }
+.login-rapido-titulo { font-size: .8rem; text-transform: uppercase; letter-spacing: .05em; color: #6b7280; margin: 0 0 .6rem; text-align: center; }
+.login-rapido-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; }
+.login-rapido-btn {
+  display: flex; align-items: center; gap: .5rem; padding: .55rem .7rem; border: 1px solid #d1d5db; border-radius: 8px;
+  background: #f9fafb; color: #1f2937; font-size: .85rem; text-align: left; text-decoration: none; cursor: pointer;
+  transition: background .15s, border-color .15s;
+  i { color: #1d4ed8; width: 1.1rem; text-align: center; }
+  &:hover:not(:disabled) { background: #eff6ff; border-color: #93c5fd; color: #1f2937; }
+  &:disabled { opacity: .6; cursor: wait; }
+}

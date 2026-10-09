@@ -42,7 +42,10 @@ Acta sin datos del infractor porque no se lo pudo identificar (por ejemplo, un a
 El número que agrupa todo lo de un acta, compartido entre los tres tipos. Se escribe así: 1023/2026.
 
 **Inspector**
-El agente municipal autorizado a labrar actas. Firma el acta como funcionario.
+El agente municipal autorizado a labrar actas. Firma el acta como funcionario. En la plataforma sólo labra: ve sus borradores, pero no las actas ya firmadas ni las causas.
+
+**Abogada**
+Tiene los mismos permisos que la Directora (tramitar, revisar y firmar escritos, auditoría), pero se ocupa de las causas de **contravención** y sustancias alimenticias. La Directora, en cambio, ve sólo las de **tránsito**.
 
 **Dependencia labrante**
 El área municipal a la que pertenece el inspector que labró un acta de contravención (Inspecciones Generales, Bromatología, etc.). Es solo un dato del acta.
@@ -239,7 +242,7 @@ La parte interna que usan los agentes, la Directora y la administración para tr
 La página web donde el ciudadano consulta sus actas, queda notificado, paga y presenta descargos o apelaciones.
 
 **Roles**
-Qué puede hacer cada usuario: el inspector labra, el agente tramita, la Directora firma, el usuario tributario actualiza valores, el administrador configura, el becario consulta y redacta borradores.
+Qué puede hacer cada usuario: el inspector labra, el agente tramita, la Directora firma las de tránsito y la Abogada las de contravención, el usuario tributario actualiza valores, el administrador configura, el becario consulta y redacta borradores.
 
 **Agente de Faltas**
 El empleado de la Dirección de Faltas que tramita las causas día a día.

@@ -1,17 +1,18 @@
 import { NextRequest } from 'next/server';
 import { BANDEJAS, enBandeja, type BandejaId, type FilaCausa } from '@/lib/bandejas';
 import { handle } from '@/lib/srv';
+import { tipoVisible } from '@/lib/dominio';
 
 type Body = { bandeja?: BandejaId; texto?: string; tipo?: string; estado?: string; page?: number; size?: number };
 
-const CAMPOS = 'id, uuid, estado_faltas, infraccion_tipo_nombre, legajo_numero_acta, legajo_number, legajo_anio, legajo_fecha, infractor_nombre, infractor_razon_social, infractor_documento_numero, infractor_cuit, vehiculo_numero_dominio, medida_vigente, vence_plazo_at, notificada_at, firmada_at, monto_estimado, inspector_nombre, date_created';
+const CAMPOS = 'id, uuid, infraccion_tipo_id, estado_faltas, infraccion_tipo_nombre, legajo_numero_acta, legajo_number, legajo_anio, legajo_fecha, infractor_nombre, infractor_razon_social, infractor_documento_numero, infractor_cuit, vehiculo_numero_dominio, medida_vigente, vence_plazo_at, notificada_at, firmada_at, monto_estimado, inspector_nombre, date_created';
 
 export async function POST(req: NextRequest) {
   const body = (await req.json()) as Body;
-  return handle(req, async ({ db }) => {
+  return handle(req, async ({ db, user }) => {
     const { data, error } = await db.from('infraccion').select(CAMPOS).not('estado_faltas', 'in', '("Borrador","Anulada")').order('id', { ascending: false }).limit(5000);
     if (error) throw new Error(error.message);
-    const filas = (data ?? []) as unknown as FilaCausa[];
+    const filas = ((data ?? []) as unknown as (FilaCausa & { infraccion_tipo_id: number })[]).filter((f) => tipoVisible(user.rol, f.infraccion_tipo_id));
     const ahora = Date.now();
     const { data: bol } = await db.from('boleta').select('infraccion_id').eq('estado', 'emitida').lt('vencimiento', ahora);
     const cuotasVencidas = new Set(((bol ?? []) as { infraccion_id: number }[]).map((b) => b.infraccion_id));

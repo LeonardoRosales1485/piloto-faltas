@@ -1,10 +1,11 @@
+import { AsyncLocalStorage } from 'node:async_hooks';
 import { NextRequest } from 'next/server';
 import { createHash, randomUUID } from 'crypto';
 import { requireUser } from './auth';
 import { jsonFail, jsonOk } from './http-data';
 import { createServerClient } from './supabase-server';
 import type { UsuarioRow } from './types';
-import { estadoFinal, PERMISOS, type Permiso } from './dominio';
+import { estadoFinal, PERMISOS, tipoVisible, type Permiso } from './dominio';
 
 export type Db = ReturnType<typeof createServerClient>;
 
@@ -19,6 +20,14 @@ export function db(): Db {
 }
 
 /** Envuelve un handler de API: autentica, controla permisos y traduce errores a { data, status, message }. */
+/** Rol del usuario de la request en curso (para el alcance por tipo de acta). */
+export const rolActual = new AsyncLocalStorage<string>();
+
+function verificarAlcance(c: CausaRow | null): CausaRow | null {
+  if (c && !tipoVisible(rolActual.getStore(), (c as unknown as { infraccion_tipo_id?: number }).infraccion_tipo_id)) return null;
+  return c;
+}
+
 export async function handle<T>(
   req: NextRequest,
   fn: (ctx: { user: UsuarioRow; db: Db }) => Promise<T>,
@@ -29,7 +38,7 @@ export async function handle<T>(
     if (permiso && !(PERMISOS[permiso] as readonly string[]).includes(user.rol)) {
       return jsonFail(403, 'No tiene permiso para esta acción');
     }
-    const data = await fn({ user, db: db() });
+    const data = await rolActual.run(user.rol, () => fn({ user, db: db() }));
     return jsonOk(data);
   } catch (e) {
     const status = (e as { status?: number }).status ?? 500;
@@ -95,12 +104,12 @@ export type CausaRow = {
 
 export async function causaPorUuid(d: Db, uuidCausa: string): Promise<CausaRow> {
   const { data } = await d.from('infraccion').select('*').eq('uuid', uuidCausa).maybeSingle();
-  return must(data as CausaRow | null, 404, 'Causa no encontrada');
+  return must(verificarAlcance(data as CausaRow | null), 404, 'Causa no encontrada');
 }
 
 export async function causaPorId(d: Db, id: number): Promise<CausaRow> {
   const { data } = await d.from('infraccion').select('*').eq('id', id).maybeSingle();
-  return must(data as CausaRow | null, 404, 'Causa no encontrada');
+  return must(verificarAlcance(data as CausaRow | null), 404, 'Causa no encontrada');
 }
 
 export async function historial(

@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
 
     let query = supabase.from('infraccion').select('*', { count: 'exact' });
     query = applyInfraccionFiltros(query as never, body) as typeof query;
-    if (user.rol === 'Inspector') query = query.eq('inspector_username', user.username);
+    if (user.rol === 'Inspector') query = query.eq('inspector_username', user.username).eq('estado_faltas', 'Borrador');
     query = applyOrdenes(query as never, body.ordenes) as typeof query;
     query = query.range(from, to);
 

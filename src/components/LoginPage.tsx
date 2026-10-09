@@ -5,6 +5,16 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { login } from '@/lib/auth-client';
 
+const ACCESOS = [
+  { u: 'inspector', p: 'inspector123', t: 'Inspector', i: 'fa-solid fa-clipboard-list' },
+  { u: 'operador', p: 'operador123', t: 'Agente', i: 'fa-solid fa-user-tie' },
+  { u: 'directora', p: 'directora123', t: 'Directora (tránsito)', i: 'fa-solid fa-car' },
+  { u: 'abogada', p: 'abogada123', t: 'Abogada (contrav.)', i: 'fa-solid fa-scale-balanced' },
+  { u: 'tributario', p: 'tributario123', t: 'Tributario', i: 'fa-solid fa-coins' },
+  { u: 'becario', p: 'becario123', t: 'Becario', i: 'fa-solid fa-user-graduate' },
+  { u: 'admin', p: 'admin123', t: 'Administrador', i: 'fa-solid fa-gear' },
+];
+
 export function LoginPage() {
   const router = useRouter();
   const [username, setUsername] = useState('');
@@ -15,10 +25,16 @@ export function LoginPage() {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    setLoading(true);
+    await entrar(username, password);
+  }
+
+  async function entrar(us: string, pw: string) {
     setError('');
+    setLoading(true);
+    setUsername(us);
+    setPassword(pw);
     try {
-      const u = await login(username, password);
+      const u = await login(us, pw);
       router.push(inicioPara(u.rol));
     } catch {
       setError('Usuario o contraseña incorrectos.');
@@ -83,12 +99,20 @@ export function LoginPage() {
           </button>
         </form>
         {error ? <p className="err mt-2">{error}</p> : null}
-        <div className="login-cred">
-          <p>
-            Credenciales de prueba: <strong>inspector/inspector123</strong> (labrado) · <strong>operador/operador123</strong> (agente) ·{' '}
-            <strong>directora/directora123</strong> · <strong>tributario/tributario123</strong> · <strong>becario/becario123</strong> · <strong>admin/admin123</strong>.
-            Portal de infractores: <a href="/portal">/portal</a> (valeria@example.com / ciudadano123)
-          </p>
+        <div className="login-rapido">
+          <p className="login-rapido-titulo">Acceso rápido (piloto)</p>
+          <div className="login-rapido-grid">
+            {ACCESOS.map((x) => (
+              <button key={x.u} type="button" className="login-rapido-btn" disabled={loading} onClick={() => void entrar(x.u, x.p)} title={`${x.u} / ${x.p}`}>
+                <i className={x.i} aria-hidden="true" />
+                <span>{x.t}</span>
+              </button>
+            ))}
+            <a className="login-rapido-btn" href="/portal" title="valeria@example.com / ciudadano123">
+              <i className="fa-solid fa-users" aria-hidden="true" />
+              <span>Portal ciudadano</span>
+            </a>
+          </div>
         </div>
         <div className="login-footer">
           <span>Municipalidad de Malvinas Argentinas</span>

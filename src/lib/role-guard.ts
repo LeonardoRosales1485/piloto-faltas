@@ -26,7 +26,7 @@ export function rutaPermitida(path: string, rol?: string): boolean {
 }
 
 export function inicioPara(rol?: string): string {
-  if (rol === 'Inspector') return '/private/lista-infracciones/multas';
+  if (rol === 'Inspector') return '/private/crear-editar/multas';
   if (rol === 'Tributario') return '/private/finanzas';
   return '/private/causas';
 }
