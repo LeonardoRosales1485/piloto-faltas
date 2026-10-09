@@ -109,8 +109,6 @@ function ShellInner({ children }: { children: ReactNode }) {
   const layout = useLayout();
   const pathname = usePathname();
   const router = useRouter();
-  const year = new Date().getFullYear();
-  const fecha = new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' });
 
   const [abiertos, setAbiertos] = useState<Record<string, boolean>>({
     multas: true,
@@ -118,7 +116,7 @@ function ShellInner({ children }: { children: ReactNode }) {
     sustancias: true,
     config: false,
   });
-  const [sidebarAbierta, setSidebarAbierta] = useState(true);
+  const [sidebarAbierta, setSidebarAbierta] = useState(false);
   const [drawerAbierto, setDrawerAbierto] = useState(false);
   const [tema, setTema] = useState<'light' | 'dark'>('light');
 
@@ -129,11 +127,14 @@ function ShellInner({ children }: { children: ReactNode }) {
     document.body.setAttribute('data-theme', next);
   }, []);
 
+  // El menú desplegado flota sobre el contenido: se cierra al navegar o con Escape.
+  useEffect(() => setSidebarAbierta(false), [pathname]);
   useEffect(() => {
-    if (typeof window !== 'undefined' && window.innerWidth >= 992) {
-      setSidebarAbierta(true);
-    }
-  }, []);
+    if (!sidebarAbierta) return;
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setSidebarAbierta(false);
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [sidebarAbierta]);
 
   useEffect(() => {
     if (layout.isMobile) setDrawerAbierto(false);
@@ -147,7 +148,7 @@ function ShellInner({ children }: { children: ReactNode }) {
 
   const gruposVisibles = useMemo(() => GRUPOS.filter((g) => puede(user?.rol, g.permiso)), [user?.rol]);
 
-  const margen = layout.isMobile ? 0 : sidebarAbierta ? 280 : 52;
+  const margen = layout.isMobile ? 0 : 72;
 
   function grupoActivo(grupo: MenuGroup) {
     if (grupo.route) return pathname.startsWith(grupo.route);
@@ -204,13 +205,11 @@ function ShellInner({ children }: { children: ReactNode }) {
           <button
             type="button"
             className="sidebar-colapsar"
-            aria-label={sidebarAbierta ? 'Colapsar menú' : 'Expandir menú'}
-            onClick={() => setSidebarAbierta((v) => !v)}
+            aria-label="Cerrar menú"
+            title="Cerrar menú"
+            onClick={() => setSidebarAbierta(false)}
           >
-            <i
-              className={`fa-solid ${sidebarAbierta ? 'fa-chevron-left' : 'fa-chevron-right'}`}
-              aria-hidden="true"
-            />
+            <i className="fa-solid fa-chevron-left" aria-hidden="true" />
           </button>
         ) : null}
       </div>
@@ -266,10 +265,6 @@ function ShellInner({ children }: { children: ReactNode }) {
             </Link>
           ),
         )}
-        <button type="button" className="sidebar-salir" onClick={() => logout()}>
-          <i className="fa-solid fa-right-from-bracket" aria-hidden="true" />
-          <span>Salir</span>
-        </button>
       </div>
 
       <div className="sidebar-footer-v2">
@@ -287,12 +282,10 @@ function ShellInner({ children }: { children: ReactNode }) {
             )}
           </button>
         </div>
-        <div className="sidebar-version">
-          <span>© {year} Blue Open Data</span>
-          <span>
-            {fecha} | V:1.0.0
-          </span>
-        </div>
+        <button type="button" className="sidebar-salir sidebar-salir-pie" onClick={() => logout()}>
+          <i className="fa-solid fa-right-from-bracket" aria-hidden="true" />
+          <span>Cerrar sesión</span>
+        </button>
       </div>
     </>
   );
@@ -343,12 +336,47 @@ function ShellInner({ children }: { children: ReactNode }) {
           ) : null}
         </>
       ) : (
-        <aside
-          className={`sidebar sidebar-desktop ${sidebarAbierta ? 'sidebar-abierta' : ''}`}
-          aria-label="Menú lateral"
-        >
-          {menu}
-        </aside>
+        <>
+          <nav className="sidebar-rail" aria-label="Menú lateral">
+            <button type="button" className="rail-logo" title="Abrir menú" aria-label="Abrir menú" onClick={() => setSidebarAbierta(true)}>
+              <img src="/images/Municipio_malvinas_argentinas_logo.png" alt="" />
+            </button>
+            <button type="button" className="rail-btn rail-abrir" title="Abrir menú" aria-label="Abrir menú" onClick={() => setSidebarAbierta(true)}>
+              <i className="fa-solid fa-bars" aria-hidden="true" />
+            </button>
+            <div className="rail-items">
+              {gruposVisibles.map((g) =>
+                g.route ? (
+                  <Link key={g.id} href={g.route} className={`rail-btn ${grupoActivo(g) ? 'active' : ''}`} title={g.titulo} aria-label={g.titulo}>
+                    <i className={g.icono} aria-hidden="true" />
+                  </Link>
+                ) : (
+                  <button key={g.id} type="button" className={`rail-btn ${grupoActivo(g) ? 'active' : ''}`} title={g.titulo} aria-label={g.titulo} onClick={() => { setAbiertos((p) => ({ ...p, [g.id]: true })); setSidebarAbierta(true); }}>
+                    <i className={g.icono} aria-hidden="true" />
+                  </button>
+                ),
+              )}
+            </div>
+            <div className="rail-pie">
+              <button type="button" className="rail-btn" title={tema === 'light' ? 'Tema claro' : 'Tema oscuro'} aria-label="Cambiar tema" onClick={alternarTema}>
+                <i className={`fa-solid ${tema === 'light' ? 'fa-sun' : 'fa-moon'}`} aria-hidden="true" />
+              </button>
+              <button type="button" className="rail-btn rail-salir" title="Cerrar sesión" aria-label="Cerrar sesión" onClick={() => logout()}>
+                <i className="fa-solid fa-right-from-bracket" aria-hidden="true" />
+              </button>
+            </div>
+          </nav>
+          {sidebarAbierta ? (
+            <>
+              <button type="button" className="sidebar-velo" aria-label="Cerrar menú" onClick={() => setSidebarAbierta(false)}>
+                <span className="sidebar-velo-x"><i className="fa-solid fa-xmark" aria-hidden="true" /></span>
+              </button>
+              <aside className="sidebar sidebar-desktop sidebar-flotante sidebar-abierta" aria-label="Menú lateral desplegado">
+                {menu}
+              </aside>
+            </>
+          ) : null}
+        </>
       )}
 
       <main className="layout-contenido" style={{ marginLeft: margen }}>

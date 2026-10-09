@@ -212,3 +212,50 @@
 .roadmap-compacto { display: none; font-size: .8rem; font-weight: 600; color: #1d4ed8; }
 @media (max-width: 1280px) { .roadmap-pasos, .roadmap-medida { display: none; } .roadmap-compacto { display: inline; } }
 [data-theme='dark'] .roadmap-paso .roadmap-punto { background: #1f2937; border-color: #374151; }
+
+// ---------------------------------------------------------------------------
+// Sidebar: riel fijo con íconos + menú desplegado que flota sobre el contenido
+// ---------------------------------------------------------------------------
+.sidebar-rail {
+  position: fixed; top: 0; left: 0; bottom: 0; width: 72px; z-index: 1030;
+  display: flex; flex-direction: column; align-items: center; gap: .25rem; padding: .75rem 0;
+  background: #fff; box-shadow: 4px 0 24px rgba(0, 0, 0, .06);
+}
+.rail-logo { border: 0; background: transparent; padding: 0; margin-bottom: .5rem; cursor: pointer; img { width: 40px; height: auto; display: block; } }
+.rail-items { display: flex; flex-direction: column; align-items: center; gap: .25rem; flex: 1; overflow-y: auto; width: 100%; padding-top: .25rem; border-top: 1px solid #f3f4f6; }
+.rail-pie { display: flex; flex-direction: column; align-items: center; gap: .25rem; width: 100%; padding-top: .5rem; border-top: 1px solid #f3f4f6; }
+.rail-btn {
+  width: 44px; height: 44px; flex-shrink: 0; display: grid; place-items: center; border: 0; border-radius: 10px;
+  background: transparent; color: #4b5563; font-size: 1.05rem; cursor: pointer; text-decoration: none; transition: background .15s, color .15s;
+  &:hover { background: #eff6ff; color: #1d4ed8; }
+  &.active { background: #dbeafe; color: #1d4ed8; }
+}
+.rail-abrir { margin-bottom: .25rem; }
+.rail-salir { color: var(--bo-peligro); &:hover { background: #fef2f2; color: var(--bo-peligro); } }
+
+.sidebar-flotante { width: var(--bo-sidebar-ancho, 280px) !important; z-index: 1050; animation: sidebar-entra .18s ease-out; }
+.sidebar-flotante .sidebar-brand-logo { display: block; img { width: 36px; } }
+@keyframes sidebar-entra { from { transform: translateX(-24px); opacity: 0; } to { transform: none; opacity: 1; } }
+
+.sidebar-velo {
+  position: fixed; inset: 0; z-index: 1045; border: 0; padding: 0 0 0 var(--bo-sidebar-ancho, 280px);
+  background: rgba(15, 23, 42, .45); backdrop-filter: blur(1px); cursor: pointer;
+  display: flex; align-items: center; justify-content: center; animation: velo-entra .18s ease-out;
+}
+@keyframes velo-entra { from { opacity: 0; } to { opacity: 1; } }
+.sidebar-velo-x {
+  width: 120px; height: 120px; border-radius: 50%; display: grid; place-items: center;
+  color: #fff; font-size: 4.5rem; background: rgba(255, 255, 255, .12); border: 2px solid rgba(255, 255, 255, .35);
+  transition: transform .2s ease, background .2s ease, border-color .2s ease;
+}
+.sidebar-velo:hover .sidebar-velo-x, .sidebar-velo:focus-visible .sidebar-velo-x { transform: scale(1.12) rotate(90deg); background: rgba(255, 255, 255, .25); border-color: #fff; }
+
+// Pie del menú desplegado: tema + cerrar sesión siempre visibles abajo
+.sidebar-flotante .sidebar-footer-v2 { flex-shrink: 0; }
+.sidebar-salir-pie { margin-top: 0; border: 1px solid #fecaca; justify-content: center; }
+
+[data-theme='dark'] {
+  .sidebar-rail { background: #111827; box-shadow: none; border-right: 1px solid #1f2937; }
+  .rail-items, .rail-pie { border-color: #1f2937; }
+  .rail-btn { color: #9ca3af; &:hover, &.active { background: #1e3a8a; color: #fff; } }
+}
