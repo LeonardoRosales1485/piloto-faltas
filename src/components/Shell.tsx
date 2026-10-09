@@ -7,7 +7,7 @@ import { flushSync } from 'react-dom';
 import { logout } from '@/lib/auth-client';
 import { LayoutProvider, useLayout } from '@/lib/layout-context';
 import { inicioPara, inspectorForbidden } from '@/lib/role-guard';
-import { modulosDe, puede, ROL_ETIQUETA, type Permiso } from '@/lib/dominio';
+import { modulosDe, puede, ROL_ETIQUETA, tipoIdDe, tiposPermitidos, type Permiso } from '@/lib/dominio';
 import { useAuthUser } from '@/lib/use-auth-user';
 
 interface MenuChild {
@@ -60,6 +60,17 @@ const GRUPOS: MenuItem[] = [
       { titulo: 'Labrar acta', route: '/private/crear-editar/sustancias' },
     ],
   },
+  {
+    id: 'ordenanzas',
+    titulo: 'Ordenanzas',
+    icono: 'fa-solid fa-book-open',
+    permiso: 'ordenanzas',
+    children: [
+      { titulo: 'Tránsito', route: '/private/ordenanzas/multas' },
+      { titulo: 'Contravenciones', route: '/private/ordenanzas/contravenciones' },
+      { titulo: 'Sustancias alimenticias', route: '/private/ordenanzas/sustancias' },
+    ],
+  },
   { id: 'inspectores', titulo: 'Inspectores', icono: 'fa-solid fa-id-badge', route: '/private/inspectores', permiso: 'inspectores' },
   { id: 'gps', titulo: 'Seguimiento GPS', icono: 'fa-solid fa-location-crosshairs', route: '/private/seguimiento-gps', permiso: 'inspectores' },
   { id: 'reportes', titulo: 'Reportes', icono: 'fa-solid fa-chart-column', route: '/private/reportes', permiso: 'verCausas' },
@@ -71,8 +82,6 @@ const GRUPOS: MenuItem[] = [
     permiso: 'parametrizar',
     children: [
       { titulo: 'Plantillas de escritos', route: '/private/plantillas' },
-      { titulo: 'Ordenanzas tránsito', route: '/private/ordenanzas/multas' },
-      { titulo: 'Ordenanzas contravención', route: '/private/ordenanzas/contravenciones' },
       { titulo: 'Textos del portal', route: '/private/textos' },
       { titulo: 'Feriados', route: '/private/feriados' },
       { titulo: 'Usuarios', route: '/private/usuarios' },
@@ -94,6 +103,7 @@ const TITULOS: Record<string, string> = {
   '/private/finanzas': 'Valores y tarifas',
   '/private/ordenanzas/multas': 'Ordenanzas',
   '/private/ordenanzas/contravenciones': 'Ordenanzas',
+  '/private/ordenanzas/sustancias': 'Ordenanzas',
   '/private/causas': 'Causas',
   '/private/causa': 'Causa digital',
   '/private/presentaciones': 'Presentaciones',
@@ -169,7 +179,12 @@ function ShellInner({ children }: { children: ReactNode }) {
 
   const gruposVisibles = useMemo(() => {
     const modulos = modulosDe(user) as string[];
-    return GRUPOS.filter((g) => puede(user?.rol, g.permiso) && (g.permiso !== 'labrar' || modulos.includes(g.id)));
+    const alcance = tiposPermitidos(user?.rol);
+    return GRUPOS.filter((g) => puede(user?.rol, g.permiso) && (g.permiso !== 'labrar' || modulos.includes(g.id))).map((g) =>
+      g.id === 'ordenanzas' && alcance
+        ? { ...g, children: g.children?.filter((c) => alcance.includes(tipoIdDe(c.route!.split('/').pop()))) }
+        : g,
+    );
   }, [user]);
 
   const margen = layout.isMobile ? 0 : 72;

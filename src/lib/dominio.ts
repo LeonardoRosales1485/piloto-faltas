@@ -65,6 +65,7 @@ export const PERMISOS = {
   valores: ['Tributario', 'Administrador'],
   auditoria: ['Directora', 'Abogada', 'Administrador'],
   inspectores: ['Directora', 'Abogada', 'Administrador'],
+  ordenanzas: ['Directora', 'Abogada', 'Administrador'],
 } as const;
 
 export type Permiso = keyof typeof PERMISOS;

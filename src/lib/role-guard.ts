@@ -1,4 +1,4 @@
-import { modulosDe, puede, type ModuloActa, type Permiso } from './dominio';
+import { modulosDe, puede, tipoIdDe, tipoVisible, type ModuloActa, type Permiso } from './dominio';
 
 /** Qué permiso exige cada sección del back office (P-22: matriz propuesta para el piloto). */
 const RUTAS: { prefijo: string; permiso: Permiso }[] = [
@@ -17,7 +17,7 @@ const RUTAS: { prefijo: string; permiso: Permiso }[] = [
   { prefijo: '/private/feriados', permiso: 'parametrizar' },
   { prefijo: '/private/auditoria', permiso: 'auditoria' },
   { prefijo: '/private/finanzas', permiso: 'valores' },
-  { prefijo: '/private/ordenanzas', permiso: 'parametrizar' },
+  { prefijo: '/private/ordenanzas', permiso: 'ordenanzas' },
   { prefijo: '/private/usuarios', permiso: 'parametrizar' },
   { prefijo: '/private/marcas-modelos', permiso: 'parametrizar' },
   { prefijo: '/private/inspectores', permiso: 'inspectores' },
@@ -33,6 +33,9 @@ export function rutaPermitida(path: string, rol?: string, user?: U): boolean {
   if (r && !puede(rol, r.permiso)) return false;
   // Los inspectores solo entran a los módulos de acta que tienen autorizados.
   const m = p.match(/^\/private\/(?:crear-editar|lista-infracciones)\/(multas|contravenciones|sustancias)/);
+  // Ordenanzas: cada rol solo las de su alcance (Directora tránsito; Abogada contravenciones y sustancias).
+  const o = p.match(/^\/private\/ordenanzas\/(multas|contravenciones|sustancias)/);
+  if (o && !tipoVisible(rol, tipoIdDe(o[1]))) return false;
   if (m && rol === 'Inspector') return modulosDe({ rol, sector: user?.sector, modulosActa: user?.modulosActa }).includes(m[1] as ModuloActa);
   return true;
 }
