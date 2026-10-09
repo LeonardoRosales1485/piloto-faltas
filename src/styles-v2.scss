@@ -465,3 +465,6 @@
   button { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: .5rem; padding: .55rem .7rem; border: 0; background: transparent; border-radius: 9px; text-align: left; color: inherit;
     small { color: #6b7280; } &:hover { background: rgba(37, 99, 235, .06); } &.activo { background: #eff6ff; color: #1d4ed8; font-weight: 600; } &.baja { opacity: .55; } } }
 [data-theme='dark'] .mm-lista button.activo { background: #1e3a8a; color: #fff; }
+
+// El wizard no recorta las listas desplegables de los buscadores (municipio, marca, localidad).
+.card-step-wizard { overflow: visible; > .card-step-header { border-radius: var(--bo-radio-lg) var(--bo-radio-lg) 0 0; } }

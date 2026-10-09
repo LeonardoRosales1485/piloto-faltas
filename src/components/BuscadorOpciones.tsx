@@ -28,10 +28,12 @@ export function puntaje(q: string, o: OpcionBuscable): number {
 }
 
 /** Buscador con lista de mejores coincidencias (reemplaza a un <select> largo). */
-export function BuscadorOpciones({ id, opciones, valor, onChange, placeholder = 'Escriba para buscar…', max = 8 }: {
+export function BuscadorOpciones({ id, opciones, valor, onChange, placeholder = 'Escriba para buscar…', max = 8, libre = false }: {
   id: string; opciones: OpcionBuscable[]; valor: string; onChange: (v: string) => void; placeholder?: string; max?: number;
+  /** Permite usar el texto escrito aunque no esté en la lista. */
+  libre?: boolean;
 }) {
-  const elegida = opciones.find((o) => o.v === valor);
+  const elegida = opciones.find((o) => o.v === valor) ?? (libre && valor ? { v: valor, t: valor, sub: 'Ingreso libre' } : undefined);
   const [q, setQ] = useState('');
   const [abierto, setAbierto] = useState(false);
   const [activo, setActivo] = useState(0);
@@ -41,6 +43,9 @@ export function BuscadorOpciones({ id, opciones, valor, onChange, placeholder = 
     () => opciones.map((o) => ({ o, p: puntaje(q, o) })).filter((x) => x.p > 0).sort((a, b) => b.p - a.p || a.o.t.localeCompare(b.o.t)).slice(0, q ? max : opciones.length).map((x) => x.o),
     [opciones, q, max],
   );
+  const texto = q.trim();
+  const usarLibre = libre && texto && !opciones.some((o) => norm(o.t) === norm(texto));
+  const items: OpcionBuscable[] = usarLibre ? [...resultados, { v: texto, t: `Usar «${texto}»`, sub: 'No está en la lista: se carga tal cual' }] : resultados;
 
   function elegir(o: OpcionBuscable) {
     onChange(o.v);
@@ -49,9 +54,9 @@ export function BuscadorOpciones({ id, opciones, valor, onChange, placeholder = 
   }
 
   function tecla(e: React.KeyboardEvent) {
-    if (e.key === 'ArrowDown') { e.preventDefault(); setAbierto(true); setActivo((a) => Math.min(a + 1, resultados.length - 1)); }
+    if (e.key === 'ArrowDown') { e.preventDefault(); setAbierto(true); setActivo((a) => Math.min(a + 1, items.length - 1)); }
     else if (e.key === 'ArrowUp') { e.preventDefault(); setActivo((a) => Math.max(a - 1, 0)); }
-    else if (e.key === 'Enter' && abierto && resultados[activo]) { e.preventDefault(); elegir(resultados[activo]); }
+    else if (e.key === 'Enter' && abierto && items[activo]) { e.preventDefault(); elegir(items[activo]); }
     else if (e.key === 'Escape' && abierto) { e.stopPropagation(); setAbierto(false); }
     requestAnimationFrame(() => lista.current?.querySelector('.activo')?.scrollIntoView({ block: 'nearest' }));
   }
@@ -71,14 +76,14 @@ export function BuscadorOpciones({ id, opciones, valor, onChange, placeholder = 
             placeholder={placeholder} value={q} autoFocus={abierto}
             onChange={(e) => { setQ(e.target.value); setAbierto(true); setActivo(0); }}
             onFocus={() => setAbierto(true)}
-            onBlur={() => setTimeout(() => setAbierto(false), 150)}
+            onBlur={() => setTimeout(() => { setAbierto(false); if (usarLibre) { onChange(texto); setQ(''); } }, 150)}
             onKeyDown={tecla}
           />
         </div>
       )}
       {abierto ? (
         <ul id={`${id}-lista`} ref={lista} className="buscador-lista" role="listbox">
-          {resultados.length ? resultados.map((o, i) => (
+          {items.length ? items.map((o, i) => (
             <li key={o.v} role="option" aria-selected={o.v === valor} className={`${i === activo ? 'activo' : ''} ${o.v === valor ? 'elegida' : ''}`} onMouseDown={(e) => { e.preventDefault(); elegir(o); }} onMouseEnter={() => setActivo(i)}>
               <strong>{o.t}</strong>{o.sub ? <small>{o.sub}</small> : null}
             </li>

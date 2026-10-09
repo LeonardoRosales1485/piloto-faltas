@@ -13,6 +13,7 @@ import { useNotify } from './NotifyProvider';
 import { SignaturePad } from './SignaturePad';
 import { BarraSuperior } from './BarraSuperior';
 import { BuscadorOpciones } from './BuscadorOpciones';
+import { LOCALIDADES, PARTIDOS, partidosDe } from '@/lib/geo-ba';
 
 const NO_DESCRIBE = 'No se describe';
 import { useAuthUser } from '@/lib/use-auth-user';
@@ -76,6 +77,12 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
     const lista = (m?.modelos ?? []).filter((x) => !x.tipo_vehiculo || !form.vehiculoTipoNombre || x.tipo_vehiculo === form.vehiculoTipoNombre);
     return [...lista.map((x) => ({ v: x.nombre, t: x.nombre, sub: x.tipo_vehiculo ?? undefined })), { v: NO_DESCRIBE, t: NO_DESCRIBE }];
   }, [marcas, form.metadata?.marca, form.vehiculoTipoNombre]);
+  const opcLocalidades = useMemo(() => LOCALIDADES.map((l) => ({ v: l.nombre, t: l.nombre, sub: l.partidos.join(' · ') })), []);
+  const partidosLoc = partidosDe(form.infractorLocalidadNombre ?? '');
+  const opcMunicipios = useMemo(() => {
+    const base = (cat.municipio ?? []).length ? (cat.municipio ?? []).map((m) => m.nombre) : PARTIDOS;
+    return base.map((n) => ({ v: n, t: n }));
+  }, [cat.municipio]);
   const patchMeta = (k: string, v: string) => setForm((prev) => ({ ...prev, metadata: { ...(prev.metadata ?? {}), [k]: v } }));
 
   useEffect(() => () => setOcultarTopbar(false), [setOcultarTopbar]);
@@ -568,13 +575,24 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
                 </Campo>
               </div>
               <div className="col-12 col-md-4">
-                <Campo id="infractorPartidoNombre" label="Partido">
-                  {sel(cat.partido, form.infractorPartidoNombre, (v) => patch({ infractorPartidoNombre: v }), 'infractorPartidoNombre')}
+                <Campo id="infractorLocalidadNombre" label="Ciudad / localidad">
+                  {habilitado ? (
+                    <BuscadorOpciones id="infractorLocalidadNombre" libre valor={form.infractorLocalidadNombre ?? ''} placeholder="Buscar localidad…" opciones={opcLocalidades}
+                      onChange={(v) => { const ps = partidosDe(v); patch({ infractorLocalidadNombre: v, infractorPartidoNombre: ps.length === 1 ? ps[0] : ps.includes(form.infractorPartidoNombre ?? '') ? form.infractorPartidoNombre : '' }); }} />
+                  ) : <input id="infractorLocalidadNombre" className="form-control" disabled value={form.infractorLocalidadNombre ?? ''} />}
                 </Campo>
               </div>
               <div className="col-12 col-md-4">
-                <Campo id="infractorLocalidadNombre" label="Ciudad / localidad">
-                  {sel(cat.localidad, form.infractorLocalidadNombre, (v) => patch({ infractorLocalidadNombre: v }), 'infractorLocalidadNombre')}
+                <Campo id="infractorPartidoNombre" label="Partido">
+                  {!habilitado ? <input id="infractorPartidoNombre" className="form-control" disabled value={form.infractorPartidoNombre ?? ''} />
+                    : partidosLoc.length ? (
+                      <select id="infractorPartidoNombre" className="form-select" value={form.infractorPartidoNombre ?? ''} onChange={(e) => patch({ infractorPartidoNombre: e.target.value })}>
+                        {partidosLoc.length > 1 ? <option value="">Seleccione…</option> : null}
+                        {partidosLoc.map((p) => <option key={p} value={p}>{p}</option>)}
+                      </select>
+                    ) : form.infractorLocalidadNombre ? (
+                      <input id="infractorPartidoNombre" className="form-control" value={form.infractorPartidoNombre ?? ''} placeholder="Partido / departamento" onChange={(e) => patch({ infractorPartidoNombre: e.target.value })} />
+                    ) : <input id="infractorPartidoNombre" className="form-control" disabled value="" placeholder="Elija primero la localidad" />}
                 </Campo>
               </div>
             </div>
@@ -602,7 +620,7 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
                   <div className="col-6">
                     <Campo id="vehiculoMarca" label="Marca">
                       {habilitado ? (
-                        <BuscadorOpciones id="vehiculoMarca" valor={form.metadata?.marca ?? ''} placeholder="Buscar marca…" opciones={opcMarcas}
+                        <BuscadorOpciones id="vehiculoMarca" libre valor={form.metadata?.marca ?? ''} placeholder="Buscar marca…" opciones={opcMarcas}
                           onChange={(v) => setForm((prev) => ({ ...prev, metadata: { ...(prev.metadata ?? {}), marca: v, modelo: v === NO_DESCRIBE ? NO_DESCRIBE : '' } }))} />
                       ) : <input id="vehiculoMarca" className="form-control" disabled value={form.metadata?.marca ?? ''} />}
                     </Campo>
@@ -610,7 +628,7 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
                   <div className="col-6">
                     <Campo id="vehiculoModelo" label="Modelo">
                       {habilitado && form.metadata?.marca && form.metadata.marca !== NO_DESCRIBE ? (
-                        <BuscadorOpciones id="vehiculoModelo" valor={form.metadata?.modelo ?? ''} placeholder="Buscar modelo…" opciones={opcModelos} onChange={(v) => patchMeta('modelo', v)} />
+                        <BuscadorOpciones id="vehiculoModelo" libre valor={form.metadata?.modelo ?? ''} placeholder="Buscar modelo…" opciones={opcModelos} onChange={(v) => patchMeta('modelo', v)} />
                       ) : <input id="vehiculoModelo" className="form-control" disabled value={form.metadata?.modelo ?? ''} placeholder={habilitado ? 'Elija primero la marca' : ''} />}
                     </Campo>
                   </div>
@@ -621,10 +639,9 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
                   </div>
                   <div className="col-6">
                     <Campo id="vehiculoMunicipalidadEmisora" label="Municipio emisor">
-                      {inp('vehiculoMunicipalidadEmisora', { list: 'lista-municipios', autoComplete: 'off', placeholder: 'Empiece a escribir… (ej.: Malvinas Argentinas)' })}
-                      <datalist id="lista-municipios">
-                        {(cat.municipio ?? []).map((m) => <option key={m.id} value={m.nombre} />)}
-                      </datalist>
+                      {habilitado ? (
+                        <BuscadorOpciones id="vehiculoMunicipalidadEmisora" libre valor={form.vehiculoMunicipalidadEmisora ?? ''} placeholder="Buscar municipio… (ej.: Merlo)" opciones={opcMunicipios} onChange={(v) => patch({ vehiculoMunicipalidadEmisora: v })} />
+                      ) : <input id="vehiculoMunicipalidadEmisora" className="form-control" disabled value={form.vehiculoMunicipalidadEmisora ?? ''} />}
                     </Campo>
                   </div>
                 </>
@@ -684,7 +701,7 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
               <p className="texto-ayuda">Total: {unidades} unidades fijas. La valorización la revisa Faltas.</p>
 
               {tipo === 'multas' ? (
-                <div className="row g-3 mt-1">
+                <div className="row g-3 mt-1 align-items-end">
                   <div className="col-12">
                     <h3 className="subtitulo-paso">Medidas adoptadas</h3>
                   </div>
