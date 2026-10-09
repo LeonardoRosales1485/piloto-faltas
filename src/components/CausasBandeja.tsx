@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { http } from '@/lib/api-client';
 import { BANDEJAS, type BandejaId } from '@/lib/bandejas';
 import { ESTADOS_CAUSA, TIPOS_ACTA, fechaCorta, pesos, tipoActa } from '@/lib/dominio';
@@ -32,37 +32,73 @@ export function CausasBandeja() {
   }, [cargar, texto]);
 
   const info = BANDEJAS.find((b) => b.id === bandeja)!;
+  const activos = (bandeja !== 'activas' ? 1 : 0) + (estado ? 1 : 0) + (tipo ? 1 : 0);
+
+  // Menú de filtros: se elige una opción, se aplica a la lista y el menú se cierra.
+  const [menuAbierto, setMenuAbierto] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!menuAbierto) return;
+    const fuera = (e: MouseEvent) => { if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuAbierto(false); };
+    const esc = (e: KeyboardEvent) => e.key === 'Escape' && setMenuAbierto(false);
+    document.addEventListener('mousedown', fuera);
+    document.addEventListener('keydown', esc);
+    return () => { document.removeEventListener('mousedown', fuera); document.removeEventListener('keydown', esc); };
+  }, [menuAbierto]);
+  function aplicar(f: () => void) { f(); setPage(0); setMenuAbierto(false); }
 
   return (
     <div className="pagina">
-      <div className="bandeja-tabs" role="tablist">
-        {BANDEJAS.map((b) => (
-          <button key={b.id} type="button" role="tab" aria-selected={b.id === bandeja} className={`bandeja-tab ${b.id === bandeja ? 'activa' : ''}`} onClick={() => { setBandeja(b.id); setPage(0); }} title={b.ayuda}>
-            {b.titulo} <span className="n">{r?.conteos?.[b.id] ?? '·'}</span>
+      <div className="filtros-barra mb-2">
+        <div className="filtros-menu" ref={menuRef}>
+          <button type="button" className={`btn btn-filtros ${menuAbierto ? 'abierto' : ''}`} aria-expanded={menuAbierto} onClick={() => setMenuAbierto((v) => !v)}>
+            <i className="fa-solid fa-filter" aria-hidden="true" /> Filtros
+            {activos ? <span className="n">{activos}</span> : null}
+            <i className="fa-solid fa-chevron-down chev" aria-hidden="true" />
           </button>
-        ))}
-      </div>
-
-      <div className="filtros-card filtros-card-compacto mb-2">
-        <div className="row g-2 p-2 align-items-end">
-          <div className="col-12 col-md-5">
-            <label className="form-label-v2" htmlFor="b-texto">Buscar por acta, legajo, dominio, documento o nombre</label>
-            <input id="b-texto" className="form-control form-control-sm" value={texto} onChange={(e) => { setTexto(e.target.value); setPage(0); }} placeholder="T-001014, AB123CD, 28999111..." />
-          </div>
-          <div className="col-6 col-md-3">
-            <label className="form-label-v2" htmlFor="b-tipo">Tipo de acta</label>
-            <select id="b-tipo" className="form-select form-select-sm" value={tipo} onChange={(e) => { setTipo(e.target.value); setPage(0); }}>
-              <option value="">Todos</option>
-              {Object.entries(TIPOS_ACTA).map(([k, v]) => <option key={k} value={k}>{v.corto}</option>)}
-            </select>
-          </div>
-          <div className="col-6 col-md-4">
-            <label className="form-label-v2" htmlFor="b-estado">Estado</label>
-            <select id="b-estado" className="form-select form-select-sm" value={estado} onChange={(e) => { setEstado(e.target.value); setPage(0); }}>
-              <option value="">Todos</option>
-              {ESTADOS_CAUSA.map((e) => <option key={e.nombre} value={e.nombre}>{e.nombre}</option>)}
-            </select>
-          </div>
+          {menuAbierto ? (
+            <div className="filtros-panel" role="dialog" aria-label="Filtros de causas">
+              <div className="filtros-seccion">
+                <div className="filtros-titulo">Bandeja</div>
+                <div className="filtros-chips">
+                  {BANDEJAS.map((b) => (
+                    <button key={b.id} type="button" title={b.ayuda} className={`filtro-chip ${b.id === bandeja ? 'activo' : ''}`} onClick={() => aplicar(() => setBandeja(b.id))}>
+                      {b.titulo} <span className="n">{r?.conteos?.[b.id] ?? '·'}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="filtros-seccion">
+                <div className="filtros-titulo">Estado</div>
+                <div className="filtros-chips">
+                  <button type="button" className={`filtro-chip ${!estado ? 'activo' : ''}`} onClick={() => aplicar(() => setEstado(''))}>Todos</button>
+                  {ESTADOS_CAUSA.map((e) => (
+                    <button key={e.nombre} type="button" className={`filtro-chip ${estado === e.nombre ? 'activo' : ''}`} onClick={() => aplicar(() => setEstado(e.nombre))}>{e.nombre}</button>
+                  ))}
+                </div>
+              </div>
+              {Object.keys(TIPOS_ACTA).length > 1 ? (
+                <div className="filtros-seccion">
+                  <div className="filtros-titulo">Tipo de acta</div>
+                  <div className="filtros-chips">
+                    <button type="button" className={`filtro-chip ${!tipo ? 'activo' : ''}`} onClick={() => aplicar(() => setTipo(''))}>Todos</button>
+                    {Object.entries(TIPOS_ACTA).map(([k, v]) => (
+                      <button key={k} type="button" className={`filtro-chip ${tipo === k ? 'activo' : ''}`} onClick={() => aplicar(() => setTipo(k))}>{v.corto}</button>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
+        <div className="filtros-aplicados">
+          <span className="filtro-aplicado fijo" title={info.ayuda}>{info.titulo} <span className="n">{r?.conteos?.[bandeja] ?? '·'}</span></span>
+          {estado ? <button type="button" className="filtro-aplicado" onClick={() => { setEstado(''); setPage(0); }} aria-label={`Quitar estado ${estado}`}>{estado} <i className="fa-solid fa-xmark" aria-hidden="true" /></button> : null}
+          {tipo ? <button type="button" className="filtro-aplicado" onClick={() => { setTipo(''); setPage(0); }} aria-label="Quitar tipo">{TIPOS_ACTA[tipo as keyof typeof TIPOS_ACTA]?.corto ?? tipo} <i className="fa-solid fa-xmark" aria-hidden="true" /></button> : null}
+        </div>
+        <div className="filtros-busqueda">
+          <i className="fa-solid fa-magnifying-glass" aria-hidden="true" />
+          <input aria-label="Buscar por acta, legajo, dominio, documento o nombre" className="form-control" value={texto} onChange={(e) => { setTexto(e.target.value); setPage(0); }} placeholder="Buscar acta, legajo, dominio, documento o nombre" />
         </div>
       </div>
 

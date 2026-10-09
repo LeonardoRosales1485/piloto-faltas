@@ -203,29 +203,32 @@ export function EditorEscrito() {
         <Link className="btn btn-outline-secondary" href={`/private/causa/${d.causa.uuid}`}>Volver a la causa</Link>
       </div>
 
-      {campos.length ? (
-        <div className="card-step mb-3 no-print">
-          <div className="card-step-header"><h2>Campos a completar</h2><p>{pendientes ? `Faltan ${pendientes} de ${campos.length}` : 'Todos los campos completos'}</p></div>
-          <div className="card-step-body">
-            <div className="row g-2">
-              {campos.map((c) => (
-                <div key={c.k} className="col-12 col-md-6 col-xl-4">
-                  <label className="form-label-v2" htmlFor={`pc-${c.k}`}>{c.label}</label>
-                  <input id={`pc-${c.k}`} className={`form-control form-control-sm ${(valores[c.k] ?? '').trim() ? '' : 'is-invalid'}`} type={c.tipo === 'fecha' ? 'date' : c.tipo === 'numero' || c.tipo === 'moneda' ? 'number' : 'text'} value={valores[c.k] ?? ''} onChange={(e) => setCampoPanel(c.k, e.target.value)} />
+      <div className={`editor-split ${campos.length || (editable && modo === 'campos') ? '' : 'sin-panel'}`}>
+        {campos.length || (editable && modo === 'campos') ? (
+          <aside className="editor-panel no-print">
+            {campos.length ? (
+              <div className="card-step">
+                <div className="card-step-header"><h2>Campos a completar</h2><p>{pendientes ? `Faltan ${pendientes} de ${campos.length}` : 'Todos los campos completos'}</p></div>
+                <div className="card-step-body">
+                  {campos.map((c) => (
+                    <div key={c.k} className="mb-2">
+                      <label className="form-label-v2" htmlFor={`pc-${c.k}`}>{c.label}</label>
+                      <input id={`pc-${c.k}`} className={`form-control form-control-sm ${(valores[c.k] ?? '').trim() ? '' : 'is-invalid'}`} type={c.tipo === 'fecha' ? 'date' : c.tipo === 'numero' || c.tipo === 'moneda' ? 'number' : 'text'} value={valores[c.k] ?? ''} onChange={(e) => setCampoPanel(c.k, e.target.value)} />
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      ) : null}
+              </div>
+            ) : null}
+            {editable && modo === 'campos' ? (
+              <div className="aviso aviso-info mt-3 mb-0">
+                <p className="mb-2"><i className="fa-solid fa-lock" aria-hidden="true" /> El texto de la plantilla está bloqueado. {campos.length ? `Complete los campos (${campos.length - pendientes} de ${campos.length} completos).` : 'Esta plantilla no tiene campos a completar.'}</p>
+                <button type="button" className="btn btn-sm btn-outline-secondary w-100" onClick={() => setConfirmarLibre(true)}><i className="fa-solid fa-pen" aria-hidden="true" /> Editar todo el texto</button>
+              </div>
+            ) : null}
+          </aside>
+        ) : null}
 
       <div className="editor-escrito-wrap">
-        {editable && modo === 'campos' ? (
-          <div className="aviso aviso-info no-print d-flex flex-wrap align-items-center gap-2 justify-content-between">
-            <span><i className="fa-solid fa-lock" aria-hidden="true" /> El texto de la plantilla está bloqueado. Complete los campos resaltados{campos.length ? ` (${campos.length - pendientes} de ${campos.length} completos)` : ': esta plantilla no tiene campos a completar'}.</span>
-            <button type="button" className="btn btn-sm btn-outline-secondary" onClick={() => setConfirmarLibre(true)}><i className="fa-solid fa-pen" aria-hidden="true" /> Editar todo el texto</button>
-          </div>
-        ) : null}
         {editable && modo === 'libre' ? <div className="aviso aviso-alerta no-print"><i className="fa-solid fa-pen-ruler" aria-hidden="true" /> Edición libre: puede modificar todo el texto de este escrito. La plantilla no cambia.</div> : null}
         {editable && modo === 'libre' ? (
           <div className="editor-toolbar no-print" role="toolbar" aria-label="Formato">
@@ -246,6 +249,7 @@ export function EditorEscrito() {
           {doc.firmado_por ? <div dangerouslySetInnerHTML={{ __html: firmaHtml(doc) }} /> : null}
           <div style={{ borderTop: '1px solid #000', marginTop: 18, paddingTop: 4, fontSize: '9pt', textAlign: 'center' }}>{PIE_INSTITUCIONAL}</div>
         </div>
+      </div>
       </div>
 
       {confirmarLibre ? (
