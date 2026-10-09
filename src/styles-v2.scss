@@ -39,11 +39,12 @@
 // Opciones grandes (táctiles)
 .opciones-grandes { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.6rem; }
 .opcion-grande {
-  display: flex; align-items: center; gap: 0.6rem; width: 100%;
+  display: flex !important; align-items: center; gap: 0.6rem; width: 100%;
   min-height: 52px; padding: 0.6rem 0.9rem; cursor: pointer;
   border: 2px solid var(--bo-borde); border-radius: var(--bo-radio); background: var(--bo-card);
   font-weight: 600; font-size: 0.95rem;
-  input { width: 1.25rem; height: 1.25rem; accent-color: var(--bo-azul); }
+  input { width: 1.25rem; height: 1.25rem; margin: 0; flex-shrink: 0; position: static; align-self: center; accent-color: var(--bo-azul); }
+  > span { line-height: 1.25; }
   &.activa { border-color: var(--bo-azul); background: var(--bo-azul-claro); }
 }
 

@@ -400,7 +400,7 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
                     {SITUACIONES.map((s) => (
                       <label key={s.v} className={`opcion-grande ${form.situacionInfractor === s.v ? 'activa' : ''}`}>
                         <input type="radio" name="situacion" checked={form.situacionInfractor === s.v} onChange={() => patch({ situacionInfractor: s.v })} />
-                        {s.t}
+                        <span>{s.t}</span>
                       </label>
                     ))}
                   </div>
