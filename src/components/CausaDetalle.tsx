@@ -9,6 +9,7 @@ import { printActa, printTicket } from '@/lib/print';
 import { ESTADOS_CAUSA, TIPOS_ACTA, estadoFinal, fechaCorta, fechaHora, infoEstado, pesos, puede, tipoActa } from '@/lib/dominio';
 import { useAuthUser } from '@/lib/use-auth-user';
 import type { Infraccion } from '@/lib/types';
+import { RoadmapCausa } from './RoadmapCausa';
 import { EstadoChip } from './EstadoChip';
 import { ModalForm, type CampoModal } from './ModalForm';
 import { useNotify } from './NotifyProvider';
@@ -141,6 +142,7 @@ export function CausaDetalle() {
 
   return (
     <div className="pagina">
+      <RoadmapCausa estado={estado} historial={d.historial} medidaVigente={c.medidaVigente === 1} />
       <div className="card-step mb-3">
         <div className="causa-cabecera">
           <h1>{c.legajoNumeroActa}</h1>

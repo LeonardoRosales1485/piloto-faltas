@@ -18,6 +18,7 @@ const RUTAS: { prefijo: string; permiso: Permiso }[] = [
   { prefijo: '/private/auditoria', permiso: 'auditoria' },
   { prefijo: '/private/finanzas', permiso: 'valores' },
   { prefijo: '/private/ordenanzas', permiso: 'parametrizar' },
+  { prefijo: '/private/usuarios', permiso: 'parametrizar' },
 ];
 
 export function rutaPermitida(path: string, rol?: string): boolean {
@@ -25,8 +26,13 @@ export function rutaPermitida(path: string, rol?: string): boolean {
   return !r || puede(rol, r.permiso);
 }
 
-export function inicioPara(rol?: string): string {
-  if (rol === 'Inspector') return '/private/crear-editar/multas';
+/** Los inspectores de contravenciones (sector «Inspecciones Generales» o similar) arrancan en ese formulario. */
+export function tipoInspector(sector?: string | null): 'multas' | 'contravenciones' {
+  return /contrav|inspecciones generales|bromatolog/i.test(sector ?? '') ? 'contravenciones' : 'multas';
+}
+
+export function inicioPara(rol?: string, sector?: string | null): string {
+  if (rol === 'Inspector') return `/private/crear-editar/${tipoInspector(sector)}`;
   if (rol === 'Tributario') return '/private/finanzas';
   return '/private/causas';
 }

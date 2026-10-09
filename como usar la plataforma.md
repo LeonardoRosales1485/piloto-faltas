@@ -9,7 +9,8 @@ Guía paso a paso para recorrer un acta de tránsito de punta a punta: desde que
 
 | Quién | Usuario de prueba | Qué hace |
 |---|---|---|
-| Inspector | `inspector` / `inspector123` | Labra actas. Entra directo a «Labrar acta» y sólo ve sus propios borradores: no ve actas firmadas ni causas |
+| Inspector Tránsito | `inspector` / `inspector123` | Labra actas de tránsito. Entra directo a «Labrar acta» y sólo ve sus propios borradores: no ve actas firmadas ni causas |
+| Inspector Contrav. | `inspector_contrav` / `inspector123` | Igual que el anterior, pero entra directo al acta de contravención |
 | Agente de Faltas | `operador` / `operador123` | Tramita las causas |
 | Directora | `directora` / `directora123` | Revisa y firma escritos. Sólo ve causas de **tránsito** |
 | Abogada | `abogada` / `abogada123` | Mismos permisos que la Directora, pero sólo ve causas de **contravención** (y sustancias alimenticias) |
@@ -134,6 +135,8 @@ Para cualquier opción debe adjuntar el **DNI de frente y de dorso**, y el **est
 - **Reportes:** actas por tipo, estado y artículo, más lo recaudado. Se pueden exportar a Excel.
 - **Valores y tarifas** (usuario tributario): unidad fija, estadía, acarreo, etc.
 - **Configuración** (admin): plantillas de escritos, ordenanzas, textos del portal y feriados.
+- **Usuarios** (admin, en Configuración): alta, edición, cambio de contraseña y baja de usuarios. Las bajas no borran: el usuario queda inactivo.
+- **Roadmap de la causa**: arriba a la derecha, en el detalle de cada causa, se ve en qué etapa está (labrada, notificación, descargo/pago, fallo, cierre).
 - **Auditoría** (Directora y admin): quién hizo qué y cuándo.
 
 ## Qué está simulado en el piloto

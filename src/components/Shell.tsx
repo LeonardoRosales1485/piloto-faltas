@@ -72,6 +72,7 @@ const GRUPOS: MenuItem[] = [
       { titulo: 'Ordenanzas contravención', route: '/private/ordenanzas/contravenciones' },
       { titulo: 'Textos del portal', route: '/private/textos' },
       { titulo: 'Feriados', route: '/private/feriados' },
+      { titulo: 'Usuarios', route: '/private/usuarios' },
     ],
   },
   { id: 'correos', titulo: 'Correos enviados', icono: 'fa-solid fa-envelope', route: '/private/correos', permiso: 'verCausas' },
@@ -98,6 +99,7 @@ const TITULOS: Record<string, string> = {
   '/private/plantillas': 'Plantillas de escritos',
   '/private/textos': 'Textos del portal',
   '/private/feriados': 'Feriados',
+  '/private/usuarios': 'Usuarios',
   '/private/correos': 'Correos enviados',
   '/private/auditoria': 'Auditoría',
 };
@@ -139,7 +141,7 @@ function ShellInner({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (inspectorForbidden(pathname, user?.rol)) {
-      router.replace(inicioPara(user?.rol));
+      router.replace(inicioPara(user?.rol, user?.sector));
     }
   }, [pathname, user?.rol, router]);
 
@@ -356,6 +358,7 @@ function ShellInner({ children }: { children: ReactNode }) {
               <i className="fa-solid fa-file-invoice" aria-hidden="true" />
               <span>{titulo()}</span>
             </div>
+            <div id="topbar-extra" className="top-navbar-extra" />
             <div className="top-navbar-acciones">
               {tipo && !enCrearEditar ? (
                 <button type="button" className="btn-nueva" onClick={() => router.push(`/private/crear-editar/${tipo}`)}>

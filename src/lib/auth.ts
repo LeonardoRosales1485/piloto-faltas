@@ -27,7 +27,7 @@ export async function requireUser(req: NextRequest): Promise<UsuarioRow> {
     .select('*')
     .eq('username', username)
     .maybeSingle();
-  if (error || !data) {
+  if (error || !data || (data as UsuarioRow).activo === false) {
     throw Object.assign(new Error('Sin sesión'), { status: 401 });
   }
   return data as UsuarioRow;

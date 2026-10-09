@@ -6,12 +6,12 @@ import { useState } from 'react';
 import { login } from '@/lib/auth-client';
 
 const ACCESOS = [
-  { u: 'inspector', p: 'inspector123', t: 'Inspector', i: 'fa-solid fa-clipboard-list' },
+  { u: 'inspector', p: 'inspector123', t: 'Inspector Tránsito', i: 'fa-solid fa-car-side' },
+  { u: 'inspector_contrav', p: 'inspector123', t: 'Inspector Contrav.', i: 'fa-solid fa-clipboard-list' },
   { u: 'operador', p: 'operador123', t: 'Agente', i: 'fa-solid fa-user-tie' },
   { u: 'directora', p: 'directora123', t: 'Directora (tránsito)', i: 'fa-solid fa-car' },
   { u: 'abogada', p: 'abogada123', t: 'Abogada (contrav.)', i: 'fa-solid fa-scale-balanced' },
   { u: 'tributario', p: 'tributario123', t: 'Tributario', i: 'fa-solid fa-coins' },
-  { u: 'becario', p: 'becario123', t: 'Becario', i: 'fa-solid fa-user-graduate' },
   { u: 'admin', p: 'admin123', t: 'Administrador', i: 'fa-solid fa-gear' },
 ];
 
@@ -35,7 +35,7 @@ export function LoginPage() {
     setPassword(pw);
     try {
       const u = await login(us, pw);
-      router.push(inicioPara(u.rol));
+      router.push(inicioPara(u.rol, u.sector));
     } catch {
       setError('Usuario o contraseña incorrectos.');
       setLoading(false);

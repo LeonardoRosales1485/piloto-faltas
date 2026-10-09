@@ -178,6 +178,7 @@ export type UsuarioRow = {
   sector: string | null;
   rol: string;
   date_created: number;
+  activo?: boolean | null;
 };
 
 export type InfraccionRow = {

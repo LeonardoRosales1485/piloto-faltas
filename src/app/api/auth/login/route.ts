@@ -26,6 +26,7 @@ export async function POST(req: NextRequest) {
       return jsonFail(401, 'Usuario o contraseña incorrectos');
     }
     const row = data as UsuarioRow;
+    if (row.activo === false) return jsonFail(401, 'Usuario dado de baja');
     const match = await bcrypt.compare(password, row.password_hash);
     if (!match) {
       console.warn(`[login] Contraseña incorrecta para «${username}»`);
