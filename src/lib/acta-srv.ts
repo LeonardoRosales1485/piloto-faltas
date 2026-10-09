@@ -55,6 +55,7 @@ export async function montoEstimado(d: Db, infraccionId: number): Promise<number
 export async function firmarActa(d: Db, user: UsuarioRow, uuidActa: string, firmaInfractor: string | null) {
   const c = await causaPorUuid(d, uuidActa);
   check(c.estado_faltas === 'Borrador', 'El acta ya fue firmada o anulada', 409);
+  check(user.firma_activa !== false, 'Su firma digital está inactiva: pida a la Dirección de Faltas que la habilite en «Inspectores».', 403);
   const sit = String(c.situacion_infractor ?? 'presente');
   if (sit !== 'nn') {
     check(String(c.infractor_nombre ?? '').trim() || String(c.infractor_razon_social ?? '').trim(), 'Complete el nombre o la razón social del infractor');

@@ -45,6 +45,10 @@ BEGIN
     (gen_random_uuid()::text, 'abogada', '$2b$10$zs7sxMyA39qeo/UBcbhV0.T0QrUFEhQt86SzIX3XqxLoyCpncmhKC', 'Abogada', 'de Contravenciones', 'abogada@municipalidad.gob.ar', 'Dirección de Faltas', 'Abogada', NULL, TRUE, ahora),
     (gen_random_uuid()::text, 'tributario', '$2b$10$43fA2OzM6zjwyGmToHcFCuos4if7CgOTRPm5wZQtDDJC4Gfo7hMmy', 'Usuario', 'Tributario', 'tributario@municipalidad.gob.ar', 'Rentas', 'Tributario', NULL, TRUE, ahora),
     (gen_random_uuid()::text, 'becario', '$2b$10$dmXTRNZ4EYBqhnHZdRk8peM0dZuQVsdxEKsgT/GE8.wG.M1kwkWaK', 'Becario', 'Faltas', 'becario@municipalidad.gob.ar', 'Dirección de Faltas', 'Becario', NULL, TRUE, ahora);
+  -- Columnas agregadas por 011_inspectores.sql (si ya corrió).
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'usuario' AND column_name = 'terminal') THEN
+    EXECUTE $q$UPDATE usuario SET terminal = CASE username WHEN 'inspector' THEN 'T-01' WHEN 'inspector_contrav' THEN 'T-02' END, firma_activa = TRUE$q$;
+  END IF;
   RETURN jsonb_build_object('borrados', antes, 'creados', 8);
 END $$;
 

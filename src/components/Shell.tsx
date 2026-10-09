@@ -60,6 +60,8 @@ const GRUPOS: MenuItem[] = [
       { titulo: 'Labrar acta', route: '/private/crear-editar/sustancias' },
     ],
   },
+  { id: 'inspectores', titulo: 'Inspectores', icono: 'fa-solid fa-id-badge', route: '/private/inspectores', permiso: 'inspectores' },
+  { id: 'gps', titulo: 'Seguimiento GPS', icono: 'fa-solid fa-location-crosshairs', route: '/private/seguimiento-gps', permiso: 'inspectores' },
   { id: 'reportes', titulo: 'Reportes', icono: 'fa-solid fa-chart-column', route: '/private/reportes', permiso: 'verCausas' },
   { id: 'finanzas', titulo: 'Valores y tarifas', icono: 'fa-solid fa-coins', route: '/private/finanzas', permiso: 'valores' },
   {
@@ -102,6 +104,8 @@ const TITULOS: Record<string, string> = {
   '/private/textos': 'Textos del portal',
   '/private/feriados': 'Feriados',
   '/private/usuarios': 'Usuarios',
+  '/private/inspectores': 'Inspectores',
+  '/private/seguimiento-gps': 'Seguimiento GPS',
   '/private/sandbox': 'Opciones sandbox',
   '/private/correos': 'Correos enviados',
   '/private/auditoria': 'Auditoría',

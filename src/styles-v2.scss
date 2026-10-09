@@ -408,3 +408,31 @@
 .sandbox-resultado { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: .4rem 1.5rem;
   li { display: flex; justify-content: space-between; border-bottom: 1px dashed #e5e7eb; padding: .2rem 0; } }
 [data-theme='dark'] .sandbox-franja { background: #422006; color: #fde68a; border-color: #92400e; }
+
+// Inspectores
+.insp-resumen { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: .75rem; margin-bottom: 1rem;
+  div { background: #fff; border: 1px solid var(--bo-borde, #e5e7eb); border-radius: 12px; padding: .8rem 1rem; box-shadow: var(--bo-sombra-card); }
+  span { display: block; font-size: .78rem; color: #6b7280; } strong { font-size: 1.5rem; color: #1f2937; } }
+.insp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1rem; }
+.insp-card { border: 1px solid #e5e7eb; border-radius: 14px; padding: 1rem; background: #fff;
+  &.baja { opacity: .6; }
+  dl { margin: .75rem 0; display: grid; gap: .3rem; div { display: flex; justify-content: space-between; gap: .5rem; font-size: .88rem; } dt { color: #6b7280; font-weight: 400; } dd { margin: 0; font-weight: 600; text-align: right; } } }
+.insp-cab { display: flex; gap: .75rem; align-items: center; strong { display: block; } span { font-size: .8rem; color: #6b7280; } }
+.insp-avatar { width: 42px; height: 42px; border-radius: 50%; display: grid; place-items: center; background: #dbeafe; color: #1d4ed8; font-weight: 700; flex-shrink: 0; font-size: .9rem !important; }
+.insp-firma { padding: .1rem .55rem; border-radius: 999px; font-size: .75rem; &.si { background: #dcfce7; color: #166534; } &.no { background: #fee2e2; color: #991b1b; } }
+.insp-acciones { display: flex; flex-wrap: wrap; gap: .4rem; }
+[data-theme='dark'] { .insp-card, .insp-resumen div { background: #111827; border-color: #374151; } .insp-resumen strong { color: #e5e7eb; } }
+
+// Seguimiento GPS
+.gps-layout { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 1rem; align-items: start; }
+@media (max-width: 991.98px) { .gps-layout { grid-template-columns: 1fr; } }
+.gps-mapa-card { position: relative; overflow: hidden; padding: 0; }
+.gps-mapa { height: 560px; width: 100%; background: #e5e7eb; }
+.gps-cargando, .gps-sin-mapa { position: absolute; inset: 0; z-index: 500; display: grid; place-items: center; background: rgba(255, 255, 255, .7); color: #6b7280; }
+.gps-pin { width: 34px; height: 34px; border-radius: 50%; background: var(--c); color: #fff; font: 700 12px/34px system-ui, sans-serif; text-align: center; border: 3px solid #fff; box-shadow: 0 2px 8px rgba(0, 0, 0, .35); }
+.gps-lista ul { list-style: none; margin: 0; padding: .5rem; }
+.gps-lista button { width: 100%; display: flex; align-items: center; gap: .6rem; padding: .6rem; border: 0; background: transparent; border-radius: 10px; text-align: left;
+  &:hover { background: #f3f4f6; } &.activo { background: #eff6ff; } }
+.gps-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+.gps-nom { flex: 1; min-width: 0; strong { display: block; font-size: .9rem; } small { color: #6b7280; } }
+.gps-estado { font-size: .72rem; font-weight: 700; padding: .1rem .5rem; border-radius: 999px; &.on { background: #dcfce7; color: #166534; } &.off { background: #f3f4f6; color: #6b7280; } }

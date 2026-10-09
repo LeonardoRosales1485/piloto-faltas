@@ -184,6 +184,8 @@ export type UsuarioRow = {
   date_created: number;
   activo?: boolean | null;
   legajo?: string | null;
+  terminal?: string | null;
+  firma_activa?: boolean | null;
 };
 
 export type InfraccionRow = {
