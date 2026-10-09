@@ -91,6 +91,7 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
         vehiculo: c.vehiculoTipos ?? [],
         dependencia: c.dependencias ?? [],
         medida: extra.medidasContravencion ?? [],
+        municipio: extra.municipios ?? [],
       });
     });
     apiClient.leyes(tipo, { articulo: '', nombre: '', categoria: '' }, 0, 300).then((res) => setLeyes(res.content ?? []));
@@ -620,7 +621,10 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
                   </div>
                   <div className="col-6">
                     <Campo id="vehiculoMunicipalidadEmisora" label="Municipio emisor">
-                      {inp('vehiculoMunicipalidadEmisora')}
+                      {inp('vehiculoMunicipalidadEmisora', { list: 'lista-municipios', autoComplete: 'off', placeholder: 'Empiece a escribir… (ej.: Malvinas Argentinas)' })}
+                      <datalist id="lista-municipios">
+                        {(cat.municipio ?? []).map((m) => <option key={m.id} value={m.nombre} />)}
+                      </datalist>
                     </Campo>
                   </div>
                 </>

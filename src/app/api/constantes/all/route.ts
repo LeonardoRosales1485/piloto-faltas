@@ -25,6 +25,7 @@ export async function GET(req: NextRequest) {
       'medida_contravencion',
       'tipo_societario',
       'motivo_archivo',
+      'municipio',
     ] as const;
 
     const byTipo: Record<string, { id: number; nombre: string }[]> = {};
@@ -48,6 +49,7 @@ export async function GET(req: NextRequest) {
       medidasContravencion: byTipo.medida_contravencion ?? [],
       tiposSocietarios: byTipo.tipo_societario ?? [],
       motivosArchivo: byTipo.motivo_archivo ?? [],
+      municipios: byTipo.municipio ?? [],
     } as Constantes;
     return jsonOk(dto);
   } catch (e) {
