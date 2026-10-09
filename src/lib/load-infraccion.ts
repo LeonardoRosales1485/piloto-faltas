@@ -1,3 +1,4 @@
+import { resolverLeyes } from './dominio';
 import { infraccionFromRow } from './mappers';
 import { createServerClient } from './supabase-server';
 import type { Infraccion, InfraccionRow } from './types';
@@ -12,9 +13,15 @@ export async function loadInfraccionByUuid(uuid: string): Promise<Infraccion | n
     .from('infraccion_dependencia')
     .select('dependencia_nombre')
     .eq('infraccion_id', row.id);
-  return infraccionFromRow(
+  const claves = (leyes ?? []).map((l) => l.ley_nombre);
+  const inf = infraccionFromRow(
     row,
-    (leyes ?? []).map((l) => l.ley_nombre),
+    claves,
     (deps ?? []).map((d) => d.dependencia_nombre),
   );
+  if (claves.length) {
+    const { data: cat } = await supabase.from('ley').select('nombre, articulo, descripcion').eq('infraccion_tipo_id', row.infraccion_tipo_id);
+    inf.leyesDetalle = resolverLeyes(claves, (cat ?? []) as { nombre: string; articulo: string; descripcion?: string }[]);
+  }
+  return inf;
 }

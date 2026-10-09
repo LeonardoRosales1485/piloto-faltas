@@ -11,6 +11,7 @@ import type { ImgModel, Infraccion, Ley, OpcionCatalogo } from '@/lib/types';
 import { MAX_IMAGENES, ejidoPorGps, pasosPara, readImageFile, toDateTimeLocal, vacia } from './crear-editar-utils';
 import { useNotify } from './NotifyProvider';
 import { SignaturePad } from './SignaturePad';
+import { BarraSuperior } from './BarraSuperior';
 import { useAuthUser } from '@/lib/use-auth-user';
 
 const ALCOHOLEMIA = [
@@ -170,7 +171,7 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
     const next = Math.min(pasos.length - 1, Math.max(0, n));
     if (!soloLectura && next !== idx) void guardarBorrador();
     setIdx(next);
-    setOcultarTopbar(next > 0);
+    // La barra «Acta de tránsito» queda visible en todos los pasos (lleva el estado del borrador).
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
@@ -266,7 +267,7 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
                   <button type="button" className="btn btn-primary btn-lg" onClick={() => void printTicket(form)}>
                     <i className="fa-solid fa-print" aria-hidden="true" /> Imprimir ticket
                   </button>
-                  <button type="button" className="btn btn-outline-primary btn-lg" onClick={() => printActa(form)}>
+                  <button type="button" className="btn btn-outline-primary btn-lg" onClick={() => printActa(form, { imagenes: imagenes.map((x) => x.previewRaw ?? "").filter(Boolean) })}>
                     <i className="fa-solid fa-file-pdf" aria-hidden="true" /> Ver acta (PDF)
                   </button>
                   <Link className="btn btn-outline-secondary btn-lg" href={`/private/crear-editar/${tipo}`} onClick={() => (iniciado.current = false)}>
@@ -306,12 +307,12 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
 
   return (
     <div className="pagina pagina-steps">
+      <BarraSuperior><span className="acta-borrador-chip">Borrador sin firmar</span></BarraSuperior>
       <div className="acta-encabezado-numero">
         <span className="acta-numero-chip">
           <i className="fa-solid fa-hashtag" aria-hidden="true" /> {form.legajoNumeroActa}
         </span>
         <span>Legajo {form.legajoNumber}/{form.legajoAnio}</span>
-        <span className="acta-borrador-chip">Borrador sin firmar</span>
       </div>
 
       <nav className="wizard-pasos" aria-label="Pasos del formulario">
@@ -563,6 +564,16 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
               {tipo === 'multas' ? (
                 <>
                   <div className="col-6">
+                    <Campo id="vehiculoMarca" label="Marca">
+                      <input id="vehiculoMarca" className="form-control" disabled={!habilitado} value={form.metadata?.marca ?? ''} onChange={(e) => patchMeta('marca', e.target.value)} placeholder="Si no se describe, dejar vacío" />
+                    </Campo>
+                  </div>
+                  <div className="col-6">
+                    <Campo id="vehiculoModelo" label="Modelo">
+                      <input id="vehiculoModelo" className="form-control" disabled={!habilitado} value={form.metadata?.modelo ?? ''} onChange={(e) => patchMeta('modelo', e.target.value)} />
+                    </Campo>
+                  </div>
+                  <div className="col-6">
                     <Campo id="vehiculoNumeroLicencia" label="N.° de licencia">
                       {inp('vehiculoNumeroLicencia')}
                     </Campo>
@@ -636,7 +647,8 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
                   {[
                     { k: 'retencionDeLicencia' as const, t: 'Retención de licencia' },
                     { k: 'retencionDeVehiculo' as const, t: 'Retención de vehículo' },
-                    { k: 'acarreo' as const, t: 'Acarreo al depósito' },
+                    // Acarreo: quitado porque el modelo de acta de tránsito de la Dirección no lo incluye
+                    // (ver docs/pendientes-acta-transito.md). El campo sigue en la base y en la valorización.
                   ].map((m) => (
                     <div key={m.k} className="col-12 col-md-4">
                       <label className={`opcion-grande ${form[m.k] === 1 ? 'activa' : ''}`}>

@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { LoaderLogo } from './LoaderLogo';
 import { useParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { actaOficialCss, actaOficialHtml } from '@/lib/acta-oficial';
+import { actaHtmlPorTipo } from '@/lib/acta-oficial';
 import { apiClient } from '@/lib/api-client';
 import { actaPublicaUrl, printTicket } from '@/lib/print';
 import { useLayout } from '@/lib/layout-context';
@@ -138,7 +138,7 @@ function AccionesFila({
               ) : null}
               <div
                 className="acta-preview-scroll"
-                dangerouslySetInnerHTML={{ __html: `<style>${actaOficialCss()}</style>${actaOficialHtml(pdf)}` }}
+                dangerouslySetInnerHTML={{ __html: (() => { const a = actaHtmlPorTipo(pdf); return `<style>${a.css}</style>${a.html}`; })() }}
               />
             </div>
             <div className="modal-fake-footer">

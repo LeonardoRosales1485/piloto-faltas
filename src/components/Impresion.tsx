@@ -3,7 +3,7 @@
 
 import { useEffect, useState } from 'react';
 import { http } from '@/lib/api-client';
-import { actaOficialCss, actaOficialHtml } from '@/lib/acta-oficial';
+import { actaHtmlPorTipo } from '@/lib/acta-oficial';
 import { CSS_HOJA, firmaHtml, membreteHtml, pieHtml } from '@/lib/membrete';
 import { fechaHora } from '@/lib/dominio';
 import { aplicarValores } from '@/lib/campos';
@@ -28,7 +28,8 @@ export function Impresion({ modo, uuid }: { modo: 'documento' | 'legajo'; uuid: 
       } else {
         const d = await http.get<R>(`/api/causa/${uuid}`);
         const partes: string[] = [];
-        partes.push(`<section class="hoja"><style>${actaOficialCss()}</style>${actaOficialHtml(d.acta)}</section>`);
+        const acta = actaHtmlPorTipo(d.acta, { imagenes: (d.imagenes ?? []).map((x: R) => x.preview_raw).filter(Boolean) });
+        partes.push(`<section class="hoja"><style>${acta.css}</style>${acta.html}</section>`);
         const docs = [...d.documentos].reverse();
         for (const doc of docs) {
           const full = await http.get<{ documento: R }>(`/api/documento/${doc.uuid}`);

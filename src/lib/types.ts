@@ -71,6 +71,10 @@ export type Infraccion = {
   vencePlazoAt?: number | null;
   visiblePortal?: number;
   montoEstimado?: number | null;
+  inspectorLegajo?: string;
+  inspectorDependencia?: string;
+  /** Artículos con su descripción y norma (para el acta impresa). */
+  leyesDetalle?: { nombre: string; articulo: string; descripcion?: string }[];
 };
 
 export type ImgModel = {
@@ -179,6 +183,7 @@ export type UsuarioRow = {
   rol: string;
   date_created: number;
   activo?: boolean | null;
+  legajo?: string | null;
 };
 
 export type InfraccionRow = {

@@ -96,6 +96,8 @@ export function infraccionFromRow(
     sustanciasDescripcion: i.sustancias_descripcion ?? undefined,
     inspectorUsername: i.inspector_username ?? undefined,
     inspectorNombre: i.inspector_nombre ?? undefined,
+    inspectorLegajo: (i as { inspector_legajo?: string | null }).inspector_legajo ?? undefined,
+    inspectorDependencia: (i as { inspector_dependencia?: string | null }).inspector_dependencia ?? undefined,
     firmaInfractor: i.firma_infractor ?? undefined,
     firmaInspectorHash: i.firma_inspector_hash ?? undefined,
     firmadaAt: i.firmada_at ?? null,

@@ -212,7 +212,7 @@ export function CausaDetalle() {
                   <div className="mt-2"><span className="texto-ayuda">Firma del infractor:</span><br />{/* eslint-disable-next-line @next/next/no-img-element */}<img src={c.firmaInfractor} alt="Firma del infractor" style={{ height: 70, background: '#fff', borderRadius: 6 }} /></div>
                 ) : null}
                 <div className="botonera">
-                  <button type="button" className="btn btn-outline-primary" onClick={() => printActa(c)}><i className="fa-solid fa-file-pdf" aria-hidden="true" /> Ver acta (PDF)</button>
+                  <button type="button" className="btn btn-outline-primary" onClick={() => printActa(c, { imagenes: (d.imagenes ?? []).map((x) => x.preview_raw).filter(Boolean) })}><i className="fa-solid fa-file-pdf" aria-hidden="true" /> Ver acta (PDF)</button>
                   <button type="button" className="btn btn-outline-secondary" onClick={() => void printTicket(c)}><i className="fa-solid fa-print" aria-hidden="true" /> Ticket</button>
                   <a className="btn btn-outline-secondary" href={`/imprimir/legajo/${uuid}`} target="_blank" rel="noreferrer"><i className="fa-solid fa-book" aria-hidden="true" /> Legajo completo (PDF)</a>
                 </div>

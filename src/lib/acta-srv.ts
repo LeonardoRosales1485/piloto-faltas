@@ -32,6 +32,8 @@ export async function iniciarActa(d: Db, user: UsuarioRow, tipoNombre: string, u
     infractor_partido_nombre: 'Malvinas Argentinas',
     inspector_username: user.username,
     inspector_nombre: nombreUsuario(user),
+    inspector_legajo: (user as { legajo?: string | null }).legajo ?? null,
+    inspector_dependencia: user.sector ?? null,
     date_created: Date.now(),
   };
   const { data, error } = await d.from('infraccion').insert(row).select('*').single();

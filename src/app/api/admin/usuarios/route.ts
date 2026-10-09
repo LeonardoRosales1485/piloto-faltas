@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 import { ROL_ETIQUETA } from '@/lib/dominio';
 import { check, handle } from '@/lib/srv';
 
-const CAMPOS = 'uuid, username, nombre, apellido, email, sector, rol, activo, date_created, date_updated';
+const CAMPOS = 'uuid, username, nombre, apellido, email, sector, legajo, rol, activo, date_created, date_updated';
 
 /** Listado de usuarios del back office (sin hashes). */
 export async function GET(req: NextRequest) {
@@ -21,6 +21,7 @@ type Body = {
   apellido?: string;
   email?: string;
   sector?: string;
+  legajo?: string;
   rol?: string;
   password?: string;
   activo?: boolean;
@@ -37,6 +38,7 @@ export async function POST(req: NextRequest) {
       apellido: (b.apellido ?? '').trim(),
       email: (b.email ?? '').trim() || null,
       sector: (b.sector ?? '').trim() || null,
+      legajo: (b.legajo ?? '').trim() || null,
       rol: b.rol ?? '',
     };
     check(datos.nombre && datos.apellido, 'Nombre y apellido son obligatorios');

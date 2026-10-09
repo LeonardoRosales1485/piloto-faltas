@@ -1,6 +1,6 @@
 import QRCode from 'qrcode';
 import type { Infraccion } from './types';
-import { actaOficialCss, actaOficialHtml } from './acta-oficial';
+import { actaHtmlPorTipo, type ActaExtras } from './acta-oficial';
 
 function actaPublicaUrl(uuid: string): string {
   return `${window.location.origin}/acta/${encodeURIComponent(uuid)}`;
@@ -148,8 +148,9 @@ function ticketCss(): string {
   `;
 }
 
-export function printActa(infraccion: Infraccion): void {
-  abrirVentana('Acta de Infracción', actaOficialHtml(infraccion), actaOficialCss());
+export function printActa(infraccion: Infraccion, extras: ActaExtras = {}): void {
+  const { html, css } = actaHtmlPorTipo(infraccion, extras);
+  abrirVentana('Acta de Infracción', html, css);
 }
 
 function svgQr(url: string): string {

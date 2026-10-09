@@ -9,7 +9,7 @@ import { useAuthUser } from '@/lib/use-auth-user';
 import { ModalForm, type CampoModal } from './ModalForm';
 import { useNotify } from './NotifyProvider';
 
-type U = { uuid: string; username: string; nombre: string; apellido: string; email: string | null; sector: string | null; rol: string; activo: boolean; date_created: number };
+type U = { uuid: string; username: string; nombre: string; apellido: string; email: string | null; sector: string | null; legajo?: string | null; rol: string; activo: boolean; date_created: number };
 
 const ROLES = Object.entries(ROL_ETIQUETA).map(([v, t]) => ({ v, t }));
 
@@ -40,6 +40,7 @@ export function AdminUsuarios() {
     { k: 'apellido', t: 'Apellido', tipo: 'texto', req: true, valor: u?.apellido },
     { k: 'email', t: 'Correo', tipo: 'texto', valor: u?.email ?? '' },
     { k: 'sector', t: 'Sector', tipo: 'texto', valor: u?.sector ?? '', ayuda: 'Para inspectores: «Inspecciones Generales» los lleva al acta de contravención; si no, al acta de tránsito.' },
+    { k: 'legajo', t: 'N° de legajo', tipo: 'texto', valor: u?.legajo ?? '', ayuda: 'Se imprime debajo de la firma del inspector en el acta.' },
     { k: 'rol', t: 'Rol', tipo: 'select', opciones: ROLES, req: true, valor: u?.rol },
     { k: 'password', t: u ? 'Nueva contraseña (opcional)' : 'Contraseña', tipo: 'clave', req: !u, ayuda: 'Mínimo 6 caracteres.' },
   ];
@@ -57,14 +58,14 @@ export function AdminUsuarios() {
 
       <div className="card-step"><div className="card-step-body table-responsive">
         <table className="table align-middle mb-0">
-          <thead><tr><th>Usuario</th><th>Nombre</th><th>Rol</th><th>Sector</th><th>Correo</th><th>Alta</th><th>Estado</th><th aria-label="Acciones" /></tr></thead>
+          <thead><tr><th>Usuario</th><th>Nombre</th><th>Rol</th><th>Sector</th><th>Legajo</th><th>Correo</th><th>Alta</th><th>Estado</th><th aria-label="Acciones" /></tr></thead>
           <tbody>
-            {cargando ? <tr><td colSpan={8}><LoaderLogo tam={56} texto="Cargando…" /></td></tr> : lista.map((u) => (
+            {cargando ? <tr><td colSpan={9}><LoaderLogo tam={56} texto="Cargando…" /></td></tr> : lista.map((u) => (
               <tr key={u.uuid} className={u.activo === false ? 'text-muted' : ''}>
                 <td><strong>{u.username}</strong>{u.username === yo?.username ? <span className="texto-ayuda"> (vos)</span> : null}</td>
                 <td>{u.nombre} {u.apellido}</td>
                 <td>{ROL_ETIQUETA[u.rol] ?? u.rol}</td>
-                <td>{u.sector ?? '-'}</td>
+                <td>{u.sector ?? '-'}</td><td>{u.legajo ?? '-'}</td>
                 <td>{u.email ?? '-'}</td>
                 <td>{fechaCorta(u.date_created)}</td>
                 <td>{u.activo === false ? <span className="badge bg-secondary">Baja</span> : <span className="badge bg-success">Activo</span>}</td>
@@ -78,7 +79,7 @@ export function AdminUsuarios() {
                 </td>
               </tr>
             ))}
-            {!cargando && !lista.length ? <tr><td colSpan={8} className="text-center texto-ayuda py-4">No hay usuarios con ese filtro.</td></tr> : null}
+            {!cargando && !lista.length ? <tr><td colSpan={9} className="text-center texto-ayuda py-4">No hay usuarios con ese filtro.</td></tr> : null}
           </tbody>
         </table>
       </div></div>
