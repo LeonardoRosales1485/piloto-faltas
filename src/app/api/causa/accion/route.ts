@@ -150,6 +150,14 @@ export async function POST(req: NextRequest) {
         await historial(db, c.id, quien, 'Presentación registrada en mesa', `${txt('tipo')}: ${txt('texto')}`);
         return { ok: true };
       }
+      case 'correo_infractor': {
+        check(gestion, 'Sin permiso', 403);
+        const correo = txt('correo').toLowerCase();
+        check(!correo || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo), 'Correo electrónico inválido');
+        await db.from('infraccion').update({ infractor_email: correo || null }).eq('id', c.id);
+        await historial(db, c.id, quien, 'Correo del infractor actualizado', correo || 'Se quitó el correo');
+        return { ok: true };
+      }
       default:
         throw new HttpError(400, 'Acción desconocida');
     }
