@@ -408,7 +408,6 @@ function ShellInner({ children }: { children: ReactNode }) {
       )}
 
       <main className="layout-contenido" style={{ marginLeft: margen }}>
-        <div className="sandbox-franja" role="note"><i className="fa-solid fa-flask" aria-hidden="true" /> Entorno sandbox de pruebas · los datos pueden borrarse o reemplazarse en cualquier momento</div>
         {!layout.ocultarTopbar ? (
           <header className={`top-navbar ${layout.isMobile ? 'top-navbar-movil' : ''}`}>
             <div className="top-navbar-titulo">
