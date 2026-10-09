@@ -184,7 +184,6 @@ export function CausaDetalle() {
                   <div><dt>Ejido</dt><dd>{c.ejido === 'dentro' ? 'Dentro del ejido urbano' : c.ejido === 'fuera' ? 'Fuera del ejido urbano' : '-'}{c.gpsLat ? ` · GPS ${c.gpsLat}, ${c.gpsLng}` : ''}</dd></div>
                   <div><dt>Infractor</dt><dd>{c.situacionInfractor === 'nn' ? 'No identificado (NN)' : `${c.infractorRazonSocial || c.infractorNombre || '-'} · ${c.infractorCuit ? `CUIT ${c.infractorCuit}` : `${c.infractorDocumentoTipoNombre ?? ''} ${c.infractorDocumentoNumero ?? ''}`}`}</dd></div>
                   <div><dt>Domicilio</dt><dd>{[[c.infractorDomicilio, c.infractorCalleAltura, c.infractorDepartamento].filter(Boolean).join(' '), c.infractorLocalidadNombre, c.infractorPartidoNombre].filter(Boolean).join(' · ') || '-'}</dd></div>
-                  <div><dt>Contacto</dt><dd>{c.infractorEmail || '-'}</dd></div>
                   {tipo !== 'contravenciones' ? <div><dt>Vehículo</dt><dd>{c.vehiculoNumeroDominio || '-'} {c.vehiculoTipoNombre ?? ''} {c.vehiculoNumeroLicencia ? `· Lic. ${c.vehiculoNumeroLicencia}` : ''}</dd></div> : null}
                   {c.sustanciasDescripcion ? <div><dt>Sustancias</dt><dd>{c.sustanciasDescripcion}</dd></div> : null}
                   <div><dt>Medidas</dt><dd>{[c.retencionDeLicencia ? 'Retención de licencia' : '', c.retencionDeVehiculo ? 'Retención de vehículo' : '', c.acarreo ? 'Acarreo' : '', ...(c.medidasPreventivas ?? [])].filter(Boolean).join(' · ') || 'Ninguna'}{c.medidaVigente === 1 ? ' (vigente)' : ''}</dd></div>

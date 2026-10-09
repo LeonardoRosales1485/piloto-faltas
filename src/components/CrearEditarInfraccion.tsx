@@ -564,12 +564,6 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
                   {sel(cat.localidad, form.infractorLocalidadNombre, (v) => patch({ infractorLocalidadNombre: v }), 'infractorLocalidadNombre')}
                 </Campo>
               </div>
-              <div className="col-12">
-                <Campo id="infractorEmail" label="Correo electrónico de contacto (opcional)">
-                  {inp('infractorEmail', { type: 'email', inputMode: 'email' })}
-                </Campo>
-                <p className="texto-ayuda">Es solo un dato de contacto: no habilita notificaciones. Para recibirlas por correo, el infractor constituye domicilio electrónico en el portal.</p>
-              </div>
             </div>
           ) : null}
 
