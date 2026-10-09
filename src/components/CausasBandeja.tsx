@@ -7,6 +7,7 @@ import { BANDEJAS, type BandejaId } from '@/lib/bandejas';
 import { ESTADOS_CAUSA, TIPOS_ACTA, fechaCorta, pesos, tipoActa } from '@/lib/dominio';
 import { EstadoChip } from './EstadoChip';
 import { Plazo } from './Plazo';
+import { LoaderLogo } from './LoaderLogo';
 
 type Fila = Record<string, string | number | null> & { uuid: string };
 type Resp = { content: Fila[]; totalElements: number; totalPages: number; page: number; conteos: Record<string, number> };
@@ -122,10 +123,10 @@ export function CausasBandeja() {
               </tr>
             </thead>
             <tbody>
-              {cargando && !r ? (
-                <tr><td colSpan={8} className="celda-cargando"><i className="fa-solid fa-spinner fa-spin" aria-hidden="true" /> Cargando...</td></tr>
+              {cargando ? (
+                <tr><td colSpan={8}><LoaderLogo tam={56} texto="Cargando causas…" /></td></tr>
               ) : null}
-              {(r?.content ?? []).map((c) => (
+              {!cargando && (r?.content ?? []).map((c) => (
                 <tr key={c.uuid}>
                   <td>
                     <Link href={`/private/causa/${c.uuid}`} className="fw-semibold">{c.legajo_numero_acta}</Link>
@@ -140,7 +141,7 @@ export function CausasBandeja() {
                   <td className="text-end">{pesos(c.monto_estimado == null ? null : Number(c.monto_estimado))}</td>
                 </tr>
               ))}
-              {r && !r.content.length ? (
+              {!cargando && r && !r.content.length ? (
                 <tr><td colSpan={8}><div className="sin-resultados py-3"><i className="fa-solid fa-inbox" aria-hidden="true" /><p className="mb-0">No hay causas en esta bandeja.</p></div></td></tr>
               ) : null}
             </tbody>

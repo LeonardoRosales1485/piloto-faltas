@@ -2,6 +2,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { LoaderLogo } from './LoaderLogo';
+import { useCarga } from '@/lib/use-carga';
 import { http } from '@/lib/api-client';
 import { ESTADOS_CAUSA } from '@/lib/dominio';
 import { ModalForm } from './ModalForm';
@@ -20,7 +22,8 @@ export function AdminPlantillas() {
   const ref = useRef<HTMLDivElement>(null);
   const [nuevoCampo, setNuevoCampo] = useState(false);
   const rango = useRef<Range | null>(null);
-  const cargar = useCallback(() => { http.get<R[]>('/api/plantillas?todas=1').then(setLista); }, []);
+  const [cargando, seguir] = useCarga();
+  const cargar = useCallback(() => { void seguir(http.get<R[]>('/api/plantillas?todas=1').then(setLista)); }, [seguir]);
   useEffect(cargar, [cargar]);
   useEffect(() => { if (ref.current && sel) ref.current.innerHTML = sel.contenido_html ?? ''; }, [sel?.id, sel]);
 
@@ -72,6 +75,7 @@ export function AdminPlantillas() {
           </div>
           <div className="p-2"><input className="form-control form-control-sm" placeholder="Buscar por título" value={filtro} onChange={(e) => setFiltro(e.target.value)} aria-label="Buscar plantilla" /></div>
           <ul className="lista-items px-3" style={{ maxHeight: '70vh', overflow: 'auto' }}>
+            {cargando && !lista.length ? <li className="d-block"><LoaderLogo tam={56} texto="Cargando…" /></li> : null}
             {visibles.map((p) => (
               <li key={p.id} style={{ cursor: 'pointer', opacity: p.activa ? 1 : 0.5 }} onClick={() => setSel({ ...p })}>
                 <div><div className="li-titulo">{p.titulo}</div><div className="li-sub">{p.categoria}{p.estado_resultante ? ` → ${p.estado_resultante}` : ''}{p.activa ? '' : ' · inactiva'}</div></div>

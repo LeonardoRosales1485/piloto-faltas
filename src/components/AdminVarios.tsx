@@ -6,6 +6,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { http } from '@/lib/api-client';
 import { fechaCorta, fechaHora, pesos } from '@/lib/dominio';
 import { useNotify } from './NotifyProvider';
+import { LoaderLogo } from './LoaderLogo';
+import { useCarga } from '@/lib/use-carga';
 
 type R = Record<string, any>;
 
@@ -13,9 +15,11 @@ type R = Record<string, any>;
 export function AdminTextos() {
   const notify = useNotify();
   const [items, setItems] = useState<R[]>([]);
-  useEffect(() => { http.get<R[]>('/api/admin/textos').then(setItems); }, []);
+  const [cargando, seguir] = useCarga();
+  useEffect(() => { void seguir(http.get<R[]>('/api/admin/textos').then(setItems)); }, [seguir]);
   return (
     <div className="pagina">
+      {cargando ? <div className="card-step"><LoaderLogo tam={56} texto="Cargando…" /></div> : null}
       {items.map((t, i) => (
         <div key={t.llave} className="card-step mb-3">
           <div className="card-step-header"><h2>{t.titulo}</h2></div>
@@ -35,7 +39,8 @@ export function AdminFeriados() {
   const [items, setItems] = useState<R[]>([]);
   const [fecha, setFecha] = useState('');
   const [desc, setDesc] = useState('');
-  const cargar = useCallback(() => { http.get<R[]>('/api/admin/feriados').then(setItems); }, []);
+  const [cargando, seguir] = useCarga();
+  const cargar = useCallback(() => { void seguir(http.get<R[]>('/api/admin/feriados').then(setItems)); }, [seguir]);
   useEffect(cargar, [cargar]);
   const op = (b: R) => http.post('/api/admin/feriados', b).then(() => { notify.success('Listo'); cargar(); }).catch((e: Error) => notify.error('Error', e.message));
   return (
@@ -49,7 +54,8 @@ export function AdminFeriados() {
         <p className="texto-ayuda mt-2">El plazo de 5 días posteriores al fallo se cuenta en días hábiles: excluye sábados, domingos y estos feriados.</p>
       </div></div>
       <div className="card-step"><div className="card-step-body"><ul className="lista-items">
-        {items.map((f) => <li key={f.fecha}><div><div className="li-titulo">{fechaCorta(`${f.fecha}T12:00`)}</div><div className="li-sub">{f.descripcion}</div></div><button type="button" className="btn btn-sm btn-outline-danger" onClick={() => void op({ fecha: String(f.fecha).slice(0, 10), borrar: true })}>Quitar</button></li>)}
+        {cargando ? <li className="d-block"><LoaderLogo tam={56} texto="Cargando…" /></li> : null}
+        {!cargando && items.map((f) => <li key={f.fecha}><div><div className="li-titulo">{fechaCorta(`${f.fecha}T12:00`)}</div><div className="li-sub">{f.descripcion}</div></div><button type="button" className="btn btn-sm btn-outline-danger" onClick={() => void op({ fecha: String(f.fecha).slice(0, 10), borrar: true })}>Quitar</button></li>)}
       </ul></div></div>
     </div>
   );
@@ -58,13 +64,15 @@ export function AdminFeriados() {
 /** Correos no-reply que envió el sistema (simulados en el piloto). */
 export function Correos() {
   const [items, setItems] = useState<R[]>([]);
-  useEffect(() => { http.get<R[]>('/api/admin/correos').then(setItems); }, []);
+  const [cargando, seguir] = useCarga();
+  useEffect(() => { void seguir(http.get<R[]>('/api/admin/correos').then(setItems)); }, [seguir]);
   return (
     <div className="pagina"><div className="card-step">
       <div className="card-step-header"><h2>Correos enviados</h2><p>En el piloto los correos no salen: quedan registrados acá para verificar el circuito.</p></div>
       <div className="card-step-body"><ul className="lista-items">
-        {items.map((c) => <li key={c.id}><div><div className="li-titulo">{c.asunto}</div><div className="li-sub">Para {c.para} · {fechaHora(c.date_created)}</div><div className="li-sub">{c.cuerpo}</div></div></li>)}
-        {!items.length ? <li><span className="texto-ayuda">Todavía no se enviaron correos.</span></li> : null}
+        {cargando ? <li className="d-block"><LoaderLogo tam={56} texto="Cargando…" /></li> : null}
+        {!cargando && items.map((c) => <li key={c.id}><div><div className="li-titulo">{c.asunto}</div><div className="li-sub">Para {c.para} · {fechaHora(c.date_created)}</div><div className="li-sub">{c.cuerpo}</div></div></li>)}
+        {!cargando && !items.length ? <li><span className="texto-ayuda">Todavía no se enviaron correos.</span></li> : null}
       </ul></div>
     </div></div>
   );
@@ -76,10 +84,11 @@ export function Auditoria() {
   const [desde, setDesde] = useState('');
   const [hasta, setHasta] = useState('');
   const [items, setItems] = useState<R[]>([]);
+  const [cargando, seguir] = useCarga();
   useEffect(() => {
-    const t = setTimeout(() => http.get<R[]>(`/api/auditoria?usuario=${encodeURIComponent(usuario)}&desde=${desde}&hasta=${hasta}`).then(setItems), 300);
+    const t = setTimeout(() => void seguir(http.get<R[]>(`/api/auditoria?usuario=${encodeURIComponent(usuario)}&desde=${desde}&hasta=${hasta}`).then(setItems)), 300);
     return () => clearTimeout(t);
-  }, [usuario, desde, hasta]);
+  }, [usuario, desde, hasta, seguir]);
   return (
     <div className="pagina">
       <div className="filtros-card filtros-card-compacto mb-2"><div className="row g-2 p-2">
@@ -89,7 +98,7 @@ export function Auditoria() {
       </div></div>
       <div className="card-step"><div className="table-responsive"><table className="table custom-table align-middle">
         <thead><tr><th>FECHA</th><th>USUARIO</th><th>CAUSA</th><th>ACCIÓN</th><th>DETALLE</th></tr></thead>
-        <tbody>{items.map((h) => <tr key={h.id}><td>{fechaHora(h.fecha)}</td><td>{h.usuario}</td><td><Link href={`/private/causa/${h.infraccion?.uuid}`}>{h.infraccion?.legajo_numero_acta}</Link></td><td>{h.accion}{h.estado_nuevo ? <div className="texto-ayuda">{h.estado_anterior} → {h.estado_nuevo}</div> : null}</td><td className="texto-ayuda">{h.detalle}</td></tr>)}</tbody>
+        <tbody>{cargando ? <tr><td colSpan={5}><LoaderLogo tam={56} texto="Cargando…" /></td></tr> : null}{!cargando && items.map((h) => <tr key={h.id}><td>{fechaHora(h.fecha)}</td><td>{h.usuario}</td><td><Link href={`/private/causa/${h.infraccion?.uuid}`}>{h.infraccion?.legajo_numero_acta}</Link></td><td>{h.accion}{h.estado_nuevo ? <div className="texto-ayuda">{h.estado_anterior} → {h.estado_nuevo}</div> : null}</td><td className="texto-ayuda">{h.detalle}</td></tr>)}</tbody>
       </table></div></div>
     </div>
   );
@@ -120,7 +129,8 @@ export function Reportes() {
   const [desde, setDesde] = useState('');
   const [hasta, setHasta] = useState('');
   const [r, setR] = useState<R | null>(null);
-  useEffect(() => { http.get<R>(`/api/reportes?desde=${desde}&hasta=${hasta}`).then(setR); }, [desde, hasta]);
+  const [cargando, seguir] = useCarga();
+  useEffect(() => { void seguir(http.get<R>(`/api/reportes?desde=${desde}&hasta=${hasta}`).then(setR)); }, [desde, hasta, seguir]);
 
   function csv() {
     if (!r) return;
@@ -141,7 +151,8 @@ export function Reportes() {
         <div className="col-6 col-md-3"><label className="form-label-v2" htmlFor="r-h">Hasta</label><input id="r-h" type="date" className="form-control form-control-sm" value={hasta} onChange={(e) => setHasta(e.target.value)} /></div>
         <div className="col-12 col-md-6 d-flex gap-2 justify-content-end"><button type="button" className="btn btn-sm btn-outline-success" onClick={csv}><i className="fa-solid fa-file-excel" aria-hidden="true" /> Exportar Excel (CSV)</button><button type="button" className="btn btn-sm btn-outline-secondary" onClick={() => window.print()}><i className="fa-solid fa-file-pdf" aria-hidden="true" /> PDF</button></div>
       </div></div>
-      {r ? (
+      {cargando ? <div className="card-step"><LoaderLogo tam={56} texto="Cargando…" /></div> : null}
+      {r && !cargando ? (
         <>
           <div className="card-step mb-3"><div className="card-step-body"><dl className="ficha">
             <div><dt>Actas en el período</dt><dd>{r.total}</dd></div>

@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { LoaderLogo } from './LoaderLogo';
 import { useParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { actaOficialCss, actaOficialHtml } from '@/lib/acta-oficial';
@@ -501,9 +502,7 @@ export function ListaInfracciones() {
         </div>
 
         {cargando ? (
-          <div className="celda-cargando">
-            <i className="fa-solid fa-spinner fa-spin" aria-hidden="true" /> Cargando...
-          </div>
+          <LoaderLogo tam={56} texto="Cargando actas…" />
         ) : layout.isMobile ? (
           <>
             {!content.length ? (

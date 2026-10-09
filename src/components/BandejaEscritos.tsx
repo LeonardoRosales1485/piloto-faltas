@@ -2,6 +2,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import Link from 'next/link';
+import { LoaderLogo } from './LoaderLogo';
+import { useCarga } from '@/lib/use-carga';
 import { useEffect, useState } from 'react';
 import { http } from '@/lib/api-client';
 import { fechaHora, puede } from '@/lib/dominio';
@@ -24,10 +26,11 @@ export function BandejaEscritos() {
   const [texto, setTexto] = useState('');
   const [r, setR] = useState<{ items: R[]; conteos: Record<string, number> } | null>(null);
 
+  const [cargando, seguir] = useCarga();
   useEffect(() => {
-    const t = setTimeout(() => http.get<{ items: R[]; conteos: Record<string, number> }>(`/api/escritos?estado=${estado}&texto=${encodeURIComponent(texto)}`).then(setR), 250);
+    const t = setTimeout(() => seguir(http.get<{ items: R[]; conteos: Record<string, number> }>(`/api/escritos?estado=${estado}&texto=${encodeURIComponent(texto)}`)).then(setR), 250);
     return () => clearTimeout(t);
-  }, [estado, texto]);
+  }, [estado, texto, seguir]);
 
   const grupos = (r?.items ?? []).reduce<Record<string, R[]>>((acc, x) => { const k = x.plantilla?.categoria ?? 'Otros'; (acc[k] ??= []).push(x); return acc; }, {});
 
@@ -41,7 +44,8 @@ export function BandejaEscritos() {
         <input id="esc-t" className="form-control form-control-sm" value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="Fallo, resolución, compromiso..." />
       </div></div>
       {puede(user?.rol, 'firmar') && estado === 'en_revision' ? <div className="aviso aviso-info">Revise cada escrito: puede corregirlo, devolverlo con observación o firmarlo digitalmente.</div> : null}
-      {Object.entries(grupos).map(([cat, items]) => (
+      {cargando ? <div className="card-step"><LoaderLogo tam={56} texto="Cargando…" /></div> : null}
+      {!cargando && Object.entries(grupos).map(([cat, items]) => (
         <div key={cat} className="card-step mb-3">
           <div className="card-step-header"><h2>{cat}</h2><p>{items.length} escrito(s)</p></div>
           <div className="card-step-body">
@@ -59,7 +63,7 @@ export function BandejaEscritos() {
           </div>
         </div>
       ))}
-      {r && !r.items.length ? <div className="card-step"><div className="card-step-body"><span className="texto-ayuda">No hay escritos en esta bandeja.</span></div></div> : null}
+      {!cargando && r && !r.items.length ? <div className="card-step"><div className="card-step-body"><span className="texto-ayuda">No hay escritos en esta bandeja.</span></div></div> : null}
     </div>
   );
 }

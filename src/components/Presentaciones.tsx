@@ -2,6 +2,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import Link from 'next/link';
+import { LoaderLogo } from './LoaderLogo';
+import { useCarga } from '@/lib/use-carga';
 import { useCallback, useEffect, useState } from 'react';
 import { http } from '@/lib/api-client';
 import { esContravencional, fechaHora, puede } from '@/lib/dominio';
@@ -24,7 +26,8 @@ export function Presentaciones() {
   const [items, setItems] = useState<R[] | null>(null);
   const [resolver, setResolver] = useState<{ p: R; accion: 'aceptar' | 'rechazar' | 'observar' } | null>(null);
 
-  const cargar = useCallback(() => { http.get<R[]>(`/api/presentaciones?estado=${estado}`).then(setItems); }, [estado]);
+  const [cargando, seguir] = useCarga();
+  const cargar = useCallback(() => { void seguir(http.get<R[]>(`/api/presentaciones?estado=${estado}`).then(setItems)); }, [estado, seguir]);
   useEffect(cargar, [cargar]);
 
   async function ok(v: Record<string, string>) {
@@ -55,7 +58,7 @@ export function Presentaciones() {
         <div className="card-step-header"><h2>Presentaciones</h2><p>Llegan del portal de infractores o se registran en mesa. Se atienden por orden de llegada.</p></div>
         <div className="card-step-body">
           <ul className="lista-items">
-            {lista.map((p) => (
+            {cargando ? <li className="d-block"><LoaderLogo tam={56} texto="Cargando…" /></li> : lista.map((p) => (
               <li key={p.uuid}>
                 <div style={{ flex: '1 1 420px' }}>
                   <div className="li-titulo">{TIPO[p.tipo]}{p.reenvio_de ? ' · reenvío de descargo observado' : ''} · <Link href={`/private/causa/${p.infraccion?.uuid}`}>{p.infraccion?.legajo_numero_acta}</Link></div>
@@ -77,7 +80,7 @@ export function Presentaciones() {
                 ) : <span className="texto-ayuda text-capitalize">{p.estado}</span>}
               </li>
             ))}
-            {items && !lista.length ? <li><span className="texto-ayuda">No hay presentaciones en esta bandeja.</span></li> : null}
+            {!cargando && items && !lista.length ? <li><span className="texto-ayuda">No hay presentaciones en esta bandeja.</span></li> : null}
           </ul>
         </div>
       </div>

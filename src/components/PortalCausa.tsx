@@ -2,6 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import Link from 'next/link';
+import { LoaderLogo } from './LoaderLogo';
 import { useParams } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import { fechaCorta, fechaHora, pesos } from '@/lib/dominio';
@@ -92,7 +93,7 @@ export function PortalCausa() {
     a.click();
   }
 
-  if (!d) return <div className="portal-card">{msg ? <div className="aviso aviso-peligro mb-0">{msg.t}</div> : 'Cargando...'}</div>;
+  if (!d) return <div className="portal-card">{msg ? <div className="aviso aviso-peligro mb-0">{msg.t}</div> : <LoaderLogo texto="Cargando acta…" />}</div>;
   const r = d.resumen;
 
   if (d.requiereAviso) {

@@ -2,6 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import Link from 'next/link';
+import { LoaderLogo } from './LoaderLogo';
 import { HojasPaginadas } from './HojasPaginadas';
 import { useParams, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -16,7 +17,7 @@ export function PortalDocumento() {
   const [error, setError] = useState('');
   useEffect(() => { portal.get<Record<string, any>>(`/api/portal/documento/${uuid}`).then(setDoc).catch((e: Error) => setError(e.message)); }, [uuid]);
   if (error) return <div className="aviso aviso-peligro">{error}</div>;
-  if (!doc) return <div className="portal-card">Cargando...</div>;
+  if (!doc) return <div className="portal-card"><LoaderLogo texto="Cargando documento…" /></div>;
   return (
     <>
       <div className="d-flex gap-2 mb-3 no-print flex-wrap">

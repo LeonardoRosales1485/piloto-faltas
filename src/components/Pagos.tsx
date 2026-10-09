@@ -2,6 +2,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import Link from 'next/link';
+import { LoaderLogo } from './LoaderLogo';
+import { useCarga } from '@/lib/use-carga';
 import { useCallback, useEffect, useState } from 'react';
 import { http } from '@/lib/api-client';
 import { fechaCorta, pesos, puede } from '@/lib/dominio';
@@ -18,7 +20,8 @@ export function Pagos() {
   const user = useAuthUser();
   const [estado, setEstado] = useState('a_verificar');
   const [items, setItems] = useState<R[]>([]);
-  const cargar = useCallback(() => { http.get<R[]>(`/api/pagos?estado=${estado}`).then(setItems); }, [estado]);
+  const [cargando, seguir] = useCarga();
+  const cargar = useCallback(() => { void seguir(http.get<R[]>(`/api/pagos?estado=${estado}`).then(setItems)); }, [estado, seguir]);
   useEffect(cargar, [cargar]);
 
   async function confirmar(b: R) {
@@ -39,7 +42,7 @@ export function Pagos() {
           <table className="table custom-table align-middle">
             <thead><tr><th>BOLETA</th><th>CAUSA</th><th>CONCEPTO</th><th>A NOMBRE DE</th><th>VENCE</th><th className="text-end">MONTO</th><th>ESTADO</th><th /></tr></thead>
             <tbody>
-              {items.map((b) => (
+              {cargando ? <tr><td colSpan={8}><LoaderLogo tam={56} texto="Cargando…" /></td></tr> : items.map((b) => (
                 <tr key={b.uuid}>
                   <td>{b.numero}</td>
                   <td><Link href={`/private/causa/${b.infraccion?.uuid}`}>{b.infraccion?.legajo_numero_acta}</Link></td>
@@ -51,7 +54,7 @@ export function Pagos() {
                   <td>{b.estado === 'a_verificar' && puede(user?.rol, 'confirmarPagos') ? <button type="button" className="btn btn-sm btn-success" onClick={() => void confirmar(b)}>Confirmar</button> : null}</td>
                 </tr>
               ))}
-              {!items.length ? <tr><td colSpan={8}><div className="sin-resultados py-3"><p className="mb-0">No hay boletas.</p></div></td></tr> : null}
+              {!cargando && !items.length ? <tr><td colSpan={8}><div className="sin-resultados py-3"><p className="mb-0">No hay boletas.</p></div></td></tr> : null}
             </tbody>
           </table>
         </div>

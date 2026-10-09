@@ -1,6 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { LoaderLogo } from './LoaderLogo';
+import { useCarga } from '@/lib/use-carga';
 import { http } from '@/lib/api-client';
 import { fechaCorta, ROL_ETIQUETA } from '@/lib/dominio';
 import { useAuthUser } from '@/lib/use-auth-user';
@@ -21,7 +23,8 @@ export function AdminUsuarios() {
   const [verBajas, setVerBajas] = useState(false);
   const [modal, setModal] = useState<{ u?: U } | null>(null);
 
-  const cargar = useCallback(() => { http.get<U[]>('/api/admin/usuarios').then(setItems).catch((e: Error) => notify.error('Error', e.message)); }, [notify]);
+  const [cargando, seguir] = useCarga();
+  const cargar = useCallback(() => { void seguir(http.get<U[]>('/api/admin/usuarios').then(setItems)).catch((e: Error) => notify.error('Error', e.message)); }, [notify, seguir]);
   useEffect(cargar, [cargar]);
 
   const lista = useMemo(() => {
@@ -56,7 +59,7 @@ export function AdminUsuarios() {
         <table className="table align-middle mb-0">
           <thead><tr><th>Usuario</th><th>Nombre</th><th>Rol</th><th>Sector</th><th>Correo</th><th>Alta</th><th>Estado</th><th aria-label="Acciones" /></tr></thead>
           <tbody>
-            {lista.map((u) => (
+            {cargando ? <tr><td colSpan={8}><LoaderLogo tam={56} texto="Cargando…" /></td></tr> : lista.map((u) => (
               <tr key={u.uuid} className={u.activo === false ? 'text-muted' : ''}>
                 <td><strong>{u.username}</strong>{u.username === yo?.username ? <span className="texto-ayuda"> (vos)</span> : null}</td>
                 <td>{u.nombre} {u.apellido}</td>
@@ -75,7 +78,7 @@ export function AdminUsuarios() {
                 </td>
               </tr>
             ))}
-            {!lista.length ? <tr><td colSpan={8} className="text-center texto-ayuda py-4">No hay usuarios con ese filtro.</td></tr> : null}
+            {!cargando && !lista.length ? <tr><td colSpan={8} className="text-center texto-ayuda py-4">No hay usuarios con ese filtro.</td></tr> : null}
           </tbody>
         </table>
       </div></div>

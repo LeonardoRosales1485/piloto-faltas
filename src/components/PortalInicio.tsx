@@ -2,6 +2,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import Link from 'next/link';
+import { LoaderLogo } from './LoaderLogo';
+import { useCarga } from '@/lib/use-carga';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import { fechaCorta } from '@/lib/dominio';
@@ -67,11 +69,12 @@ function Causas({ perfil }: { perfil: Perfil }) {
   const [q, setQ] = useState('');
   const [tipo, setTipo] = useState('');
   const [items, setItems] = useState<R[] | null>(null);
+  const [cargando, seguir] = useCarga();
   const [error, setError] = useState('');
   const buscar = useCallback((texto: string) => {
     setError('');
-    portal.get<R[]>(`/api/portal/buscar?q=${encodeURIComponent(texto)}&tipo=${tipo}`).then(setItems).catch((e: Error) => setError(e.message));
-  }, [tipo]);
+    void seguir(portal.get<R[]>(`/api/portal/buscar?q=${encodeURIComponent(texto)}&tipo=${tipo}`).then(setItems).catch((e: Error) => setError(e.message)));
+  }, [tipo, seguir]);
   useEffect(() => buscar(''), [buscar]);
 
   return (
@@ -93,7 +96,8 @@ function Causas({ perfil }: { perfil: Perfil }) {
       <div className="portal-card">
         <h2>{q ? 'Resultados' : 'Mis actas'}</h2>
         <ul className="lista-items">
-          {(items ?? []).map((c) => (
+          {cargando ? <li className="d-block"><LoaderLogo tam={56} texto="Buscando actas…" /></li> : null}
+          {!cargando && (items ?? []).map((c) => (
             <li key={c.uuid}>
               <div>
                 <div className="li-titulo">Acta {c.legajo_numero_acta} {c.medida_vigente ? <span className="medida-chip ms-1">Medida vigente</span> : null}</div>
@@ -103,7 +107,7 @@ function Causas({ perfil }: { perfil: Perfil }) {
               <Link className="btn btn-primary" href={`/portal/causa/${c.uuid}`}>Ver</Link>
             </li>
           ))}
-          {items && !items.length ? <li><span className="texto-ayuda">{q ? 'No encontramos actas con ese dato.' : 'No hay actas a su nombre. Puede buscar por número de acta o dominio.'}</span></li> : null}
+          {!cargando && items && !items.length ? <li><span className="texto-ayuda">{q ? 'No encontramos actas con ese dato.' : 'No hay actas a su nombre. Puede buscar por número de acta o dominio.'}</span></li> : null}
         </ul>
       </div>
     </>
