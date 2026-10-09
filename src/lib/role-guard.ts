@@ -19,6 +19,7 @@ const RUTAS: { prefijo: string; permiso: Permiso }[] = [
   { prefijo: '/private/finanzas', permiso: 'valores' },
   { prefijo: '/private/ordenanzas', permiso: 'parametrizar' },
   { prefijo: '/private/usuarios', permiso: 'parametrizar' },
+  { prefijo: '/private/marcas-modelos', permiso: 'parametrizar' },
   { prefijo: '/private/inspectores', permiso: 'inspectores' },
   { prefijo: '/private/seguimiento-gps', permiso: 'inspectores' },
   { prefijo: '/private/sandbox', permiso: 'parametrizar' },

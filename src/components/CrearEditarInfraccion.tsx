@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { LoaderLogo } from './LoaderLogo';
 import { useParams, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { apiClient } from '@/lib/api-client';
+import { apiClient, http } from '@/lib/api-client';
 import { useLayout } from '@/lib/layout-context';
 import { printActa, printTicket } from '@/lib/print';
 import { puede, SITUACIONES, TIPOS_ACTA, claveLey, fechaHora, tipoActa } from '@/lib/dominio';
@@ -12,6 +12,9 @@ import { MAX_IMAGENES, ejidoPorGps, pasosPara, readImageFile, toDateTimeLocal, v
 import { useNotify } from './NotifyProvider';
 import { SignaturePad } from './SignaturePad';
 import { BarraSuperior } from './BarraSuperior';
+import { BuscadorOpciones } from './BuscadorOpciones';
+
+const NO_DESCRIBE = 'No se describe';
 import { useAuthUser } from '@/lib/use-auth-user';
 
 const ALCOHOLEMIA = [
@@ -64,6 +67,15 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
   const paso = pasos[Math.min(idx, pasos.length - 1)];
 
   const patch = useCallback((partial: Partial<Infraccion>) => setForm((prev) => ({ ...prev, ...partial })), []);
+  // Marcas y modelos administrables (Configuración → Marcas y modelos).
+  const [marcas, setMarcas] = useState<{ nombre: string; modelos: { nombre: string; tipo_vehiculo: string | null }[] }[]>([]);
+  useEffect(() => { http.get<typeof marcas>('/api/vehiculos').then(setMarcas).catch(() => setMarcas([])); }, []);
+  const opcMarcas = useMemo(() => [...marcas.map((m) => ({ v: m.nombre, t: m.nombre, sub: `${m.modelos.length} modelos` })), { v: NO_DESCRIBE, t: NO_DESCRIBE, sub: 'Marca y modelo no identificables' }], [marcas]);
+  const opcModelos = useMemo(() => {
+    const m = marcas.find((x) => x.nombre === form.metadata?.marca);
+    const lista = (m?.modelos ?? []).filter((x) => !x.tipo_vehiculo || !form.vehiculoTipoNombre || x.tipo_vehiculo === form.vehiculoTipoNombre);
+    return [...lista.map((x) => ({ v: x.nombre, t: x.nombre, sub: x.tipo_vehiculo ?? undefined })), { v: NO_DESCRIBE, t: NO_DESCRIBE }];
+  }, [marcas, form.metadata?.marca, form.vehiculoTipoNombre]);
   const patchMeta = (k: string, v: string) => setForm((prev) => ({ ...prev, metadata: { ...(prev.metadata ?? {}), [k]: v } }));
 
   useEffect(() => () => setOcultarTopbar(false), [setOcultarTopbar]);
@@ -588,12 +600,17 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
                 <>
                   <div className="col-6">
                     <Campo id="vehiculoMarca" label="Marca">
-                      <input id="vehiculoMarca" className="form-control" disabled={!habilitado} value={form.metadata?.marca ?? ''} onChange={(e) => patchMeta('marca', e.target.value)} placeholder="Si no se describe, dejar vacío" />
+                      {habilitado ? (
+                        <BuscadorOpciones id="vehiculoMarca" valor={form.metadata?.marca ?? ''} placeholder="Buscar marca…" opciones={opcMarcas}
+                          onChange={(v) => setForm((prev) => ({ ...prev, metadata: { ...(prev.metadata ?? {}), marca: v, modelo: v === NO_DESCRIBE ? NO_DESCRIBE : '' } }))} />
+                      ) : <input id="vehiculoMarca" className="form-control" disabled value={form.metadata?.marca ?? ''} />}
                     </Campo>
                   </div>
                   <div className="col-6">
                     <Campo id="vehiculoModelo" label="Modelo">
-                      <input id="vehiculoModelo" className="form-control" disabled={!habilitado} value={form.metadata?.modelo ?? ''} onChange={(e) => patchMeta('modelo', e.target.value)} />
+                      {habilitado && form.metadata?.marca && form.metadata.marca !== NO_DESCRIBE ? (
+                        <BuscadorOpciones id="vehiculoModelo" valor={form.metadata?.modelo ?? ''} placeholder="Buscar modelo…" opciones={opcModelos} onChange={(v) => patchMeta('modelo', v)} />
+                      ) : <input id="vehiculoModelo" className="form-control" disabled value={form.metadata?.modelo ?? ''} placeholder={habilitado ? 'Elija primero la marca' : ''} />}
                     </Campo>
                   </div>
                   <div className="col-6">
