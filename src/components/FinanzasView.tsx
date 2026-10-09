@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { LoaderLogo } from './LoaderLogo';
 import { apiClient } from '@/lib/api-client';
 import { useNotify } from './NotifyProvider';
 
@@ -158,7 +159,7 @@ export function FinanzasView() {
   if (cargando) {
     return (
       <div className="pagina">
-        <div className="celda-cargando"><i className="fa-solid fa-spinner fa-spin" aria-hidden="true" /> Cargando...</div>
+        <LoaderLogo />
       </div>
     );
   }

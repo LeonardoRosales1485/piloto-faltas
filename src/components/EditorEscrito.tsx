@@ -2,6 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import Link from 'next/link';
+import { LoaderLogo } from './LoaderLogo';
 import { useParams } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { getToken } from '@/lib/auth-client';
@@ -105,7 +106,7 @@ export function EditorEscrito() {
     setCambios(true);
   }
 
-  if (!d) return <div className="pagina"><div className="card-step"><div className="celda-cargando"><i className="fa-solid fa-spinner fa-spin" aria-hidden="true" /> Cargando escrito...</div></div></div>;
+  if (!d) return <LoaderLogo texto="Cargando escrito…" pantalla />;
 
   const doc = d.documento;
   const esDirectora = puede(user?.rol, 'firmar');

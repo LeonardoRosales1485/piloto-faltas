@@ -1,5 +1,6 @@
 'use client';
 import Link from 'next/link';
+import { LoaderLogo } from './LoaderLogo';
 import { useParams, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { apiClient } from '@/lib/api-client';
@@ -220,13 +221,7 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
 
   if (cargando) {
     return (
-      <div className="pagina pagina-steps">
-        <div className="card-step">
-          <div className="celda-cargando">
-            <i className="fa-solid fa-spinner fa-spin" aria-hidden="true" /> {uuid ? 'Cargando...' : 'Reservando número de acta...'}
-          </div>
-        </div>
-      </div>
+      <LoaderLogo texto={uuid ? 'Cargando acta…' : 'Reservando número de acta…'} pantalla />
     );
   }
 

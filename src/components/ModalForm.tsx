@@ -1,10 +1,12 @@
 'use client';
 
 import { useState } from 'react';
+import { BuscadorOpciones, type OpcionBuscable } from './BuscadorOpciones';
 
 export type CampoModal =
   | { k: string; t: string; tipo: 'texto' | 'area' | 'numero' | 'fecha' | 'clave'; req?: boolean; ayuda?: string; valor?: string }
   | { k: string; t: string; tipo: 'select'; opciones: { v: string; t: string }[]; req?: boolean; ayuda?: string; valor?: string }
+  | { k: string; t: string; tipo: 'buscar'; opciones: OpcionBuscable[]; req?: boolean; ayuda?: string; valor?: string; placeholder?: string }
   | { k: string; t: string; tipo: 'archivo'; req?: boolean; ayuda?: string; valor?: string };
 
 /** Formulario modal genérico para las acciones de la causa. */
@@ -43,6 +45,8 @@ export function ModalForm({
                 <select id={`m-${c.k}`} className="form-select" value={v[c.k]} onChange={(e) => setV({ ...v, [c.k]: e.target.value })}>
                   {c.opciones.map((o) => <option key={o.v} value={o.v}>{o.t}</option>)}
                 </select>
+              ) : c.tipo === 'buscar' ? (
+                <BuscadorOpciones id={`m-${c.k}`} opciones={c.opciones} valor={v[c.k]} placeholder={c.placeholder} onChange={(x) => setV((p) => ({ ...p, [c.k]: x }))} />
               ) : c.tipo === 'archivo' ? (
                 <input id={`m-${c.k}`} type="file" className="form-control" accept="image/*,application/pdf" onChange={(e) => void archivo(c.k, e.target.files?.[0])} />
               ) : (

@@ -2,6 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import Link from 'next/link';
+import { LoaderLogo } from './LoaderLogo';
 import { useParams, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { http } from '@/lib/api-client';
@@ -79,14 +80,14 @@ export function CausaDetalle() {
   const cuotasVencidas = (d?.boletas ?? []).some((b) => b.estado === 'emitida' && Number(b.vencimiento) < Date.now());
 
   if (!d || !c) {
-    return <div className="pagina"><div className="card-step"><div className="celda-cargando"><i className="fa-solid fa-spinner fa-spin" aria-hidden="true" /> Cargando causa...</div></div></div>;
+    return <LoaderLogo texto="Cargando causa…" pantalla />;
   }
 
   const abrirEscrito = () =>
     setModal({
       titulo: 'Generar escrito desde plantilla', icono: 'fa-solid fa-file-circle-plus', accion: 'generar_escrito', textoOk: 'Generar y editar',
       aviso: 'El escrito se completa con los datos del acta. Después lo puede editar antes de dejarlo definitivo.',
-      campos: [{ k: 'plantillaId', t: 'Plantilla', tipo: 'select', req: true, opciones: plantillasTipo.map((p) => ({ v: String(p.id), t: `${p.categoria} · ${p.titulo}${p.estado_resultante ? ` → ${p.estado_resultante}` : ''}` })) }],
+      campos: [{ k: 'plantillaId', t: 'Plantilla', tipo: 'buscar', req: true, placeholder: 'Buscar por nombre, categoría, estado o texto (ej.: «compromiso pago», «fallo», «cuotas»)', ayuda: 'Se muestran las mejores coincidencias. Use ↑ ↓ y Enter para elegir.', opciones: plantillasTipo.map((p) => ({ v: String(p.id), t: p.titulo, sub: `${p.categoria}${p.estado_resultante ? ` · la causa pasa a «${p.estado_resultante}»` : ''}`, extra: `${p.codigo ?? ''} ${String(p.contenido_html ?? '').replace(/<[^>]+>/g, ' ').slice(0, 600)}` })) }],
     });
 
   const plantillaPorCodigo = (codigo: string) => plantillas.find((p) => p.codigo === codigo);

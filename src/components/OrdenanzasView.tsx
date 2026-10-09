@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { LoaderLogo } from './LoaderLogo';
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { apiClient } from '@/lib/api-client';
@@ -250,7 +251,7 @@ export function OrdenanzasView({ uuidProp }: { uuidProp?: string }) {
           <h2><i className="fa-solid fa-scale-balanced" aria-hidden="true" /> Listado de Ordenanzas</h2>
         </div>
         {cargando ? (
-          <div className="celda-cargando"><i className="fa-solid fa-spinner fa-spin" aria-hidden="true" /> Cargando...</div>
+          <LoaderLogo />
         ) : layout.isMobile ? (
           <>
             {!leyes.length ? (

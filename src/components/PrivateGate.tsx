@@ -1,6 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import { LoaderLogo } from './LoaderLogo';
 import { useEffect, useState, type ReactNode } from 'react';
 import { getToken } from '@/lib/auth-client';
 import { Shell } from './Shell';
@@ -19,9 +20,7 @@ export function PrivateGate({ children }: { children: ReactNode }) {
 
   if (!ready) {
     return (
-      <div className="celda-cargando p-5">
-        <i className="fa-solid fa-spinner fa-spin" aria-hidden="true" /> Cargando...
-      </div>
+      <LoaderLogo pantalla />
     );
   }
 
