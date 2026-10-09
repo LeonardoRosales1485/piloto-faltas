@@ -203,3 +203,25 @@ export function resolverLeyes<T extends { nombre: string; articulo?: string | nu
   }
   return out;
 }
+
+// ---------------------------------------------------------------------------
+// Módulos de acta que puede labrar cada inspector (tipos de inspector)
+// ---------------------------------------------------------------------------
+export const MODULOS_ACTA = [
+  { v: 'multas', t: 'Tránsito' },
+  { v: 'contravenciones', t: 'Contravenciones' },
+  { v: 'sustancias', t: 'Sustancias alimenticias' },
+] as const;
+export type ModuloActa = (typeof MODULOS_ACTA)[number]['v'];
+
+/** Módulos autorizados: los del usuario; si no tiene, se deducen de la dependencia. Los no inspectores ven todos. */
+export function modulosDe(u: { rol?: string | null; modulosActa?: string | string[] | null; modulos_acta?: string | null; sector?: string | null } | null | undefined): ModuloActa[] {
+  if (!u) return [];
+  const todos = MODULOS_ACTA.map((m) => m.v) as ModuloActa[];
+  if (u.rol !== 'Inspector') return todos;
+  const raw = u.modulosActa ?? u.modulos_acta;
+  const lista = (Array.isArray(raw) ? raw : String(raw ?? '').split(',')).map((x) => x.trim()).filter((x): x is ModuloActa => (todos as string[]).includes(x));
+  if (lista.length) return lista;
+  const s = u.sector ?? '';
+  return [/bromatolog/i.test(s) ? 'sustancias' : /contrav|inspecciones generales/i.test(s) ? 'contravenciones' : 'multas'];
+}

@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { http } from '@/lib/api-client';
-import { fechaHora } from '@/lib/dominio';
+import { fechaHora, MODULOS_ACTA, modulosDe } from '@/lib/dominio';
 import { useCarga } from '@/lib/use-carga';
 import { LoaderLogo } from './LoaderLogo';
 import { ModalForm, type CampoModal } from './ModalForm';
@@ -11,7 +11,7 @@ import { useNotify } from './NotifyProvider';
 
 type I = {
   uuid: string; username: string; nombre: string; apellido: string; email: string | null; sector: string | null; legajo: string | null;
-  terminal: string | null; firma_activa: boolean; activo: boolean; actas: number; ultima_acta: number | null;
+  terminal: string | null; firma_activa: boolean; activo: boolean; modulos_acta: string | null; actas: number; ultima_acta: number | null;
 };
 
 const DEPENDENCIAS = ['Inspección de Tránsito', 'Inspecciones Generales', 'Bromatología', 'Seguridad Ciudadana'];
@@ -41,7 +41,8 @@ export function AdminInspectores() {
     { k: 'nombre', t: 'Nombre', tipo: 'texto', req: true, valor: i?.nombre },
     { k: 'apellido', t: 'Apellido', tipo: 'texto', req: true, valor: i?.apellido },
     { k: 'legajo', t: 'N° de legajo', tipo: 'texto', req: true, valor: i?.legajo ?? '', ayuda: 'Se imprime debajo de la firma en el acta.' },
-    { k: 'sector', t: 'Dependencia', tipo: 'select', req: true, opciones: DEPENDENCIAS.map((d) => ({ v: d, t: d })), valor: i?.sector ?? DEPENDENCIAS[0], ayuda: '«Inspecciones Generales» y «Bromatología» entran directo al acta de contravención.' },
+    { k: 'modulos_acta', t: 'Tipo de inspector (módulos autorizados)', tipo: 'multi', req: true, opciones: MODULOS_ACTA.map((m) => ({ v: m.v, t: m.t })), valor: i ? modulosDe({ rol: 'Inspector', modulos_acta: i.modulos_acta, sector: i.sector }).join(',') : 'multas', ayuda: 'Solo puede labrar y ver los borradores de los tipos de acta marcados.' },
+    { k: 'sector', t: 'Dependencia', tipo: 'select', req: true, opciones: DEPENDENCIAS.map((d) => ({ v: d, t: d })), valor: i?.sector ?? DEPENDENCIAS[0] },
     { k: 'terminal', t: 'Terminal asignada', tipo: 'texto', valor: i?.terminal ?? '', ayuda: 'Identificador del dispositivo (ej.: T-03). Vacío = sin terminal.' },
     { k: 'email', t: 'Correo', tipo: 'texto', valor: i?.email ?? '' },
     { k: 'password', t: i ? 'Nueva contraseña (opcional)' : 'Contraseña', tipo: 'clave', req: !i, ayuda: 'Mínimo 6 caracteres.' },
@@ -73,10 +74,11 @@ export function AdminInspectores() {
               {lista.map((i) => (
                 <article key={i.uuid} className={`insp-card ${i.activo === false ? 'baja' : ''}`}>
                   <div className="insp-cab">
-                    <span className="insp-avatar">{(i.nombre[0] ?? '') + (i.apellido[0] ?? '')}</span>
+                    <span className="insp-avatar">{(i.nombre[0] ?? '') + (i.apellido.split(' ').pop()?.[0] ?? '')}</span>
                     <div><strong>{i.nombre} {i.apellido}</strong><span>{i.username} · Legajo {i.legajo ?? '-'}</span></div>
                   </div>
                   <dl>
+                    <div><dt>Tipo</dt><dd className="insp-modulos">{modulosDe({ rol: 'Inspector', modulos_acta: i.modulos_acta, sector: i.sector }).map((m) => <span key={m}>{MODULOS_ACTA.find((x) => x.v === m)?.t}</span>)}</dd></div>
                     <div><dt>Dependencia</dt><dd>{i.sector ?? '-'}</dd></div>
                     <div><dt>Terminal</dt><dd>{i.terminal ?? 'No asignada'}</dd></div>
                     <div><dt>Firma</dt><dd><span className={`insp-firma ${i.firma_activa !== false ? 'si' : 'no'}`}>{i.firma_activa !== false ? 'Activa' : 'Inactiva'}</span></dd></div>

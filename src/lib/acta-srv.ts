@@ -1,3 +1,4 @@
+import { modulosDe, type ModuloActa } from './dominio';
 import { causaPorUuid, check, configNum, historial, HttpError, nombreUsuario, sha, type Db } from './srv';
 import { formatearNumeroActa, resolverLeyes, TIPOS_ACTA, tipoActa } from './dominio';
 import type { UsuarioRow } from './types';
@@ -55,6 +56,7 @@ export async function montoEstimado(d: Db, infraccionId: number): Promise<number
 export async function firmarActa(d: Db, user: UsuarioRow, uuidActa: string, firmaInfractor: string | null) {
   const c = await causaPorUuid(d, uuidActa);
   check(c.estado_faltas === 'Borrador', 'El acta ya fue firmada o anulada', 409);
+  check(modulosDe(user).includes(String(c.infraccion_tipo_nombre) as ModuloActa), 'No tiene autorizado labrar este tipo de acta', 403);
   check(user.firma_activa !== false, 'Su firma digital está inactiva: pida a la Dirección de Faltas que la habilite en «Inspectores».', 403);
   const sit = String(c.situacion_infractor ?? 'presente');
   if (sit !== 'nn') {

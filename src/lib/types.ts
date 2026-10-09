@@ -5,6 +5,7 @@ export type Usuario = {
   email: string;
   sector: string;
   rol: string;
+  modulosActa?: string[];
   token?: string;
 };
 
@@ -186,6 +187,7 @@ export type UsuarioRow = {
   legajo?: string | null;
   terminal?: string | null;
   firma_activa?: boolean | null;
+  modulos_acta?: string | null;
 };
 
 export type InfraccionRow = {

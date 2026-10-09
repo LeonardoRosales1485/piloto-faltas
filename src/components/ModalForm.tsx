@@ -7,6 +7,7 @@ export type CampoModal =
   | { k: string; t: string; tipo: 'texto' | 'area' | 'numero' | 'fecha' | 'clave'; req?: boolean; ayuda?: string; valor?: string }
   | { k: string; t: string; tipo: 'select'; opciones: { v: string; t: string }[]; req?: boolean; ayuda?: string; valor?: string }
   | { k: string; t: string; tipo: 'buscar'; opciones: OpcionBuscable[]; req?: boolean; ayuda?: string; valor?: string; placeholder?: string }
+  | { k: string; t: string; tipo: 'multi'; opciones: { v: string; t: string }[]; req?: boolean; ayuda?: string; valor?: string }
   | { k: string; t: string; tipo: 'archivo'; req?: boolean; ayuda?: string; valor?: string };
 
 /** Formulario modal genérico para las acciones de la causa. */
@@ -47,6 +48,18 @@ export function ModalForm({
                 </select>
               ) : c.tipo === 'buscar' ? (
                 <BuscadorOpciones id={`m-${c.k}`} opciones={c.opciones} valor={v[c.k]} placeholder={c.placeholder} onChange={(x) => setV((p) => ({ ...p, [c.k]: x }))} />
+              ) : c.tipo === 'multi' ? (
+                <div className="multi-opciones" id={`m-${c.k}`} role="group" aria-label={c.t}>
+                  {c.opciones.map((o) => {
+                    const sel = String(v[c.k] ?? '').split(',').filter(Boolean);
+                    const on = sel.includes(o.v);
+                    return (
+                      <label key={o.v} className={`multi-opcion ${on ? 'activa' : ''}`}>
+                        <input type="checkbox" checked={on} onChange={() => setV({ ...v, [c.k]: (on ? sel.filter((x) => x !== o.v) : [...sel, o.v]).join(',') })} /> {o.t}
+                      </label>
+                    );
+                  })}
+                </div>
               ) : c.tipo === 'archivo' ? (
                 <input id={`m-${c.k}`} type="file" className="form-control" accept="image/*,application/pdf" onChange={(e) => void archivo(c.k, e.target.files?.[0])} />
               ) : (

@@ -8,6 +8,7 @@ import { login } from '@/lib/auth-client';
 const ACCESOS = [
   { u: 'inspector', p: 'inspector123', t: 'Inspector Tránsito', i: 'fa-solid fa-car-side' },
   { u: 'inspector_contrav', p: 'inspector123', t: 'Inspector Contrav.', i: 'fa-solid fa-clipboard-list' },
+  { u: 'inspector_sustancias', p: 'inspector123', t: 'Inspector Sustancias', i: 'fa-solid fa-truck' },
   { u: 'operador', p: 'operador123', t: 'Agente', i: 'fa-solid fa-user-tie' },
   { u: 'directora', p: 'directora123', t: 'Directora (tránsito)', i: 'fa-solid fa-car' },
   { u: 'abogada', p: 'abogada123', t: 'Abogada (contrav.)', i: 'fa-solid fa-scale-balanced' },
@@ -35,7 +36,7 @@ export function LoginPage() {
     setPassword(pw);
     try {
       const u = await login(us, pw);
-      router.push(inicioPara(u.rol, u.sector));
+      router.push(inicioPara(u.rol, u.sector, u.modulosActa));
     } catch {
       setError('Usuario o contraseña incorrectos.');
       setLoading(false);

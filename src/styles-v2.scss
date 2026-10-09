@@ -436,3 +436,23 @@
 .gps-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
 .gps-nom { flex: 1; min-width: 0; strong { display: block; font-size: .9rem; } small { color: #6b7280; } }
 .gps-estado { font-size: .72rem; font-weight: 700; padding: .1rem .5rem; border-radius: 999px; &.on { background: #dcfce7; color: #166534; } &.off { background: #f3f4f6; color: #6b7280; } }
+
+// Modo oscuro para tarjetas Bootstrap (.card) usadas en Valores y tarifas y otras vistas
+[data-theme='dark'] {
+  .card { background-color: var(--bo-card); border-color: var(--bo-borde); color: var(--bo-texto); }
+  .card-header { background-color: var(--bo-card-header); border-color: var(--bo-borde); color: var(--bo-texto); }
+  .card-body, .card-footer { color: var(--bo-texto); border-color: var(--bo-borde); }
+  .card .texto-muted, .card .text-muted { color: var(--bo-texto-secundario) !important; }
+  .card .list-group-item { background: transparent; color: var(--bo-texto); border-color: var(--bo-borde); }
+}
+// Número de acta y legajo en una sola línea en la tabla de actas
+.tabla-objetivo td.text-center { white-space: nowrap; }
+[data-theme='dark'] {
+  .card-movil-lista { background-color: var(--bo-card); border-color: var(--bo-borde); }
+  .fila-movil { border-bottom-color: var(--bo-borde); color: var(--bo-texto-secundario); strong, span:last-child { color: var(--bo-texto); } }
+}
+.multi-opciones { display: flex; flex-wrap: wrap; gap: .5rem; }
+.multi-opcion { display: inline-flex; align-items: center; gap: .4rem; padding: .45rem .8rem; border: 1.5px solid #d1d5db; border-radius: 999px; cursor: pointer; font-size: .9rem;
+  input { accent-color: #2563eb; } &.activa { border-color: #2563eb; background: #eff6ff; color: #1d4ed8; font-weight: 600; } }
+.insp-modulos { display: flex; flex-wrap: wrap; gap: .25rem; justify-content: flex-end; span { background: #ede9fe; color: #5b21b6; border-radius: 999px; padding: .05rem .5rem; font-size: .75rem; } }
+[data-theme='dark'] .multi-opcion.activa { background: #1e3a8a; color: #fff; }

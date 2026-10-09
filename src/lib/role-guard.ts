@@ -1,4 +1,4 @@
-import { puede, type Permiso } from './dominio';
+import { modulosDe, puede, type ModuloActa, type Permiso } from './dominio';
 
 /** Qué permiso exige cada sección del back office (P-22: matriz propuesta para el piloto). */
 const RUTAS: { prefijo: string; permiso: Permiso }[] = [
@@ -24,9 +24,16 @@ const RUTAS: { prefijo: string; permiso: Permiso }[] = [
   { prefijo: '/private/sandbox', permiso: 'parametrizar' },
 ];
 
-export function rutaPermitida(path: string, rol?: string): boolean {
-  const r = RUTAS.find((x) => path.split('?')[0].startsWith(x.prefijo));
-  return !r || puede(rol, r.permiso);
+type U = { rol?: string; sector?: string | null; modulosActa?: string[] } | null | undefined;
+
+export function rutaPermitida(path: string, rol?: string, user?: U): boolean {
+  const p = path.split('?')[0];
+  const r = RUTAS.find((x) => p.startsWith(x.prefijo));
+  if (r && !puede(rol, r.permiso)) return false;
+  // Los inspectores solo entran a los módulos de acta que tienen autorizados.
+  const m = p.match(/^\/private\/(?:crear-editar|lista-infracciones)\/(multas|contravenciones|sustancias)/);
+  if (m && rol === 'Inspector') return modulosDe({ rol, sector: user?.sector, modulosActa: user?.modulosActa }).includes(m[1] as ModuloActa);
+  return true;
 }
 
 /** Los inspectores de contravenciones (sector «Inspecciones Generales» o similar) arrancan en ese formulario. */
@@ -34,13 +41,13 @@ export function tipoInspector(sector?: string | null): 'multas' | 'contravencion
   return /contrav|inspecciones generales|bromatolog/i.test(sector ?? '') ? 'contravenciones' : 'multas';
 }
 
-export function inicioPara(rol?: string, sector?: string | null): string {
-  if (rol === 'Inspector') return `/private/crear-editar/${tipoInspector(sector)}`;
+export function inicioPara(rol?: string, sector?: string | null, modulosActa?: string[]): string {
+  if (rol === 'Inspector') return `/private/crear-editar/${modulosDe({ rol, sector, modulosActa })[0] ?? tipoInspector(sector)}`;
   if (rol === 'Tributario') return '/private/finanzas';
   return '/private/causas';
 }
 
 /** Compatibilidad con el código anterior. */
-export function inspectorForbidden(pathname: string, rol?: string): boolean {
-  return !rutaPermitida(pathname, rol);
+export function inspectorForbidden(pathname: string, rol?: string, user?: U): boolean {
+  return !rutaPermitida(pathname, rol, user);
 }

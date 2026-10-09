@@ -1,3 +1,4 @@
+import { modulosDe } from './dominio';
 import { NextRequest } from 'next/server';
 import { subjectFromToken } from './jwt';
 import { createServerClient } from './supabase-server';
@@ -40,6 +41,7 @@ export function toUsuarioDto(row: UsuarioRow, token?: string | null): Usuario {
     apellido: row.apellido,
     email: row.email ?? '',
     sector: row.sector ?? '',
+    modulosActa: modulosDe(row),
     rol: row.rol,
     ...(token ? { token } : {}),
   };

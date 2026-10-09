@@ -2,7 +2,9 @@ import { NextRequest } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { check, handle } from '@/lib/srv';
 
-const CAMPOS = 'uuid, username, nombre, apellido, email, sector, legajo, terminal, firma_activa, activo, date_created';
+import { MODULOS_ACTA } from '@/lib/dominio';
+
+const CAMPOS = 'uuid, username, nombre, apellido, email, sector, legajo, terminal, firma_activa, modulos_acta, activo, date_created';
 
 /** Inspectores con su cantidad de actas firmadas y la última. */
 export async function GET(req: NextRequest) {
@@ -22,7 +24,7 @@ export async function GET(req: NextRequest) {
 
 type Body = {
   uuid?: string; username?: string; nombre?: string; apellido?: string; email?: string; sector?: string;
-  legajo?: string; terminal?: string; firma_activa?: boolean; activo?: boolean; password?: string;
+  legajo?: string; terminal?: string; modulos_acta?: string; firma_activa?: boolean; activo?: boolean; password?: string;
 };
 
 /** Alta y edición de inspectores (el rol queda fijo en «Inspector»). Las bajas son lógicas. */
@@ -36,7 +38,9 @@ export async function POST(req: NextRequest) {
       sector: (b.sector ?? '').trim() || null,
       legajo: (b.legajo ?? '').trim() || null,
       terminal: (b.terminal ?? '').trim() || null,
+      modulos_acta: String(b.modulos_acta ?? '').split(',').map((x) => x.trim()).filter((x) => MODULOS_ACTA.some((m) => m.v === x)).join(','),
     };
+    check(datos.modulos_acta, 'Marque al menos un tipo de acta que pueda labrar');
     check(datos.nombre && datos.apellido, 'Nombre y apellido son obligatorios');
     check(datos.legajo, 'El N° de legajo es obligatorio');
     check(datos.sector, 'Indique la dependencia');

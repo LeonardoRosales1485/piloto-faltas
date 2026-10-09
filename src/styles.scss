@@ -1171,10 +1171,8 @@ textarea.form-control {
 }
 
 .td-acciones {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.375rem;
+  // Sigue siendo una celda de tabla (con display:flex los bordes de la fila quedaban desalineados).
+  vertical-align: middle;
 }
 
 .tabla-objetivo .td-acciones {

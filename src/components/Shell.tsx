@@ -7,7 +7,7 @@ import { flushSync } from 'react-dom';
 import { logout } from '@/lib/auth-client';
 import { LayoutProvider, useLayout } from '@/lib/layout-context';
 import { inicioPara, inspectorForbidden } from '@/lib/role-guard';
-import { puede, ROL_ETIQUETA, type Permiso } from '@/lib/dominio';
+import { modulosDe, puede, ROL_ETIQUETA, type Permiso } from '@/lib/dominio';
 import { useAuthUser } from '@/lib/use-auth-user';
 
 interface MenuChild {
@@ -160,12 +160,15 @@ function ShellInner({ children }: { children: ReactNode }) {
   }, [pathname, layout.isMobile]);
 
   useEffect(() => {
-    if (inspectorForbidden(pathname, user?.rol)) {
-      router.replace(inicioPara(user?.rol, user?.sector));
+    if (inspectorForbidden(pathname, user?.rol, user)) {
+      router.replace(inicioPara(user?.rol, user?.sector, user?.modulosActa));
     }
   }, [pathname, user?.rol, router]);
 
-  const gruposVisibles = useMemo(() => GRUPOS.filter((g) => puede(user?.rol, g.permiso)), [user?.rol]);
+  const gruposVisibles = useMemo(() => {
+    const modulos = modulosDe(user) as string[];
+    return GRUPOS.filter((g) => puede(user?.rol, g.permiso) && (g.permiso !== 'labrar' || modulos.includes(g.id)));
+  }, [user]);
 
   const margen = layout.isMobile ? 0 : 72;
 
