@@ -112,6 +112,7 @@ export const apiClient = {
     addFiltro(body, 't', 'infractor_nombre', 'like', filtros.nombreInfractor);
     addFiltro(body, 't', 'legajo_numero_acta', 'like', filtros.acta);
     addFiltro(body, 't', 'legajo_number', 'like', filtros.legajo);
+    addFiltro(body, 't', 'legajo_anio', '=', filtros.anio);
     addFiltro(body, 't', 'vehiculo_numero_dominio', 'like', filtros.patente);
     addFiltro(body, 't', 'legajo_fecha', '>=', filtros.fechaDesde);
     const hasta =

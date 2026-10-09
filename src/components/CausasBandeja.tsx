@@ -18,14 +18,15 @@ export function CausasBandeja() {
   const [texto, setTexto] = useState('');
   const [tipo, setTipo] = useState('');
   const [estado, setEstado] = useState('');
+  const [anio, setAnio] = useState('');
   const [page, setPage] = useState(0);
   const [r, setR] = useState<Resp | null>(null);
   const [cargando, setCargando] = useState(true);
 
   const cargar = useCallback(() => {
     setCargando(true);
-    http.post<Resp>('/api/causas', { bandeja, texto, tipo, estado, page, size: 15 }).then(setR).finally(() => setCargando(false));
-  }, [bandeja, texto, tipo, estado, page]);
+    http.post<Resp>('/api/causas', { bandeja, texto, tipo, estado, anio, page, size: 15 }).then(setR).finally(() => setCargando(false));
+  }, [bandeja, texto, tipo, estado, anio, page]);
 
   useEffect(() => {
     const t = setTimeout(cargar, texto ? 300 : 0);
@@ -33,7 +34,7 @@ export function CausasBandeja() {
   }, [cargar, texto]);
 
   const info = BANDEJAS.find((b) => b.id === bandeja)!;
-  const activos = (bandeja !== 'activas' ? 1 : 0) + (estado ? 1 : 0) + (tipo ? 1 : 0);
+  const activos = (bandeja !== 'activas' ? 1 : 0) + (estado ? 1 : 0) + (tipo ? 1 : 0) + (anio ? 1 : 0);
 
   // Menú de filtros: se elige una opción, se aplica a la lista y el menú se cierra.
   const [menuAbierto, setMenuAbierto] = useState(false);
@@ -78,6 +79,15 @@ export function CausasBandeja() {
                   ))}
                 </div>
               </div>
+              <div className="filtros-seccion">
+                <div className="filtros-titulo">Año del legajo</div>
+                <div className="filtros-chips">
+                  <button type="button" className={`filtro-chip ${!anio ? 'activo' : ''}`} onClick={() => aplicar(() => setAnio(''))}>Todos</button>
+                  {[0, 1, 2].map((d) => String(new Date().getFullYear() - d)).map((y) => (
+                    <button key={y} type="button" className={`filtro-chip ${anio === y ? 'activo' : ''}`} onClick={() => aplicar(() => setAnio(y))}>{y}</button>
+                  ))}
+                </div>
+              </div>
               {Object.keys(TIPOS_ACTA).length > 1 ? (
                 <div className="filtros-seccion">
                   <div className="filtros-titulo">Tipo de acta</div>
@@ -95,6 +105,7 @@ export function CausasBandeja() {
         <div className="filtros-aplicados">
           <span className="filtro-aplicado fijo" title={info.ayuda}>{info.titulo} <span className="n">{r?.conteos?.[bandeja] ?? '·'}</span></span>
           {estado ? <button type="button" className="filtro-aplicado" onClick={() => { setEstado(''); setPage(0); }} aria-label={`Quitar estado ${estado}`}>{estado} <i className="fa-solid fa-xmark" aria-hidden="true" /></button> : null}
+          {anio ? <button type="button" className="filtro-aplicado" onClick={() => { setAnio(''); setPage(0); }} aria-label="Quitar año">Año {anio} <i className="fa-solid fa-xmark" aria-hidden="true" /></button> : null}
           {tipo ? <button type="button" className="filtro-aplicado" onClick={() => { setTipo(''); setPage(0); }} aria-label="Quitar tipo">{TIPOS_ACTA[tipo as keyof typeof TIPOS_ACTA]?.corto ?? tipo} <i className="fa-solid fa-xmark" aria-hidden="true" /></button> : null}
         </div>
         <div className="filtros-busqueda">

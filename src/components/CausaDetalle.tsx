@@ -179,6 +179,8 @@ export function CausaDetalle() {
                 <dl className="ficha">
                   <div><dt>Fecha y hora</dt><dd>{String(c.legajoFecha ?? '').replace('T', ' ')}</dd></div>
                   <div><dt>Lugar</dt><dd>{[[c.domicilioInfraccionCalle, c.domicilioInfraccionNumero].filter(Boolean).join(' ') + (c.entreCalle1 ? ` (entre ${c.entreCalle1} y ${c.entreCalle2 ?? ''})` : ''), c.domicilioInfraccionLocalidadNombre].filter(Boolean).join(' · ')}</dd></div>
+                  <div><dt>Legajo</dt><dd>{c.legajoNumber || '-'}</dd></div>
+                  <div><dt>Año</dt><dd>{c.legajoAnio || '-'}</dd></div>
                   <div><dt>Ejido</dt><dd>{c.ejido === 'dentro' ? 'Dentro del ejido urbano' : c.ejido === 'fuera' ? 'Fuera del ejido urbano' : '-'}{c.gpsLat ? ` · GPS ${c.gpsLat}, ${c.gpsLng}` : ''}</dd></div>
                   <div><dt>Infractor</dt><dd>{c.situacionInfractor === 'nn' ? 'No identificado (NN)' : `${c.infractorRazonSocial || c.infractorNombre || '-'} · ${c.infractorCuit ? `CUIT ${c.infractorCuit}` : `${c.infractorDocumentoTipoNombre ?? ''} ${c.infractorDocumentoNumero ?? ''}`}`}</dd></div>
                   <div><dt>Domicilio</dt><dd>{[[c.infractorDomicilio, c.infractorCalleAltura, c.infractorDepartamento].filter(Boolean).join(' '), c.infractorLocalidadNombre, c.infractorPartidoNombre].filter(Boolean).join(' · ') || '-'}</dd></div>

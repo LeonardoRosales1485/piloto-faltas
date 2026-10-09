@@ -720,7 +720,7 @@ export function actaTransitoHtml(i: Infraccion, extras: ActaExtras = {}): string
     </header>
 
     <div class="at-titulo"><div class="num">Acta N° <b>${v(i.legajoNumeroActa)}</b></div><h1>Acta de Infracción de Tránsito</h1></div>
-    <div class="at-fecha">Fecha/Hora <b>${v(fechaTxt)}</b> · Legajo <b>${v(`${i.legajoNumber ?? ''}/${i.legajoAnio ?? ''}`)}</b></div>
+    <div class="at-fecha">Fecha/Hora <b>${v(fechaTxt)}</b> · Legajo <b>${v(i.legajoNumber)}</b> · Año <b>${v(i.legajoAnio)}</b></div>
 
     <section class="at-seccion">
       <h2>Domicilio de la infracción</h2>

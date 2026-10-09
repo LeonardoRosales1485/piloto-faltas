@@ -21,6 +21,7 @@ const vacios = (): FiltrosInfraccion => ({
   nombreInfractor: '',
   acta: '',
   legajo: '',
+  anio: '',
   patente: '',
   fechaDesde: '',
   fechaHasta: '',
@@ -378,6 +379,21 @@ export function ListaInfracciones() {
                   placeholder="N.Legajo"
                   value={filtros.legajo}
                   onChange={(e) => setFiltros({ ...filtros, legajo: e.target.value })}
+                  onKeyUp={(e) => e.key === 'Enter' && buscar()}
+                />
+              </div>
+              <div className="col-6 col-md-4 col-lg-2">
+                <label htmlFor="f-anio" className="form-label-v2">
+                  Año del legajo
+                </label>
+                <input
+                  id="f-anio"
+                  className="form-control form-control-sm"
+                  inputMode="numeric"
+                  maxLength={4}
+                  placeholder="Ej: 2026"
+                  value={filtros.anio ?? ''}
+                  onChange={(e) => setFiltros({ ...filtros, anio: e.target.value.replace(/\D/g, '') })}
                   onKeyUp={(e) => e.key === 'Enter' && buscar()}
                 />
               </div>

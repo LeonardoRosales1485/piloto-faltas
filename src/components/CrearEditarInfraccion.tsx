@@ -365,12 +365,17 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
                   <input id="nroActa" className="form-control" disabled value={form.legajoNumeroActa ?? ''} />
                 </Campo>
               </div>
-              <div className="col-6 col-md-4">
+              <div className="col-6 col-md-2">
                 <Campo id="nroLegajo" label="Legajo">
-                  <input id="nroLegajo" className="form-control" disabled value={`${form.legajoNumber ?? ''}/${form.legajoAnio ?? ''}`} />
+                  <input id="nroLegajo" className="form-control" disabled value={form.legajoNumber ?? ''} />
                 </Campo>
               </div>
-              <div className="col-6 col-md-4">
+              <div className="col-6 col-md-2">
+                <Campo id="anioLegajo" label="Año">
+                  <input id="anioLegajo" className="form-control" disabled value={form.legajoAnio ?? ''} />
+                </Campo>
+              </div>
+              <div className="col-12 col-md-4">
                 <Campo id="fecha" label="Fecha y hora">
                   <input id="fecha" type="datetime-local" className="form-control" disabled value={form.legajoFecha ?? ''} />
                 </Campo>

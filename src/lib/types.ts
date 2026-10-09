@@ -124,6 +124,7 @@ export type FiltrosInfraccion = {
   nombreInfractor: string;
   acta: string;
   legajo: string;
+  anio?: string;
   patente: string;
   fechaDesde: string;
   fechaHasta: string;
