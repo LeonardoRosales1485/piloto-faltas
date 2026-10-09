@@ -2,7 +2,8 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { flushSync } from 'react-dom';
 import { logout } from '@/lib/auth-client';
 import { LayoutProvider, useLayout } from '@/lib/layout-context';
 import { inicioPara, inspectorForbidden } from '@/lib/role-guard';
@@ -128,13 +129,25 @@ function ShellInner({ children }: { children: ReactNode }) {
   }, []);
 
   // El menú desplegado flota sobre el contenido: se cierra al navegar o con Escape.
-  useEffect(() => setSidebarAbierta(false), [pathname]);
+  // Cierre animado: el menú queda montado mientras corre la animación de salida.
+  const [cerrando, setCerrando] = useState(false);
+  const timerCierre = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cerrarSidebar = useCallback(() => {
+    if (timerCierre.current) return;
+    setCerrando(true);
+    timerCierre.current = setTimeout(() => {
+      setSidebarAbierta(false);
+      setCerrando(false);
+      timerCierre.current = null;
+    }, 200);
+  }, []);
+  useEffect(() => cerrarSidebar(), [pathname, cerrarSidebar]);
   useEffect(() => {
     if (!sidebarAbierta) return;
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setSidebarAbierta(false);
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && cerrarSidebar();
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [sidebarAbierta]);
+  }, [sidebarAbierta, cerrarSidebar]);
 
   useEffect(() => {
     if (layout.isMobile) setDrawerAbierto(false);
@@ -161,9 +174,22 @@ function ShellInner({ children }: { children: ReactNode }) {
 
   function alternarTema() {
     const next = tema === 'light' ? 'dark' : 'light';
-    setTema(next);
-    document.body.setAttribute('data-theme', next);
-    localStorage.setItem('faltas-piloto:tema', next);
+    const aplicar = () => {
+      setTema(next);
+      document.body.setAttribute('data-theme', next);
+      try { localStorage.setItem('faltas-piloto:tema', next); } catch { /* sin almacenamiento */ }
+    };
+    const reducir = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    const doc = document as Document & { startViewTransition?: (cb: () => void) => unknown };
+    if (!reducir && doc.startViewTransition) {
+      // Fundido entre el tema anterior y el nuevo (navegadores con View Transitions).
+      doc.startViewTransition(() => flushSync(aplicar));
+      return;
+    }
+    // Alternativa: transición de colores en todos los elementos durante el cambio.
+    document.documentElement.classList.add('tema-transicion');
+    aplicar();
+    window.setTimeout(() => document.documentElement.classList.remove('tema-transicion'), 450);
   }
 
   function rolCorto() {
@@ -207,7 +233,7 @@ function ShellInner({ children }: { children: ReactNode }) {
             className="sidebar-colapsar"
             aria-label="Cerrar menú"
             title="Cerrar menú"
-            onClick={() => setSidebarAbierta(false)}
+            onClick={cerrarSidebar}
           >
             <i className="fa-solid fa-chevron-left" aria-hidden="true" />
           </button>
@@ -368,10 +394,10 @@ function ShellInner({ children }: { children: ReactNode }) {
           </nav>
           {sidebarAbierta ? (
             <>
-              <button type="button" className="sidebar-velo" aria-label="Cerrar menú" onClick={() => setSidebarAbierta(false)}>
+              <button type="button" className={`sidebar-velo ${cerrando ? 'cerrando' : ''}`} aria-label="Cerrar menú" onClick={cerrarSidebar}>
                 <span className="sidebar-velo-x"><i className="fa-solid fa-xmark" aria-hidden="true" /></span>
               </button>
-              <aside className="sidebar sidebar-desktop sidebar-flotante sidebar-abierta" aria-label="Menú lateral desplegado">
+              <aside className={`sidebar sidebar-desktop sidebar-flotante sidebar-abierta ${cerrando ? 'cerrando' : ''}`} aria-label="Menú lateral desplegado">
                 {menu}
               </aside>
             </>

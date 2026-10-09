@@ -299,3 +299,18 @@
 .editor-split .editor-escrito-wrap { margin-top: 0; min-width: 0; overflow-x: auto; }
 @media (max-width: 1100px) { .editor-split { grid-template-columns: minmax(0, 1fr); } .editor-panel { position: static; max-height: none; } }
 @media print { .editor-split { display: block; } }
+
+// Cierre animado del menú flotante
+.sidebar-flotante.cerrando { animation: sidebar-sale .2s ease-in forwards; }
+.sidebar-velo.cerrando { animation: velo-sale .2s ease-in forwards; pointer-events: none; }
+@keyframes sidebar-sale { from { transform: none; opacity: 1; } to { transform: translateX(-32px); opacity: 0; } }
+@keyframes velo-sale { from { opacity: 1; } to { opacity: 0; } }
+
+// Cambio de tema: fundido con View Transitions y, si no hay soporte, transición de colores
+::view-transition-old(root), ::view-transition-new(root) { animation-duration: .4s; animation-timing-function: ease; }
+.tema-transicion, .tema-transicion *, .tema-transicion *::before, .tema-transicion *::after {
+  transition: background-color .4s ease, color .4s ease, border-color .4s ease, fill .4s ease, box-shadow .4s ease !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  .sidebar-flotante, .sidebar-flotante.cerrando, .sidebar-velo, .sidebar-velo.cerrando { animation-duration: .01s !important; }
+}
