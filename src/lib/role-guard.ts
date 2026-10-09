@@ -19,6 +19,7 @@ const RUTAS: { prefijo: string; permiso: Permiso }[] = [
   { prefijo: '/private/finanzas', permiso: 'valores' },
   { prefijo: '/private/ordenanzas', permiso: 'parametrizar' },
   { prefijo: '/private/usuarios', permiso: 'parametrizar' },
+  { prefijo: '/private/sandbox', permiso: 'parametrizar' },
 ];
 
 export function rutaPermitida(path: string, rol?: string): boolean {

@@ -398,3 +398,13 @@
   .actual { margin-left: auto; font-size: .72rem; font-weight: 700; text-transform: uppercase; color: #2563eb; }
 }
 [data-theme='dark'] { .wizard-movil-barra, .wizard-movil-lista { background: #111827; border-color: #374151; color: #e5e7eb; } .wizard-movil-lista button { color: #e5e7eb; &:hover { background: #1f2937; } } }
+
+// Opciones sandbox
+.sandbox-franja { margin: -0.5rem 0 1rem; padding: .45rem .9rem; border-radius: 10px; background: repeating-linear-gradient(-45deg, #fef3c7, #fef3c7 12px, #fde68a 12px, #fde68a 24px);
+  color: #78350f; font-size: .82rem; font-weight: 600; text-align: center; border: 1px solid #fcd34d; }
+.sandbox-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem; align-items: start; }
+.sandbox-card h2 i { margin-right: .4rem; color: #6b7280; }
+.sandbox-opcion { display: flex; justify-content: space-between; align-items: center; gap: .75rem; padding: .6rem 0; border-top: 1px solid #f3f4f6; }
+.sandbox-resultado { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: .4rem 1.5rem;
+  li { display: flex; justify-content: space-between; border-bottom: 1px dashed #e5e7eb; padding: .2rem 0; } }
+[data-theme='dark'] .sandbox-franja { background: #422006; color: #fde68a; border-color: #92400e; }

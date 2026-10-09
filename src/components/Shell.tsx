@@ -74,6 +74,7 @@ const GRUPOS: MenuItem[] = [
       { titulo: 'Textos del portal', route: '/private/textos' },
       { titulo: 'Feriados', route: '/private/feriados' },
       { titulo: 'Usuarios', route: '/private/usuarios' },
+      { titulo: 'Opciones sandbox', route: '/private/sandbox' },
     ],
   },
   { id: 'correos', titulo: 'Correos enviados', icono: 'fa-solid fa-envelope', route: '/private/correos', permiso: 'verCausas' },
@@ -101,6 +102,7 @@ const TITULOS: Record<string, string> = {
   '/private/textos': 'Textos del portal',
   '/private/feriados': 'Feriados',
   '/private/usuarios': 'Usuarios',
+  '/private/sandbox': 'Opciones sandbox',
   '/private/correos': 'Correos enviados',
   '/private/auditoria': 'Auditoría',
 };
@@ -406,6 +408,7 @@ function ShellInner({ children }: { children: ReactNode }) {
       )}
 
       <main className="layout-contenido" style={{ marginLeft: margen }}>
+        <div className="sandbox-franja" role="note"><i className="fa-solid fa-flask" aria-hidden="true" /> Entorno sandbox de pruebas · los datos pueden borrarse o reemplazarse en cualquier momento</div>
         {!layout.ocultarTopbar ? (
           <header className={`top-navbar ${layout.isMobile ? 'top-navbar-movil' : ''}`}>
             <div className="top-navbar-titulo">
