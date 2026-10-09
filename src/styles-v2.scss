@@ -371,3 +371,30 @@
 }
 .solo-print { display: none; }
 @media print { .solo-print { display: block !important; } }
+
+// Wizard en móvil: barra compacta con progreso + lista desplegable de pasos
+.wizard-movil { display: none; position: relative; margin-bottom: .75rem; }
+@media (max-width: 767.98px) {
+  .wizard-movil { display: block; }
+  .pagina-steps .wizard-pasos { display: none !important; }
+}
+.wizard-movil-barra {
+  position: relative; width: 100%; display: flex; align-items: center; gap: .65rem; padding: .8rem 1rem 1rem; border: 1px solid var(--bo-borde, #e5e7eb);
+  border-radius: 14px; background: #fff; box-shadow: var(--bo-sombra-card); text-align: left; color: #1f2937; overflow: hidden;
+}
+.wizard-movil-num { flex-shrink: 0; min-width: 2.6rem; padding: .2rem .5rem; border-radius: 999px; background: #2563eb; color: #fff; font-weight: 700; font-size: .85rem; text-align: center; }
+.wizard-movil-titulo { flex: 1; font-weight: 600; font-size: 1rem; }
+.wizard-movil-chev { color: #6b7280; transition: transform .2s; &.abierto { transform: rotate(180deg); } }
+.wizard-movil-progreso { position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: #e5e7eb;
+  span { display: block; height: 100%; background: #2563eb; transition: width .25s ease; } }
+.wizard-movil-lista {
+  list-style: none; margin: .4rem 0 0; padding: .35rem; background: #fff; border: 1px solid #e5e7eb; border-radius: 14px;
+  box-shadow: 0 14px 30px rgba(15, 23, 42, .14); animation: velo-entra .15s ease-out;
+  button { width: 100%; display: flex; align-items: center; gap: .7rem; padding: .65rem .7rem; border: 0; background: transparent; border-radius: 10px; text-align: left; color: #374151; font-size: .95rem; }
+  button:hover { background: #f3f4f6; }
+  .n { width: 1.8rem; height: 1.8rem; flex-shrink: 0; display: grid; place-items: center; border-radius: 50%; border: 1.5px solid #d1d5db; font-size: .8rem; font-weight: 700; }
+  button.completado .n { background: #16a34a; border-color: #16a34a; color: #fff; }
+  button.activo { background: #eff6ff; color: #1d4ed8; font-weight: 600; .n { background: #2563eb; border-color: #2563eb; color: #fff; } }
+  .actual { margin-left: auto; font-size: .72rem; font-weight: 700; text-transform: uppercase; color: #2563eb; }
+}
+[data-theme='dark'] { .wizard-movil-barra, .wizard-movil-lista { background: #111827; border-color: #374151; color: #e5e7eb; } .wizard-movil-lista button { color: #e5e7eb; &:hover { background: #1f2937; } } }

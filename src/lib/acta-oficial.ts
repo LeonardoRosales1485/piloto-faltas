@@ -646,12 +646,12 @@ export function actaTransitoCss(): string {
     .acta-transito * { box-sizing: border-box; }
     .at-marca { position: absolute; top: 45%; left: 50%; width: 130mm; transform: translate(-50%, -50%); opacity: .045; filter: grayscale(1); pointer-events: none; }
     .at-header { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px; margin-bottom: 6px; }
-    .at-header .izq img { height: 16mm; }
+    .at-header .izq img { height: 24mm; }
     .at-header .centro { text-align: center; font-size: 6.5pt; text-transform: uppercase; color: #444; letter-spacing: .3px; }
     .at-header .centro strong { display: block; font-size: 16pt; color: #111; letter-spacing: 1px; margin: 1px 0; }
     .at-header .centro .sep { border-top: 1px dashed #999; width: 70%; margin: 2px auto; }
     .at-header .der { text-align: right; font-size: 6.5pt; text-transform: uppercase; color: #444; }
-    .at-header .der img { height: 13mm; display: block; margin: 0 0 2px auto; filter: grayscale(.2); }
+    .at-header .der img { height: 24mm; display: block; margin: 0 0 0 auto; }
     .at-titulo { margin: 4px 0 2px; }
     .at-titulo .num { font-size: 12pt; color: #444; } .at-titulo .num b { color: #111; }
     .at-titulo h1 { font-size: 15pt; margin: 0; }
@@ -714,9 +714,9 @@ export function actaTransitoHtml(i: Infraccion, extras: ActaExtras = {}): string
   <div class="acta-transito">
     <img src="/images/Municipio_malvinas_argentinas_logo.png" class="at-marca" alt="" />
     <header class="at-header">
-      <div class="izq"><img src="/images/Municipio_malvinas_argentinas_logo.png" alt="Municipio de Malvinas Argentinas" /></div>
+      <div class="izq"><img src="/images/malvinas-logo-completo.png" alt="Malvinas Argentinas Municipio" /></div>
       <div class="centro">Ley Nacional de Tránsito N°<strong>24.449</strong><div class="sep"></div>Adherida por Ley Provincial<br/>13.927</div>
-      <div class="der"><img src="/images/logo.png" alt="" />Municipalidad de<br/>Malvinas Argentinas</div>
+      <div class="der"><img src="/images/escudo-municipalidad.png" alt="Municipalidad de Malvinas Argentinas" /></div>
     </header>
 
     <div class="at-titulo"><div class="num">Acta N° <b>${v(i.legajoNumeroActa)}</b></div><h1>Acta de Infracción de Tránsito</h1></div>

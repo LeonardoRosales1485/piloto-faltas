@@ -52,6 +52,7 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
   const [form, setForm] = useState<Infraccion>(() => vacia(tipo));
   const [leyes, setLeyes] = useState<Ley[]>([]);
   const [imagenes, setImagenes] = useState<ImgModel[]>([]);
+  const [pasosAbiertos, setPasosAbiertos] = useState(false);
   const [firma, setFirma] = useState<string | null>(null);
   const [gpsEstado, setGpsEstado] = useState<'' | 'buscando' | 'ok' | 'error'>('');
   const [cat, setCat] = useState<Record<string, OpcionCatalogo[]>>({});
@@ -313,6 +314,29 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
           <i className="fa-solid fa-hashtag" aria-hidden="true" /> {form.legajoNumeroActa}
         </span>
         <span>Legajo {form.legajoNumber}/{form.legajoAnio}</span>
+      </div>
+
+      {/* Móvil: barra compacta con el paso actual; al tocarla se despliegan todos los pasos. */}
+      <div className="wizard-movil">
+        <button type="button" className="wizard-movil-barra" aria-expanded={pasosAbiertos} aria-controls="wizard-movil-lista" onClick={() => setPasosAbiertos((v) => !v)}>
+          <span className="wizard-movil-num">{idx + 1}/{pasos.length}</span>
+          <span className="wizard-movil-titulo">{paso.corto}</span>
+          <i className={`fa-solid fa-chevron-down wizard-movil-chev ${pasosAbiertos ? 'abierto' : ''}`} aria-hidden="true" />
+          <span className="wizard-movil-progreso" aria-hidden="true"><span style={{ width: `${((idx + 1) / pasos.length) * 100}%` }} /></span>
+        </button>
+        {pasosAbiertos ? (
+          <ol id="wizard-movil-lista" className="wizard-movil-lista">
+            {pasos.map((p, i) => (
+              <li key={p.id}>
+                <button type="button" className={`${i === idx ? 'activo' : ''} ${i < idx ? 'completado' : ''}`} onClick={() => { setPasosAbiertos(false); void irA(i); }}>
+                  <span className="n">{i < idx ? <i className="fa-solid fa-check" aria-hidden="true" /> : i + 1}</span>
+                  <span>{p.titulo}</span>
+                  {i === idx ? <span className="actual">Actual</span> : null}
+                </button>
+              </li>
+            ))}
+          </ol>
+        ) : null}
       </div>
 
       <nav className="wizard-pasos" aria-label="Pasos del formulario">
