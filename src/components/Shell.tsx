@@ -131,12 +131,8 @@ function ShellInner({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
 
-  const [abiertos, setAbiertos] = useState<Record<string, boolean>>({
-    multas: true,
-    contravenciones: true,
-    sustancias: true,
-    config: false,
-  });
+  // Menús desplegables contraídos por defecto (se abren al tocarlos).
+  const [abiertos, setAbiertos] = useState<Record<string, boolean>>({});
   const [sidebarAbierta, setSidebarAbierta] = useState(false);
   const [drawerAbierto, setDrawerAbierto] = useState(false);
   const [tema, setTema] = useState<'light' | 'dark'>('light');

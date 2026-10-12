@@ -62,7 +62,7 @@ export const PERMISOS = {
   firmar: ['Directora', 'Abogada'],
   confirmarPagos: ['Administrador', 'Usuario', 'Directora', 'Abogada'],
   parametrizar: ['Administrador'],
-  valores: ['Tributario', 'Administrador'],
+  valores: ['Tributario', 'Directora', 'Administrador'],
   auditoria: ['Directora', 'Abogada', 'Administrador'],
   inspectores: ['Directora', 'Abogada', 'Administrador'],
   ordenanzas: ['Directora', 'Abogada', 'Administrador'],

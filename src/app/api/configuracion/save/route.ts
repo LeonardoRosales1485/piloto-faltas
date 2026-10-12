@@ -1,13 +1,17 @@
 import { NextRequest } from 'next/server';
 import { requireUser } from '@/lib/auth';
+import { puede } from '@/lib/dominio';
 import { jsonFail, jsonOk } from '@/lib/http-data';
 import { createServerClient } from '@/lib/supabase-server';
 import type { ConfiguracionItem, ConfiguracionRow } from '@/lib/types';
 
 export async function POST(req: NextRequest) {
   try {
-    await requireUser(req);
+    const user = await requireUser(req);
     const item = (await req.json()) as ConfiguracionItem;
+    // Valores y tarifas (finanza_*): Tributario, Directora y Administrador. El resto de la configuración: solo Administrador.
+    const permiso = String(item.llave ?? '').startsWith('finanza_') ? 'valores' : 'parametrizar';
+    if (!puede(user.rol, permiso)) return jsonFail(403, 'No tiene permiso para modificar este valor');
     const supabase = createServerClient();
     const { data: existing } = await supabase
       .from('configuracion')
