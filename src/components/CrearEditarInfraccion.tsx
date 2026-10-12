@@ -17,6 +17,7 @@ import { LOCALIDADES, PARTIDOS, partidosDe } from '@/lib/geo-ba';
 
 const NO_DESCRIBE = 'No se describe';
 import { useAuthUser } from '@/lib/use-auth-user';
+import { inicioPara } from '@/lib/role-guard';
 
 const ALCOHOLEMIA = [
   { v: '', t: 'No realizada' },
@@ -61,6 +62,7 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
   // Pasos que el inspector ya dejó atrás: recién ahí se marcan en rojo sus faltantes (o al intentar firmar).
   const [visitados, setVisitados] = useState<Set<string>>(new Set());
   const [intentoFirma, setIntentoFirma] = useState(false);
+  const [recienFirmada, setRecienFirmada] = useState(false);
   const [gpsEstado, setGpsEstado] = useState<'' | 'buscando' | 'ok' | 'error'>('');
   const [cat, setCat] = useState<Record<string, OpcionCatalogo[]>>({});
   const iniciado = useRef(false);
@@ -215,10 +217,13 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
     try {
       const g = await guardarBorrador();
       if (!g) return;
-      await apiClient.firmarActa(g.uuid!, form.situacionInfractor === 'presente' ? firma : null);
-      const final = await apiClient.getInfraccion(g.uuid!);
+      // La firma devuelve el acta final: el inspector no puede volver a abrirla después (solo sus borradores).
+      const r = await apiClient.firmarActa(g.uuid!, form.situacionInfractor === 'presente' ? firma : null);
+      const final = r.acta;
       setForm({ ...final, legajoFecha: toDateTimeLocal(final.legajoFecha) });
-      notify.success('Acta firmada', `${final.legajoNumeroActa} ingresó como causa. Ya puede imprimir el ticket.`);
+      setRecienFirmada(true);
+      window.scrollTo({ top: 0 });
+      notify.success('Acta firmada', `${final.legajoNumeroActa} ingresó como causa.`);
     } catch (e) {
       notify.error('No se pudo firmar', (e as Error).message);
     } finally {
@@ -272,6 +277,72 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
   const inp = (id: keyof Infraccion, props: React.InputHTMLAttributes<HTMLInputElement> = {}) => (
     <input id={String(id)} className="form-control" disabled={!habilitado} value={(form[id] as string | undefined) ?? ''} onChange={(e) => patch({ [id]: e.target.value } as Partial<Infraccion>)} {...props} />
   );
+
+  // ---------------------------------------------------------------- confirmación final (recién firmada)
+  if (recienFirmada && form.estadoFaltas !== 'Borrador') {
+    const fila = (t: string, v: React.ReactNode) => <div><dt>{t}</dt><dd>{v || '-'}</dd></div>;
+    const sit = SITUACIONES.find((x) => x.v === form.situacionInfractor)?.t ?? form.situacionInfractor;
+    return (
+      <div className="pagina pagina-steps acta-confirmada">
+        <article className="card-step">
+          <div className="acta-confirmada-cabecera">
+            <i className="fa-solid fa-circle-check" aria-hidden="true" />
+            <div>
+              <h2>Acta {form.legajoNumeroActa} firmada</h2>
+              <p>{info.titulo} · Legajo {form.legajoNumber}/{form.legajoAnio} · {fechaHora(form.firmadaAt ?? undefined)}<br />Ya ingresó como causa y no se puede modificar.</p>
+            </div>
+          </div>
+          <div className="card-step-body">
+            <h3 className="subtitulo-paso">Resumen de lo cargado</h3>
+            <dl className="ficha">
+              {fila('Fecha y hora', String(form.legajoFecha ?? '').replace('T', ' '))}
+              {fila('Situación del infractor', sit)}
+              {fila('Lugar de infracción', [[form.domicilioInfraccionCalle, form.domicilioInfraccionNumero].filter(Boolean).join(' ') + (form.entreCalle1 ? ` (entre ${form.entreCalle1} y ${form.entreCalle2 ?? ''})` : ''), form.domicilioInfraccionLocalidadNombre].filter(Boolean).join(' · '))}
+              {fila('Ejido', form.ejido === 'dentro' ? 'Dentro del ejido urbano' : form.ejido === 'fuera' ? 'Fuera del ejido urbano' : 'Sin determinar')}
+              {form.situacionInfractor !== 'nn' ? fila('Infractor', esJuridica ? `${form.infractorRazonSocial ?? ''} · CUIT ${form.infractorCuit ?? ''}` : `${form.infractorNombre ?? ''} · ${form.infractorDocumentoTipoNombre ?? ''} ${form.infractorDocumentoNumero ?? ''}`) : null}
+              {form.situacionInfractor !== 'nn' ? fila('Domicilio', [[form.infractorDomicilio, form.infractorCalleAltura, form.infractorDepartamento].filter(Boolean).join(' '), form.infractorLocalidadNombre, form.infractorPartidoNombre].filter(Boolean).join(' · ')) : null}
+              {form.vehiculoNumeroLicencia ? fila('Licencia de conducir', form.vehiculoNumeroLicencia) : null}
+              {tipo !== 'contravenciones' ? fila('Vehículo', [form.vehiculoNumeroDominio, form.vehiculoTipoNombre, form.metadata?.marca, form.metadata?.modelo].filter(Boolean).join(' · ')) : null}
+              {form.vehiculoMunicipalidadEmisora ? fila('Municipio emisor', form.vehiculoMunicipalidadEmisora) : null}
+              {form.sustanciasDescripcion ? fila('Sustancias', form.sustanciasDescripcion) : null}
+              {fila('Medidas', [form.retencionDeLicencia ? 'Retención de licencia' : '', form.retencionDeVehiculo ? 'Retención de vehículo' : '', ...(form.medidasPreventivas ?? [])].filter(Boolean).join(' · ') || 'Ninguna')}
+              {form.metadata?.alcoholemia ? fila('Alcoholemia', form.metadata.alcoholemia) : null}
+              {fila('Observaciones', form.observaciones)}
+              {fila('Inspector', form.inspectorNombre)}
+            </dl>
+            <h3 className="subtitulo-paso mt-3">Artículos</h3>
+            <ul className="mb-3">{leyesSeleccionadas.map((l) => <li key={claveLey(l)}>{claveLey(l)}{l.descripcion ? ` — ${l.descripcion}` : ''}</li>)}</ul>
+            {imagenes.length ? (
+              <>
+                <h3 className="subtitulo-paso">Fotos</h3>
+                <div className="d-flex gap-2 flex-wrap mb-3">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  {imagenes.map((im, i) => <img key={i} src={im.previewRaw ?? ''} alt={`Foto ${i + 1}`} style={{ height: 88, borderRadius: 8 }} />)}
+                </div>
+              </>
+            ) : null}
+            <h3 className="subtitulo-paso">Firmas</h3>
+            <div className="d-flex gap-3 flex-wrap align-items-center mb-2">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              {form.firmaInfractor ? <img src={form.firmaInfractor} alt="Firma del infractor" style={{ height: 70, background: '#fff', borderRadius: 6 }} /> : <span className="texto-ayuda">{form.situacionInfractor === 'se_niega' ? 'El infractor se negó a firmar.' : 'Sin firma del infractor.'}</span>}
+              <span className="texto-ayuda"><i className="fa-solid fa-user-shield" aria-hidden="true" /> Firma digital de {form.inspectorNombre}</span>
+            </div>
+            <div className="botonera">
+              <button type="button" className="btn btn-outline-primary btn-lg" onClick={() => printActa(form, { imagenes: imagenes.map((x) => x.previewRaw ?? '').filter(Boolean) })}>
+                <i className="fa-solid fa-file-pdf" aria-hidden="true" /> Ver acta
+              </button>
+              <button type="button" className="btn btn-outline-primary btn-lg" onClick={() => void printTicket(form)}>
+                <i className="fa-solid fa-print" aria-hidden="true" /> Imprimir ticket
+              </button>
+            </div>
+            <button type="button" className="btn btn-success btn-lg w-100 mt-3 acta-confirmada-ok" onClick={() => router.push(inicioPara(user?.rol, user?.sector, user?.modulosActa))}>
+              <i className="fa-solid fa-check" aria-hidden="true" /> Listo, volver al inicio
+            </button>
+          </div>
+        </article>
+      </div>
+    );
+  }
 
   // ---------------------------------------------------------------- acta firmada
   if (soloLectura) {
@@ -461,7 +532,6 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
                 <p className="texto-ayuda mt-2">
                   <i className="fa-solid fa-map-location-dot" aria-hidden="true" /> Ejido:{' '}
                   <strong>{form.ejido === 'dentro' ? 'dentro del ejido urbano' : form.ejido === 'fuera' ? 'fuera del ejido urbano' : 'sin determinar'}</strong>
-                  {!form.ejido ? ' · se calcula con el GPS; si no hay ubicación, lo determina Faltas.' : null}
                 </p>
                 {gpsEstado === 'error' ? <p className="texto-ayuda texto-error mt-2">No se pudo obtener la ubicación. Complete la dirección a mano.</p> : null}
               </div>

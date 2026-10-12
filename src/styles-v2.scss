@@ -529,3 +529,11 @@
 span.dato-subsanado { font-size: .75rem; padding: .1rem .45rem; font-weight: 600; color: #b45309; box-shadow: none; }
 [data-theme='dark'] span.dato-subsanado { color: #fbbf24; }
 .acta-borrador-chip { white-space: nowrap; }
+
+// Confirmación final del acta firmada
+.acta-confirmada-cabecera { display: flex; gap: 1rem; align-items: center; padding: 1.1rem 1.25rem; border-bottom: 1px solid var(--bo-borde); background: rgba(22, 163, 74, .08);
+  > i { font-size: 2.4rem; color: #16a34a; flex-shrink: 0; }
+  h2 { margin: 0; font-size: 1.25rem; font-weight: 700; }
+  p { margin: .2rem 0 0; font-size: .9rem; opacity: .85; }
+}
+.acta-confirmada-ok { min-height: 56px; font-weight: 700; }

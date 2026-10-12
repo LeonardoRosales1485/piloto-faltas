@@ -87,7 +87,7 @@ export const apiClient = {
   },
 
   firmarActa(uuid: string, firmaInfractor: string | null) {
-    return post<{ uuid: string; hash: string }>('/api/acta/firmar', { uuid, firmaInfractor });
+    return post<{ uuid: string; hash: string; acta: Infraccion }>('/api/acta/firmar', { uuid, firmaInfractor });
   },
 
   anularActa(uuid: string, motivo: string) {
