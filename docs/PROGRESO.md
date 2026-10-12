@@ -24,11 +24,11 @@ Avance: **20 / 20**
 | 13 | [Descargo antes del fallo](prompts/13-descargo-antes-del-fallo.md) | ✅ | 931f535 | «Dictar fallo» deshabilitado + 409 en el servidor; fuera de «Para fallo» mientras esté pendiente; acceso directo al aceptar. |
 | 14 | [Presentaciones en el detalle](prompts/14-presentaciones-en-el-detalle.md) | ✅ | 931f535 | Componente `TarjetaPresentacion` compartido con la bandeja. Adjuntos como enlaces (sin vista previa embebida). |
 | 15 | [Subsanar datos](prompts/15-subsanar-datos.md) | ✅ | 931f535 | Requiere correr `sql/015_subsanacion.sql`. Pestañas «Acta subsanada / Acta original»; escritos, valorización y portal usan el dato vigente. |
-| 16 | [Memos internos](prompts/16-memos-internos.md) | ✅ | (este commit) | Pestaña «Memos internos» y acción «Memo interno» en lugar de «Nota a un área». No cambia el estado; en el legajo interno, no en el portal. |
-| 17 | [Acarreos y retenciones](prompts/17-acarreos-y-retenciones.md) | ✅ | (este commit) | Sección «Retenciones» como stg. Liberar = acarreo por tipo + estadía por tramos; emite boleta y deja la disposición de levantamiento en borrador si había medida. |
-| 18 | [«Valores y tarifas» como stg](prompts/18-finanzas-como-stg.md) | ✅ | (este commit) | Estructura y textos de stg; sin «Información de tarifas». Estadía: tramo 3–7 y 8–30 como monto fijo, desde el día 31 se suma el valor diario (a confirmar). |
-| 19 | [Ocultar «Correos enviados»](prompts/19-ocultar-correos-enviados.md) | ✅ | (este commit) | Solo Administrador, en Configuración → «Registro de correos». La tabla y el registro siguen. |
-| 20 | [Evidencia en el acta](prompts/20-evidencia-en-el-acta.md) | ✅ | (este commit) | Interruptor «Mostrar evidencia» (recordado por usuario), fotos también en actas de contravención/sustancias y en el portal, galería ampliada. El link público sigue sin datos personales ni fotos. |
+| 16 | [Memos internos](prompts/16-memos-internos.md) | ✅ | f2fa1a1 | Pestaña «Memos internos» y acción «Memo interno» en lugar de «Nota a un área». No cambia el estado; en el legajo interno, no en el portal. |
+| 17 | [Acarreos y retenciones](prompts/17-acarreos-y-retenciones.md) | ✅ | f2fa1a1 | Sección «Retenciones» como stg. Liberar = acarreo por tipo + estadía por tramos; emite boleta y deja la disposición de levantamiento en borrador si había medida. |
+| 18 | [«Valores y tarifas» como stg](prompts/18-finanzas-como-stg.md) | ✅ | f2fa1a1 | Estructura y textos de stg; sin «Información de tarifas». Estadía: tramo 3–7 y 8–30 como monto fijo, desde el día 31 se suma el valor diario (a confirmar). |
+| 19 | [Ocultar «Correos enviados»](prompts/19-ocultar-correos-enviados.md) | ✅ | f2fa1a1 | Solo Administrador, en Configuración → «Registro de correos». La tabla y el registro siguen. |
+| 20 | [Evidencia en el acta](prompts/20-evidencia-en-el-acta.md) | ✅ | f2fa1a1 | Interruptor «Mostrar evidencia» (recordado por usuario), fotos también en actas de contravención/sustancias y en el portal, galería ampliada. El link público sigue sin datos personales ni fotos. |
 
 ## Otros ajustes fuera de la lista
 
@@ -37,7 +37,7 @@ Avance: **20 / 20**
 | Radio y texto alineados en «Situación del infractor» | dab2d1e |
 | Correo del infractor editable desde la causa | 68e6fbf |
 | Localidad antes que partido (catálogo BA + CABA, ingreso libre) y alcoholemia alineada | 2a47247 |
-| Firma del infractor a pantalla completa: botón «Abrir pad de firma», casilla «El infractor se niega a firmar», botones flotantes Borrar / Listo | (este commit) |
+| Firma del infractor a pantalla completa: botón «Abrir pad de firma», casilla «El infractor se niega a firmar», botones flotantes Borrar / Listo | f2fa1a1 |
 | Labrado en operativo: provincias de todo el país, campos numéricos (licencia, control interno, serie y medición), el campo enfocado sube arriba en el celular (también en el modal de artículos), aviso al salir de la pantalla final, lugar de infracción precargado entre actas y regreso al inicio al descartar | 124bd7a |
 | Inicio de inspectores (móvil y escritorio): «Crear nueva acta» / «Ver mis borradores» a pantalla completa, elección de tipo si tiene varios, sin menú lateral y con Inicio / tema / Salir en la barra | 847c19a |
 | Pantalla final del labrado: resumen completo, ver acta / ticket y «Listo, volver al inicio»; quita el texto de ayuda del ejido | 7b98517 |
