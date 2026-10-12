@@ -37,7 +37,7 @@ Avance: **9 / 20**
 | Radio y texto alineados en «Situación del infractor» | dab2d1e |
 | Correo del infractor editable desde la causa | 68e6fbf |
 | Localidad antes que partido (catálogo BA + CABA, ingreso libre) y alcoholemia alineada | 2a47247 |
-| Obligatorios: situación del infractor sin preselección, vehículo (dominio, tipo, marca, modelo) y al menos una foto; N.° de licencia pasa al paso Infractor | (este commit) |
+| Obligatorios: situación del infractor sin preselección, vehículo (dominio, tipo, marca, modelo) y al menos una foto; N.° de licencia pasa al paso Infractor | 718758a |
 
 ## Fuera del alcance del prototipo
 
