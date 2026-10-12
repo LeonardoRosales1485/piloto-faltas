@@ -488,3 +488,44 @@
 .faltantes-firma ul { margin: .4rem 0 0; padding-left: 1.2rem; }
 .faltantes-firma .btn-link { color: inherit; font-weight: 700; text-decoration: underline; vertical-align: baseline; }
 [data-theme='dark'] .wizard-movil-lista button.activo { background: #1e3a8a; color: #fff; }
+
+// Móvil, labrado: la barra «Acta de tránsito» (con el estado) y el número de acta van al pie del paso.
+.layout-contenido.topbar-al-pie {
+  display: flex; flex-direction: column;
+  > .top-navbar { order: 99; margin: 0.75rem 0 0; }
+  .pagina-steps { display: flex; flex-direction: column; > .acta-encabezado-numero { order: 98; margin: 0.75rem 0 0; } }
+}
+
+// Selector de artículos (como stg): lista con botón Agregar / Agregado
+.lista-agregar-articulos { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .5rem; max-height: 55vh; overflow-y: auto;
+  li { display: flex; align-items: center; justify-content: space-between; gap: .75rem; padding: .7rem .9rem; border: 1px solid var(--bo-borde); border-radius: var(--bo-radio); background: var(--bo-card);
+    > div { display: flex; flex-direction: column; min-width: 0; strong { color: var(--bo-azul); } span { font-size: .88rem; opacity: .85; } }
+    .btn { flex-shrink: 0; min-width: 6.5rem; }
+    &.agregado { opacity: .75; }
+    &.vacio { justify-content: center; opacity: .7; }
+  }
+}
+.toast-app .toast-accion { display: inline-flex; align-items: center; gap: .35rem; margin-top: .35rem; padding: .25rem .6rem; border: 0; border-radius: 6px; background: rgba(255,255,255,.18); color: inherit; font-weight: 700; font-size: .85rem; text-decoration: none; cursor: pointer; width: auto !important; height: auto !important; }
+
+// Presentaciones (tarjeta reutilizada en la bandeja y en el detalle de la causa)
+.tarjeta-presentacion { width: 100%;
+  .tp-cabecera { display: flex; justify-content: space-between; gap: .75rem; align-items: flex-start; }
+  .tp-texto { white-space: pre-wrap; margin: .6rem 0 0; padding: .6rem .8rem; border-left: 3px solid var(--bo-borde); background: rgba(148,163,184,.08); border-radius: 4px; }
+  .tp-estado { flex-shrink: 0; font-size: .75rem; font-weight: 700; padding: .15rem .55rem; border-radius: 999px; background: #e2e8f0; color: #334155; }
+  .tp-pendiente { background: #fef3c7; color: #92400e; } .tp-aceptada { background: #dcfce7; color: #166534; } .tp-observada { background: #ffedd5; color: #9a3412; } .tp-rechazada { background: #fee2e2; color: #991b1b; }
+  &.destacada { border: 2px solid #f59e0b; border-radius: var(--bo-radio); padding: 1rem; background: rgba(245, 158, 11, .07); margin-bottom: 1rem; }
+}
+.camino-infractor { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; padding: .6rem .9rem; border-radius: var(--bo-radio); border: 1px solid var(--bo-borde); margin-bottom: 1rem; font-size: .92rem; i { color: var(--bo-azul); } }
+.marca-causa { font-size: .75rem; font-weight: 600; color: #b45309; margin-top: .2rem; } [data-theme='dark'] .marca-causa { color: #fbbf24; }
+.portal-caminos { border: 1px solid var(--bo-borde); border-radius: var(--bo-radio); padding: .8rem 1rem; margin-bottom: 1rem; background: rgba(37,99,235,.05); ol { margin: 0; padding-left: 1.2rem; li { margin-bottom: .3rem; } } }
+
+// Subsanación: selector «Acta subsanada | Acta original» y datos corregidos resaltados
+.selector-acta { display: grid; grid-template-columns: 1fr 1fr; gap: 0; margin-bottom: .9rem; border: 1px solid var(--bo-borde); border-radius: var(--bo-radio); overflow: hidden;
+  button { border: 0; background: transparent; padding: .65rem; font-weight: 600; color: inherit; display: flex; align-items: center; justify-content: center; gap: .45rem; cursor: pointer; }
+  button + button { border-left: 1px solid var(--bo-borde); }
+  button.activa { background: var(--bo-azul); color: #fff; }
+}
+.dato-subsanado { background: rgba(245, 158, 11, .12); border-radius: 6px; padding-left: .6rem !important; box-shadow: inset 3px 0 0 #f59e0b; cursor: help; }
+span.dato-subsanado { font-size: .75rem; padding: .1rem .45rem; font-weight: 600; color: #b45309; box-shadow: none; }
+[data-theme='dark'] span.dato-subsanado { color: #fbbf24; }
+.acta-borrador-chip { white-space: nowrap; }

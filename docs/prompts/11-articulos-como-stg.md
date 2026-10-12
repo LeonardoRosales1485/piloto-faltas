@@ -12,3 +12,13 @@ Qué hacer:
 3. Mantener el filtrado por tipo de acta (tránsito / contravención / sustancias) y el modo solo lectura cuando el acta está firmada.
 
 Pregunta abierta para confirmar con Leo si algo del comportamiento de stg no aplica (por ejemplo, artículos repetidos).
+
+## Cómo funciona en stg (relevado el 12/10/2026, sin guardar nada)
+
+- Paso «5. Artículos (leyes de Ordenanza)*»: botón **«+ Agregar artículo»** y contador «N seleccionadas».
+- Abre un modal «Agregar artículos» con un buscador **«Buscar por artículo o nombre»** y una lista de tarjetas «N.° de artículo - nombre», cada una con un botón **«Agregar»**.
+- Al agregar, el botón pasa a **«Agregado»** (deshabilitado): **no se puede repetir** un artículo. El modal queda abierto para seguir agregando; se cierra con la X.
+- Debajo, una tabla con columnas **Artículo · Nombre · Descripción** y un ícono de **papelera** por fila para quitarlo.
+- No se muestran unidades ni categoría en el selector.
+
+**Implementado en el piloto** igual, con estas diferencias: se mantiene la clave `Ordenanza X · Art. N`, se filtra por tipo de acta y en la tarjeta se muestra también la descripción.

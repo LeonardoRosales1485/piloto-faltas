@@ -431,7 +431,7 @@ function ShellInner({ children }: { children: ReactNode }) {
         </>
       )}
 
-      <main className="layout-contenido" style={{ marginLeft: margen }}>
+      <main className={`layout-contenido ${enCrearEditar && layout.isMobile ? 'topbar-al-pie' : ''}`} style={{ marginLeft: margen }}>
         {!layout.ocultarTopbar ? (
           <header className={`top-navbar ${layout.isMobile ? 'top-navbar-movil' : ''}`}>
             <div className="top-navbar-titulo">

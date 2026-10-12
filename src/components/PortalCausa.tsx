@@ -134,11 +134,22 @@ export function PortalCausa() {
         {r.medidaVigente ? <div className="aviso aviso-peligro mt-2 mb-0"><i className="fa-solid fa-triangle-exclamation" aria-hidden="true" /> Esta acta tiene una <strong>medida preventiva vigente</strong> ({[d.acta?.retencionDeLicencia ? 'retención de licencia' : '', d.acta?.retencionDeVehiculo ? 'retención de vehículo' : '', ...(d.acta?.medidasPreventivas ?? [])].filter(Boolean).join(', ')}). Sigue vigente aunque pague, hasta que la Dirección de Faltas disponga su levantamiento.</div> : null}
       </div>
 
+      {d.subsanacion ? <div className="aviso aviso-info"><i className="fa-solid fa-pen-to-square" aria-hidden="true" /> La Dirección de Faltas <strong>subsanó datos del acta</strong> el {fechaCorta(d.subsanacion.fecha)}. Se muestran los datos corregidos; la constancia está en sus documentos.</div> : null}
       {observada ? <div className="aviso aviso-alerta"><strong>Su descargo fue observado:</strong> {observada.respuesta}. Puede reenviarlo una única vez.</div> : null}
 
       {disponibles.length ? (
         <div className="portal-card">
           <h2>¿Qué puede hacer?</h2>
+          {acciones.pago_voluntario?.ok && acciones.descargo?.ok ? (
+            <div className="portal-caminos">
+              <p className="mb-2">Tiene <strong>tres caminos</strong>{r.venceAt ? <> hasta el <strong>{fechaCorta(r.venceAt)}</strong>{(() => { const dias = Math.ceil((Number(r.venceAt) - Date.now()) / 86400000); return dias > 0 ? ` (quedan ${dias} días)` : ''; })()}</> : null}. Elija uno solo:</p>
+              <ol>
+                <li><strong>Pago voluntario</strong>: paga con el descuento y termina el trámite.{d.resumen.tipo === 'multas' ? ' Si lo elige, ya no puede presentar descargo.' : ''}</li>
+                <li><strong>Descargo</strong>: explica su versión y adjunta pruebas.{d.resumen.tipo === 'multas' ? ' Si lo presenta, ya no puede hacer el pago voluntario.' : ''} La Dirección lo analiza antes de dictar el fallo.</li>
+                <li><strong>No hacer nada</strong>: vencido el plazo pierde el beneficio del pago voluntario y la Dirección dicta el fallo con lo que consta en el acta.</li>
+              </ol>
+            </div>
+          ) : null}
           <div className="portal-acciones">
             {disponibles.map((a) => (
               <button key={a.k} type="button" className="portal-accion" onClick={() => { setForm(a.k); setMsg(null); }}>

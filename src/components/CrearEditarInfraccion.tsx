@@ -457,11 +457,12 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
                 <button type="button" className="btn btn-outline-primary btn-lg w-100" disabled={!habilitado} onClick={usarGps}>
                   <i className={`fa-solid ${gpsEstado === 'buscando' ? 'fa-spinner fa-spin' : 'fa-location-crosshairs'}`} aria-hidden="true" /> Usar mi ubicación (GPS)
                 </button>
-                {form.gpsLat ? (
-                  <p className="texto-ayuda mt-2">
-                    GPS: {form.gpsLat}, {form.gpsLng} · Ejido: <strong>{form.ejido === 'dentro' ? 'dentro del ejido urbano' : 'fuera del ejido urbano'}</strong>
-                  </p>
-                ) : null}
+                {/* Las coordenadas se guardan (ejido, seguimiento, mapa) pero no se muestran. El ejido no lo edita el inspector. */}
+                <p className="texto-ayuda mt-2">
+                  <i className="fa-solid fa-map-location-dot" aria-hidden="true" /> Ejido:{' '}
+                  <strong>{form.ejido === 'dentro' ? 'dentro del ejido urbano' : form.ejido === 'fuera' ? 'fuera del ejido urbano' : 'sin determinar'}</strong>
+                  {!form.ejido ? ' · se calcula con el GPS; si no hay ubicación, lo determina Faltas.' : null}
+                </p>
                 {gpsEstado === 'error' ? <p className="texto-ayuda texto-error mt-2">No se pudo obtener la ubicación. Complete la dirección a mano.</p> : null}
               </div>
               <div className="col-8 col-md-5">
@@ -489,17 +490,6 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
                   {inp('entreCalle2')}
                 </Campo>
               </div>
-              {!form.gpsLat ? (
-                <div className="col-12 col-md-4">
-                  <Campo id="ejido" label="Ejido urbano">
-                    <select id="ejido" className="form-select" disabled={!habilitado} value={form.ejido ?? ''} onChange={(e) => patch({ ejido: e.target.value })}>
-                      <option value="">Sin determinar</option>
-                      <option value="dentro">Dentro del ejido</option>
-                      <option value="fuera">Fuera del ejido</option>
-                    </select>
-                  </Campo>
-                </div>
-              ) : null}
               {tipo !== 'multas' ? (
                 <div className="col-12 col-md-8">
                   <Campo id="nomenclaturaCatastral" label="Nomenclatura catastral (opcional) · Circ. / Secc. / Manz. / Parc.">
@@ -685,21 +675,21 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
                 <table className="table custom-table align-middle tabla-articulos">
                   <thead>
                     <tr>
-                      <th>Norma</th>
                       <th>Artículo</th>
+                      <th>Norma</th>
                       <th>Descripción</th>
-                      <th className="text-end">Acción</th>
+                      <th className="text-end"><span className="visually-hidden">Quitar</span></th>
                     </tr>
                   </thead>
                   <tbody>
                     {leyesSeleccionadas.map((l) => (
                       <tr key={claveLey(l)}>
-                        <td>{l.nombre}</td>
                         <td>{l.articulo || '-'}</td>
+                        <td>{l.nombre}</td>
                         <td>{l.descripcion || '-'}</td>
                         <td className="text-end">
-                          <button type="button" className="btn btn-danger btn-sm" disabled={!habilitado} onClick={() => patch({ leyesNombre: (form.leyesNombre ?? []).filter((k) => k !== claveLey(l) && k !== l.nombre) })}>
-                            Quitar
+                          <button type="button" className="btn btn-outline-danger btn-sm" aria-label={`Quitar artículo ${l.articulo}`} title="Quitar artículo" disabled={!habilitado} onClick={() => patch({ leyesNombre: (form.leyesNombre ?? []).filter((k) => k !== claveLey(l) && k !== l.nombre) })}>
+                            <i className="fa-solid fa-trash" aria-hidden="true" />
                           </button>
                         </td>
                       </tr>
@@ -934,31 +924,34 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
             <div className="modal-fake-body">
               <div className="form-group mb-3">
                 <label htmlFor="busquedaLey">
-                  <i className="fa-solid fa-magnifying-glass" aria-hidden="true" /> Buscar por número o palabra clave
+                  <i className="fa-solid fa-magnifying-glass" aria-hidden="true" /> Buscar por artículo o nombre
                 </label>
-                <input id="busquedaLey" className="form-control" placeholder="Ej.: 45, estacionar, licencia" value={busquedaLey} onChange={(e) => setBusquedaLey(e.target.value)} />
+                <input id="busquedaLey" className="form-control" placeholder="Ej.: 45, estacionar, licencia" autoFocus value={busquedaLey} onChange={(e) => setBusquedaLey(e.target.value)} />
               </div>
-              <div className="row g-3">
-                {leyesVisibles.map((l) => (
-                  <div key={l.uuid} className="col-12 col-md-6">
-                    <button type="button" className={`card-ley ${(form.leyesNombre ?? []).includes(claveLey(l)) ? 'card-ley-seleccionada' : ''}`} onClick={() => toggleLista('leyesNombre', claveLey(l))}>
-                      <div className="card-ley-articulo">
-                        {l.nombre} · {l.articulo}
+              {/* Como en stg (BOD): cada artículo con su botón «Agregar»; una vez agregado queda «Agregado» (no se repite). */}
+              <ul className="lista-agregar-articulos">
+                {leyesVisibles.map((l) => {
+                  const agregado = (form.leyesNombre ?? []).includes(claveLey(l));
+                  return (
+                    <li key={l.uuid} className={agregado ? 'agregado' : ''}>
+                      <div>
+                        <strong>{l.articulo || '-'} · {l.nombre}</strong>
+                        {l.descripcion ? <span>{l.descripcion}</span> : null}
                       </div>
-                      <div className="card-ley-descripcion">{l.descripcion}</div>
-                      <div className="card-ley-footer">
-                        <span>{l.categoriaNombre}</span>
-                      </div>
-                    </button>
-                  </div>
-                ))}
-              </div>
+                      <button type="button" className={`btn btn-sm ${agregado ? 'btn-secondary' : 'btn-primary'}`} disabled={agregado || !habilitado}
+                        onClick={() => patch({ leyesNombre: [...(form.leyesNombre ?? []), claveLey(l)] })}>
+                        {agregado ? <><i className="fa-solid fa-check" aria-hidden="true" /> Agregado</> : 'Agregar'}
+                      </button>
+                    </li>
+                  );
+                })}
+                {!leyesVisibles.length ? <li className="vacio">Sin artículos para «{busquedaLey}»</li> : null}
+              </ul>
             </div>
             <div className="modal-fake-footer">
               <span>
-                Seleccionados: <strong>{form.leyesNombre?.length ?? 0}</strong>
+                <strong>{form.leyesNombre?.length ?? 0}</strong> agregados
               </span>
-              <button type="button" className="btn btn-outline-danger" onClick={() => patch({ leyesNombre: [] })}>Limpiar selección</button>
               <button type="button" className="btn btn-success" onClick={() => setMostrarLeyes(false)}>Listo</button>
             </div>
           </div>

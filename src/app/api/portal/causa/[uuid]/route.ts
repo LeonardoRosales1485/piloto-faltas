@@ -4,6 +4,7 @@ import { infoEstado, TIPOS_ACTA, tipoActa } from '@/lib/dominio';
 import { loadInfraccionByUuid } from '@/lib/load-infraccion';
 import { accionesDisponibles, handlePortal, nombreCiudadano, type Presentacion } from '@/lib/portal-srv';
 import { causaPorUuid, check } from '@/lib/srv';
+import { causaVigente, subsanacionDe } from '@/lib/subsanacion';
 
 type Ctx = { params: Promise<{ uuid: string }> };
 
@@ -17,16 +18,18 @@ export async function GET(req: NextRequest, ctx: Ctx) {
     const c = await causaPorUuid(db, uuid);
     check(!['Borrador', 'Anulada'].includes(c.estado_faltas) && Number(c.visible_portal) === 1, 'Causa no disponible', 404);
     if (abrir && !c.notificada_at) await notificarActa(db, c, 'portal', nombreCiudadano(ciu));
+    const cv = await causaVigente(db, c);
     const resumen = {
       uuid: c.uuid, numero: c.legajo_numero_acta, legajo: `${c.legajo_number}/${c.legajo_anio}`, fecha: c.legajo_fecha,
       tipo: tipoActa(c.infraccion_tipo_nombre), tipoTitulo: TIPOS_ACTA[tipoActa(c.infraccion_tipo_nombre)].titulo,
-      lugar: [c.domicilio_infraccion_calle, c.domicilio_infraccion_numero].filter(Boolean).join(' '),
+      lugar: [cv.domicilio_infraccion_calle, cv.domicilio_infraccion_numero].filter(Boolean).join(' '),
       estadoVisible: infoEstado(c.estado_faltas).portal, estado: c.estado_faltas, medidaVigente: Number(c.medida_vigente) === 1,
-      notificadaAt: c.notificada_at, venceAt: c.vence_plazo_at, dominio: c.vehiculo_numero_dominio,
+      notificadaAt: c.notificada_at, venceAt: c.vence_plazo_at, dominio: cv.vehiculo_numero_dominio,
     };
     if (!c.notificada_at) return { resumen, requiereAviso: true };
+    const sub = await subsanacionDe(db, c.id);
     const [acta, pres, bol, docs, notif] = await Promise.all([
-      loadInfraccionByUuid(uuid),
+      loadInfraccionByUuid(uuid, { vigente: true }),
       db.from('presentacion').select('id, uuid, tipo, texto, estado, respuesta, reenvio_de, cuotas_solicitadas, cuotas_otorgadas, date_created, resuelta_at').eq('infraccion_id', c.id).order('id', { ascending: false }),
       db.from('boleta').select('uuid, numero, concepto, monto, vencimiento, estado, cuota_nro, total_cuotas, a_nombre_de, pagado_at').eq('infraccion_id', c.id).neq('estado', 'anulada').order('id'),
       db.from('documento').select('id, uuid, titulo, numero, firmado_at, date_created, estado, plantilla(categoria)').eq('infraccion_id', c.id).eq('tipo', 'escrito').in('estado', ['firmado', 'definitivo']).order('id', { ascending: false }),
@@ -37,13 +40,13 @@ export async function GET(req: NextRequest, ctx: Ctx) {
     const activas = boletas.filter((b) => ['emitida', 'a_verificar', 'definitiva'].includes(b.estado)).length;
     const notifs = (notif.data ?? []) as { documento_id: number | null; estado: string }[];
     const documentos = ((docs.data ?? []) as unknown as { id: number; plantilla: { categoria: string } | null }[])
-      .filter((d) => CATEGORIAS_VISIBLES.includes(d.plantilla?.categoria ?? '') || notifs.some((n) => n.documento_id === d.id))
+      .filter((d) => CATEGORIAS_VISIBLES.includes(d.plantilla?.categoria ?? '') || notifs.some((n) => n.documento_id === d.id) || d.id === sub?.documento_id)
       .map((d) => ({ ...d, pendienteNotificacion: notifs.some((n) => n.documento_id === d.id && n.estado === 'pendiente') }));
     if (acta) {
       delete (acta as Record<string, unknown>).firmaInfractor;
     }
     return {
-      resumen, acta, presentaciones, boletas, documentos, notificaciones: notif.data ?? [],
+      resumen, acta, presentaciones, subsanacion: sub ? { motivo: sub.motivo, fecha: sub.date_created } : null, boletas, documentos, notificaciones: notif.data ?? [],
       acciones: accionesDisponibles(c, presentaciones, activas),
     };
   });

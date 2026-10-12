@@ -3,11 +3,11 @@
 
 import Link from 'next/link';
 import { LoaderLogo } from './LoaderLogo';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { http } from '@/lib/api-client';
 import { printActa, printTicket } from '@/lib/print';
-import { ESTADOS_CAUSA, TIPOS_ACTA, estadoFinal, fechaCorta, fechaHora, infoEstado, pesos, puede, tipoActa } from '@/lib/dominio';
+import { ESTADOS_CAUSA, TIPOS_ACTA, claveLey, estadoFinal, fechaCorta, fechaHora, infoEstado, pesos, puede, tipoActa } from '@/lib/dominio';
 import { useAuthUser } from '@/lib/use-auth-user';
 import type { Infraccion } from '@/lib/types';
 import { RoadmapCausa } from './RoadmapCausa';
@@ -15,10 +15,12 @@ import { EstadoChip } from './EstadoChip';
 import { ModalForm, type CampoModal } from './ModalForm';
 import { useNotify } from './NotifyProvider';
 import { Plazo } from './Plazo';
+import { TarjetaPresentacion } from './TarjetaPresentacion';
+import { caminoInfractor, descargoPendiente } from '@/lib/camino';
 
 type R = Record<string, any>;
 type Detalle = {
-  acta: Infraccion; historial: R[]; documentos: R[]; presentaciones: R[]; boletas: R[]; notificaciones: R[]; imagenes: R[];
+  acta: Infraccion; actaVigente: Infraccion | null; subsanacion: R | null; subsanables: { k: string; t: string; grupo: string; valor: string }[]; historial: R[]; documentos: R[]; presentaciones: R[]; boletas: R[]; notificaciones: R[]; imagenes: R[];
   valorizacion: { uf: number; unidades: number; multa: number; leyes: R[]; ajustado: number | null; motivoAjuste: string | null };
 };
 type Modal = { titulo: string; icono?: string; campos: CampoModal[]; accion: string; textoOk?: string; peligro?: boolean; aviso?: string; extra?: R } | null;
@@ -46,6 +48,8 @@ export function CausaDetalle() {
   const [modal, setModal] = useState<Modal>(null);
   const [plantillas, setPlantillas] = useState<R[]>([]);
   const [motivos, setMotivos] = useState<string[]>([]);
+  const [leyesCat, setLeyesCat] = useState<R[]>([]);
+  const [vista, setVista] = useState<'subsanada' | 'original'>('subsanada');
 
   const cargar = useCallback(() => {
     http.get<Detalle>(`/api/causa/${uuid}`).then(setD).catch((e: Error) => notify.error('No se pudo cargar la causa', e.message));
@@ -54,7 +58,7 @@ export function CausaDetalle() {
   useEffect(() => {
     cargar();
     http.get<R[]>('/api/plantillas').then(setPlantillas).catch(() => undefined);
-    http.get<R>('/api/constantes/all').then((c) => setMotivos((c.motivosArchivo ?? []).map((m: R) => m.nombre))).catch(() => undefined);
+    http.get<R>('/api/constantes/all').then((c) => { setMotivos((c.motivosArchivo ?? []).map((m: R) => m.nombre)); setLeyesCat(c.leyes ?? []); }).catch(() => undefined);
   }, [cargar]);
 
   async function accion(nombre: string, datos: R = {}, ok = 'Listo') {
@@ -78,6 +82,8 @@ export function CausaDetalle() {
   const pendientes = (d?.presentaciones ?? []).filter((p) => p.estado === 'pendiente');
   const plantillasTipo = useMemo(() => plantillas.filter((p) => p.tipo_acta === 'todas' || p.tipo_acta === tipo), [plantillas, tipo]);
   const cuotasVencidas = (d?.boletas ?? []).some((b) => b.estado === 'emitida' && Number(b.vencimiento) < Date.now());
+  const busqueda = useSearchParams();
+  const [falloPedido, setFalloPedido] = useState(busqueda.get('fallo') === '1');
 
   if (!d || !c) {
     return <LoaderLogo texto="Cargando causa…" pantalla />;
@@ -99,10 +105,23 @@ export function CausaDetalle() {
   };
   const tieneEscrito = (codigo: string) => d.documentos.some((x) => x.plantilla?.codigo === codigo);
 
-  const botones: { t: string; i: string; on: () => void; ver: boolean; peligro?: boolean; destacado?: boolean }[] = [
+  const presT = d.presentaciones as { tipo: string; estado: string; date_created?: number }[];
+  const descPend = descargoPendiente(presT);
+  const camino = caminoInfractor({ estado_faltas: estado, notificada_at: c.notificadaAt, vence_plazo_at: c.vencePlazoAt }, presT);
+  const abrirFallo = () => setModal({ titulo: 'Dictar fallo', icono: 'fa-solid fa-scale-balanced', accion: 'generar_escrito', textoOk: 'Generar y editar', aviso: 'El fallo se genera desde plantilla, va a revisión y firma de la Directora y después se notifica.', campos: [{ k: 'plantillaId', t: 'Tipo de fallo', tipo: 'select', opciones: ['FALLO_CONDENATORIO', 'FALLO_ABSOLUTORIO'].map((cod) => plantillaPorCodigo(cod)).filter(Boolean).map((p) => ({ v: String(p!.id), t: p!.titulo })) }] });
+  const puedeFallo = gestion && ['Descargo', 'Notificado', 'Cuotas', 'Esp. Acreditar Pago'].includes(estado) && !tieneEscrito('FALLO_CONDENATORIO') && !tieneEscrito('FALLO_ABSOLUTORIO');
+  if (falloPedido && plantillas.length) { setFalloPedido(false); if (puedeFallo && !descPend) abrirFallo(); }
+  const presentacionResuelta = (p: R, acc: string) => {
+    notify.success('Presentación resuelta', 'Se notificó la respuesta al infractor.', p.tipo === 'descargo' && acc === 'aceptar' ? { texto: 'Dictar fallo', on: abrirFallo } : undefined);
+    cargar();
+  };
+  const adjuntosDe = (p: R) => d.documentos.filter((x) => x.presentacion_id === p.id).map((x) => ({ uuid: x.uuid, titulo: x.titulo }));
+  const causaTarjeta = { uuid, legajo_numero_acta: c.legajoNumeroActa, infraccion_tipo_nombre: c.infraccionTipoNombre, estado_faltas: estado, vence_plazo_at: c.vencePlazoAt, infractor_nombre: c.infractorNombre, infractor_razon_social: c.infractorRazonSocial };
+
+  const botones: { t: string; i: string; on: () => void; ver: boolean; peligro?: boolean; destacado?: boolean; deshabilitado?: string }[] = [
     { t: 'Resolución de medida preventiva', i: 'fa-solid fa-gavel', ver: gestion && c.medidaVigente === 1 && !tieneEscrito('RESOLUCION_MEDIDA_PREVENTIVA') && !final, destacado: true, on: () => void generarDesde('RESOLUCION_MEDIDA_PREVENTIVA') },
     { t: 'Disposición de levantamiento', i: 'fa-solid fa-lock-open', ver: gestion && c.medidaVigente === 1 && !tieneEscrito('DISPOSICION_LEVANTAMIENTO'), on: () => void generarDesde('DISPOSICION_LEVANTAMIENTO') },
-    { t: 'Dictar fallo', i: 'fa-solid fa-scale-balanced', ver: gestion && ['Descargo', 'Notificado', 'Cuotas', 'Esp. Acreditar Pago'].includes(estado) && !tieneEscrito('FALLO_CONDENATORIO') && !tieneEscrito('FALLO_ABSOLUTORIO'), on: () => setModal({ titulo: 'Dictar fallo', icono: 'fa-solid fa-scale-balanced', accion: 'generar_escrito', textoOk: 'Generar y editar', aviso: 'El fallo se genera desde plantilla, va a revisión y firma de la Directora y después se notifica.', campos: [{ k: 'plantillaId', t: 'Tipo de fallo', tipo: 'select', opciones: ['FALLO_CONDENATORIO', 'FALLO_ABSOLUTORIO'].map((cod) => plantillaPorCodigo(cod)).filter(Boolean).map((p) => ({ v: String(p!.id), t: p!.titulo })) }] }) },
+    { t: 'Dictar fallo', i: 'fa-solid fa-scale-balanced', ver: puedeFallo, deshabilitado: descPend ? 'Hay un descargo sin resolver: resuélvalo primero (aceptar, observar o rechazar).' : undefined, on: abrirFallo },
     { t: 'Generar escrito', i: 'fa-solid fa-file-circle-plus', on: abrirEscrito, ver: puede(user?.rol, 'redactarEscritos') && !final, destacado: true },
     { t: 'Emitir boleta', i: 'fa-solid fa-receipt', ver: gestion && !final && !['Esp. Acreditar Pago', 'Cuotas', 'En Juzgado', 'En Apremios'].includes(estado), on: () => setModal({
       titulo: 'Emitir boleta (Malvinas 2000 simulado)', icono: 'fa-solid fa-receipt', accion: 'emitir_boleta', textoOk: 'Emitir',
@@ -120,7 +139,15 @@ export function CausaDetalle() {
     { t: 'Registrar resultado externo', i: 'fa-solid fa-flag-checkered', ver: gestion && infoEstado(estado).familia === 'externo', on: () => setModal({ titulo: 'Resultado informado por Juzgado de Paz o Apremios', accion: 'resultado_externo', campos: [{ k: 'estado', t: 'Resultado', tipo: 'select', opciones: ['Pago en Apremios', 'Archivo judicial', 'Archivo absolución', 'Archivo nulidad', 'Archivo prescripción'].map((x) => ({ v: x, t: x })) }, { k: 'detalle', t: 'Detalle', tipo: 'area' }] }) },
     { t: 'Presentación en mesa', i: 'fa-solid fa-person-walking', ver: gestion && !final, on: () => setModal({ titulo: 'Registrar presentación en mesa', accion: 'presentacion_mesa', campos: [{ k: 'tipo', t: 'Tipo', tipo: 'select', opciones: Object.entries(TIPO_PRES).map(([v, t]) => ({ v, t })) }, { k: 'texto', t: 'Detalle', tipo: 'area', req: true }, { k: 'cuotas', t: 'Cuotas solicitadas', tipo: 'numero' }] }) },
     { t: 'Adjuntar documento', i: 'fa-solid fa-paperclip', ver: puede(user?.rol, 'redactarEscritos'), on: () => setModal({ titulo: 'Adjuntar documento escaneado', accion: 'adjuntar', icono: 'fa-solid fa-paperclip', campos: [{ k: 'titulo', t: 'Título', tipo: 'texto', req: true }, { k: 'archivo', t: 'Archivo (imagen o PDF)', tipo: 'archivo', req: true }], extra: { conv: 'archivo' } }) },
-    { t: 'Subsanar datos', i: 'fa-solid fa-pen-to-square', ver: gestion, on: () => setModal({ titulo: 'Subsanar datos del acta', accion: 'subsanar', aviso: 'El acta firmada no se modifica: se agrega una constancia al legajo.', campos: [{ k: 'detalle', t: 'Corrección', tipo: 'area', req: true, ayuda: 'Ej.: donde dice DNI 2899911 debe decir 28999111.' }] }) },
+    { t: d.subsanacion ? 'Ver subsanación' : 'Subsanar datos', i: 'fa-solid fa-pen-to-square', ver: gestion || Boolean(d.subsanacion), on: () => (d.subsanacion ? (setTab('resumen'), setVista('subsanada'), window.scrollTo({ top: 0, behavior: 'smooth' })) : setModal({
+      titulo: 'Subsanar datos del acta', accion: 'subsanar', icono: 'fa-solid fa-pen-to-square', textoOk: 'Guardar subsanación', extra: { conv: 'subsanar' },
+      aviso: 'Corrija solo los datos que correspondan. El acta firmada no se modifica: la corrección se guarda aparte, se genera una constancia y se usa en adelante. Solo se puede subsanar una vez.',
+      campos: [
+        ...d.subsanables.filter((f) => f.k !== 'leyes' && !(tipo === 'contravenciones' && f.grupo === 'Vehículo')).map((f) => ({ k: f.k, t: `${f.grupo} · ${f.t}`, tipo: 'texto' as const, valor: f.valor })),
+        { k: 'leyes', t: 'Artículos', tipo: 'multi' as const, valor: (d.subsanables.find((f) => f.k === 'leyes')?.valor ?? '').split(' | ').filter(Boolean).join(','), opciones: leyesCat.filter((l) => tipoActa(l.infraccionTipoNombre) === tipo).map((l) => ({ v: claveLey(l as { nombre: string; articulo?: string }), t: `${claveLey(l as { nombre: string; articulo?: string })} — ${l.descripcion ?? ''}` })) },
+        { k: 'motivo', t: 'Motivo de la subsanación', tipo: 'area' as const, req: true },
+      ],
+    })) },
     { t: 'Nota a un área (espera respuesta)', i: 'fa-solid fa-hourglass-half', ver: gestion && !final && estado !== 'Espera respuesta', on: () => setModal({ titulo: 'Espera respuesta de un área', accion: 'espera_respuesta', campos: [{ k: 'detalle', t: 'Área y motivo', tipo: 'area', req: true }] }) },
     { t: 'Cambiar estado', i: 'fa-solid fa-arrows-rotate', ver: puede(user?.rol, 'cambiarEstadoManual'), on: () => setModal({ titulo: 'Cambiar estado manualmente', accion: 'cambiar_estado', campos: [{ k: 'estado', t: 'Nuevo estado', tipo: 'select', opciones: ESTADOS_CAUSA.map((e) => ({ v: e.nombre, t: e.nombre })) }, { k: 'motivo', t: 'Motivo', tipo: 'area', req: true }] }) },
     { t: 'Archivar', i: 'fa-solid fa-box-archive', ver: gestion && !final, on: () => setModal({ titulo: 'Archivar causa', accion: 'archivar', campos: [{ k: 'motivo', t: 'Tipo de archivo', tipo: 'select', opciones: motivos.map((m) => ({ v: m, t: m })) }, { k: 'detalle', t: 'Detalle', tipo: 'area' }], aviso: c.medidaVigente === 1 ? 'La causa tiene una medida vigente: el archivo por pago no procede hasta su levantamiento.' : undefined }) },
@@ -128,11 +155,24 @@ export function CausaDetalle() {
     { t: 'Desestimar', i: 'fa-solid fa-ban', ver: gestion && !final, peligro: true, on: () => setModal({ titulo: 'Desestimar causa', accion: 'desestimar', peligro: true, textoOk: 'Desestimar', aviso: 'La causa se cierra sin eliminarse: queda el registro completo.', campos: [{ k: 'motivo', t: 'Motivo', tipo: 'area', req: true }] }) },
   ];
 
+  const subCampos = (d.subsanacion?.campos ?? {}) as Record<string, { antes: string; despues: string }>;
+  const verSubsanada = Boolean(d.subsanacion && d.actaVigente && vista === 'subsanada');
+  const cf: Infraccion = verSubsanada ? d.actaVigente! : c;
+  const marcaCambio = (ks: string[]) => {
+    const hay = verSubsanada ? ks.filter((k) => subCampos[k]) : [];
+    return hay.length ? { className: 'dato-subsanado', title: `Antes: ${hay.map((k) => `${d.subsanables.find((f) => f.k === k)?.t ?? k}: ${subCampos[k].antes || '—'}`).join(' · ')}` } : {};
+  };
+
   async function confirmarModal(v: Record<string, string>) {
     if (!modal) return;
     const datos: R = { ...v, ...(modal.extra ?? {}) };
     if (modal.extra?.conv === 'archivo') { datos.archivoRaw = v.archivo; datos.archivoNombre = v.archivoNombre; }
     if (modal.extra?.conv === 'ingreso') datos.ingresoAt = new Date(`${v.ingreso}T12:00`).getTime();
+    if (modal.extra?.conv === 'subsanar') {
+      const { motivo, ...campos } = v;
+      await accion('subsanar', { motivo, campos: { ...campos, leyes: (campos.leyes ?? '').split(',').filter(Boolean).join(' | ') } }, 'Subsanación guardada');
+      return;
+    }
     if (modal.accion === 'generar_escrito') {
       const r = await accion('generar_escrito', { plantillaId: Number(v.plantillaId) }, 'Escrito generado');
       if (r?.uuid) router.push(`/private/escrito/${r.uuid}`);
@@ -143,7 +183,7 @@ export function CausaDetalle() {
 
   return (
     <div className="pagina">
-      <RoadmapCausa estado={estado} historial={d.historial} medidaVigente={c.medidaVigente === 1} />
+      <RoadmapCausa estado={estado} historial={d.historial} medidaVigente={c.medidaVigente === 1} camino={camino} />
       <div className="card-step mb-3">
         <div className="causa-cabecera">
           <h1>{c.legajoNumeroActa}</h1>
@@ -168,33 +208,57 @@ export function CausaDetalle() {
       <div className="causa-layout">
         <div className="card-step">
           <div className="card-step-body">
-            {pendientes.length ? (
-              <div className="aviso aviso-alerta">
-                <i className="fa-solid fa-inbox" aria-hidden="true" /> {pendientes.length} presentación(es) pendiente(s): {pendientes.map((p) => TIPO_PRES[p.tipo]).join(', ')}. <Link href="/private/presentaciones">Ir a la bandeja</Link>
-              </div>
-            ) : null}
+            {pendientes.map((p) => (
+              <TarjetaPresentacion key={p.uuid} p={p} causa={causaTarjeta} adjuntos={adjuntosDe(p)} gestion={gestion} destacada onResuelta={presentacionResuelta} />
+            ))}
 
             {tab === 'resumen' ? (
               <>
+                {camino.id !== 'sin_notificar' ? (
+                  <div className={`camino-infractor camino-${camino.id}`}>
+                    <i className={`fa-solid ${camino.id === 'pago' ? 'fa-money-bill-wave' : camino.id === 'descargo' ? 'fa-comment-dots' : camino.id === 'ignorado' ? 'fa-hourglass-end' : 'fa-signs-post'}`} aria-hidden="true" />
+                    <span>Camino del infractor: <strong>{camino.titulo}</strong>{camino.fecha && camino.id !== 'pendiente' ? ` · ${fechaHora(camino.fecha)}` : ''}{camino.id === 'pendiente' && camino.fecha ? ` · vence ${fechaCorta(camino.fecha)}` : ''}</span>
+                    {camino.detalle ? <span className="texto-ayuda">{camino.detalle}</span> : null}
+                  </div>
+                ) : null}
+                {d.subsanacion ? (
+                  <>
+                    <div className="selector-acta" role="tablist" aria-label="Versión del acta">
+                      <button type="button" role="tab" aria-selected={vista === 'subsanada'} className={vista === 'subsanada' ? 'activa' : ''} onClick={() => setVista('subsanada')}><i className="fa-solid fa-pen-to-square" aria-hidden="true" /> Acta subsanada</button>
+                      <button type="button" role="tab" aria-selected={vista === 'original'} className={vista === 'original' ? 'activa' : ''} onClick={() => setVista('original')}><i className="fa-solid fa-file-signature" aria-hidden="true" /> Acta original</button>
+                    </div>
+                    {vista === 'subsanada' ? (
+                      <div className="aviso aviso-info">
+                        <strong>Datos subsanados</strong> por {d.subsanacion.usuario} el {fechaHora(d.subsanacion.date_created)}. Motivo: {d.subsanacion.motivo}. Los datos corregidos están resaltados (pase el mouse para ver el valor anterior).
+                      </div>
+                    ) : <div className="aviso aviso-alerta">Acta tal como se firmó (solo lectura).</div>}
+                  </>
+                ) : null}
                 <dl className="ficha">
-                  <div><dt>Fecha y hora</dt><dd>{String(c.legajoFecha ?? '').replace('T', ' ')}</dd></div>
-                  <div><dt>Lugar de infracción</dt><dd>{[[c.domicilioInfraccionCalle, c.domicilioInfraccionNumero].filter(Boolean).join(' ') + (c.entreCalle1 ? ` (entre ${c.entreCalle1} y ${c.entreCalle2 ?? ''})` : ''), c.domicilioInfraccionLocalidadNombre].filter(Boolean).join(' · ')}</dd></div>
-                  <div><dt>Legajo</dt><dd>{c.legajoNumber || '-'}</dd></div>
-                  <div><dt>Año</dt><dd>{c.legajoAnio || '-'}</dd></div>
-                  <div><dt>Ejido</dt><dd>{c.ejido === 'dentro' ? 'Dentro del ejido urbano' : c.ejido === 'fuera' ? 'Fuera del ejido urbano' : '-'}{c.gpsLat ? ` · GPS ${c.gpsLat}, ${c.gpsLng}` : ''}</dd></div>
-                  <div><dt>Infractor</dt><dd>{c.situacionInfractor === 'nn' ? 'No identificado (NN)' : `${c.infractorRazonSocial || c.infractorNombre || '-'} · ${c.infractorCuit ? `CUIT ${c.infractorCuit}` : `${c.infractorDocumentoTipoNombre ?? ''} ${c.infractorDocumentoNumero ?? ''}`}`}</dd></div>
-                  <div><dt>Domicilio</dt><dd>{[[c.infractorDomicilio, c.infractorCalleAltura, c.infractorDepartamento].filter(Boolean).join(' '), c.infractorLocalidadNombre, c.infractorPartidoNombre].filter(Boolean).join(' · ') || '-'}</dd></div>
-                  <div><dt>Correo electrónico</dt><dd>{c.infractorEmail || <span className="texto-ayuda">Sin dato</span>}{gestion && !final ? <button type="button" className="btn btn-link btn-sm py-0" onClick={() => setModal({ titulo: 'Correo del infractor', icono: 'fa-solid fa-at', accion: 'correo_infractor', textoOk: 'Guardar', aviso: 'Completar solo si se conoce el dato. No forma parte del acta.', campos: [{ k: 'correo', t: 'Correo electrónico', tipo: 'texto', valor: c.infractorEmail ?? '' }] })}><i className="fa-solid fa-pen" aria-hidden="true" /> {c.infractorEmail ? 'Editar' : 'Agregar'}</button> : null}</dd></div>
-                  {tipo !== 'contravenciones' ? <div><dt>Vehículo</dt><dd>{c.vehiculoNumeroDominio || '-'} {c.vehiculoTipoNombre ?? ''} {c.vehiculoNumeroLicencia ? `· Lic. ${c.vehiculoNumeroLicencia}` : ''}</dd></div> : null}
-                  {c.sustanciasDescripcion ? <div><dt>Sustancias</dt><dd>{c.sustanciasDescripcion}</dd></div> : null}
-                  <div><dt>Medidas</dt><dd>{[c.retencionDeLicencia ? 'Retención de licencia' : '', c.retencionDeVehiculo ? 'Retención de vehículo' : '', c.acarreo ? 'Acarreo' : '', ...(c.medidasPreventivas ?? [])].filter(Boolean).join(' · ') || 'Ninguna'}{c.medidaVigente === 1 ? ' (vigente)' : ''}</dd></div>
-                  {c.metadata?.alcoholemia ? <div><dt>Alcoholemia</dt><dd>{c.metadata.alcoholemia}{c.metadata.alcoholimetroValor ? ` · ${c.metadata.alcoholimetroValor} g/l` : ''}</dd></div> : null}
-                  <div><dt>Inspector</dt><dd>{c.inspectorNombre || '-'} · firmó {fechaHora(c.firmadaAt ?? undefined)}</dd></div>
-                  <div><dt>Situación del infractor</dt><dd>{c.situacionInfractor}</dd></div>
-                  <div><dt>Notificada</dt><dd>{c.notificadaAt ? fechaHora(c.notificadaAt) : 'Todavía no'}</dd></div>
-                  <div><dt>Observaciones</dt><dd>{c.observaciones || '-'}</dd></div>
+                  <div><dt>Fecha y hora</dt><dd>{String(cf.legajoFecha ?? '').replace('T', ' ')}</dd></div>
+                  <div {...marcaCambio(["domicilio_infraccion_calle", "domicilio_infraccion_numero", "domicilio_infraccion_localidad_nombre"])}><dt>Lugar de infracción</dt><dd>{[[cf.domicilioInfraccionCalle, cf.domicilioInfraccionNumero].filter(Boolean).join(' ') + (cf.entreCalle1 ? ` (entre ${cf.entreCalle1} y ${cf.entreCalle2 ?? ''})` : ''), cf.domicilioInfraccionLocalidadNombre].filter(Boolean).join(' · ')}</dd></div>
+                  <div><dt>Legajo</dt><dd>{cf.legajoNumber || '-'}</dd></div>
+                  <div><dt>Año</dt><dd>{cf.legajoAnio || '-'}</dd></div>
+                  <div><dt>Ejido</dt><dd>{cf.ejido === 'dentro' ? 'Dentro del ejido urbano' : cf.ejido === 'fuera' ? 'Fuera del ejido urbano' : 'Sin determinar'}{gestion && !final ? <button type="button" className="btn btn-link btn-sm py-0" onClick={() => setModal({ titulo: 'Ejido urbano', icono: 'fa-solid fa-map-location-dot', accion: 'corregir_ejido', textoOk: 'Guardar', campos: [{ k: 'ejido', t: 'Ejido', tipo: 'select', req: true, valor: cf.ejido ?? '', opciones: [{ v: 'dentro', t: 'Dentro del ejido urbano' }, { v: 'fuera', t: 'Fuera del ejido urbano' }] }] })}><i className="fa-solid fa-pen" aria-hidden="true" /> Corregir</button> : null}</dd></div>
+                  <div {...marcaCambio(["infractor_nombre", "infractor_razon_social", "infractor_documento_numero", "infractor_cuit"])}><dt>Infractor</dt><dd>{cf.situacionInfractor === 'nn' ? 'No identificado (NN)' : `${cf.infractorRazonSocial || cf.infractorNombre || '-'} · ${cf.infractorCuit ? `CUIT ${cf.infractorCuit}` : `${cf.infractorDocumentoTipoNombre ?? ''} ${cf.infractorDocumentoNumero ?? ''}`}`}</dd></div>
+                  <div {...marcaCambio(["infractor_domicilio", "infractor_calle_altura", "infractor_departamento", "infractor_localidad_nombre", "infractor_partido_nombre"])}><dt>Domicilio</dt><dd>{[[cf.infractorDomicilio, cf.infractorCalleAltura, cf.infractorDepartamento].filter(Boolean).join(' '), cf.infractorLocalidadNombre, cf.infractorPartidoNombre].filter(Boolean).join(' · ') || '-'}</dd></div>
+                  <div><dt>Correo electrónico</dt><dd>{cf.infractorEmail || <span className="texto-ayuda">Sin dato</span>}{gestion && !final ? <button type="button" className="btn btn-link btn-sm py-0" onClick={() => setModal({ titulo: 'Correo del infractor', icono: 'fa-solid fa-at', accion: 'correo_infractor', textoOk: 'Guardar', aviso: 'Completar solo si se conoce el dato. No forma parte del acta.', campos: [{ k: 'correo', t: 'Correo electrónico', tipo: 'texto', valor: cf.infractorEmail ?? '' }] })}><i className="fa-solid fa-pen" aria-hidden="true" /> {cf.infractorEmail ? 'Editar' : 'Agregar'}</button> : null}</dd></div>
+                  {tipo !== 'contravenciones' ? <div {...marcaCambio(["vehiculo_numero_dominio", "vehiculo_tipo_nombre", "vehiculo_numero_licencia", "meta.marca", "meta.modelo"])}><dt>Vehículo</dt><dd>{cf.vehiculoNumeroDominio || '-'} {cf.vehiculoTipoNombre ?? ''} {[cf.metadata?.marca, cf.metadata?.modelo].filter(Boolean).join(' ')} {cf.vehiculoNumeroLicencia ? `· Lic. ${cf.vehiculoNumeroLicencia}` : ''}</dd></div> : null}
+                  {cf.sustanciasDescripcion ? <div><dt>Sustancias</dt><dd>{cf.sustanciasDescripcion}</dd></div> : null}
+                  <div><dt>Medidas</dt><dd>{[cf.retencionDeLicencia ? 'Retención de licencia' : '', cf.retencionDeVehiculo ? 'Retención de vehículo' : '', cf.acarreo ? 'Acarreo' : '', ...(cf.medidasPreventivas ?? [])].filter(Boolean).join(' · ') || 'Ninguna'}{cf.medidaVigente === 1 ? ' (vigente)' : ''}</dd></div>
+                  {cf.metadata?.alcoholemia ? <div><dt>Alcoholemia</dt><dd>{cf.metadata.alcoholemia}{cf.metadata.alcoholimetroValor ? ` · ${cf.metadata.alcoholimetroValor} g/l` : ''}</dd></div> : null}
+                  <div><dt>Inspector</dt><dd>{cf.inspectorNombre || '-'} · firmó {fechaHora(cf.firmadaAt ?? undefined)}</dd></div>
+                  <div><dt>Situación del infractor</dt><dd>{cf.situacionInfractor}</dd></div>
+                  <div><dt>Notificada</dt><dd>{cf.notificadaAt ? fechaHora(cf.notificadaAt) : 'Todavía no'}</dd></div>
+                  <div {...marcaCambio(["observaciones"])}><dt>Observaciones</dt><dd>{cf.observaciones || '-'}</dd></div>
                 </dl>
-                <h3 className="subtitulo-paso mt-3">Artículos y valorización</h3>
+                {d.subsanacion && vista === 'original' ? (
+                  <>
+                    <h3 className="subtitulo-paso mt-3">Artículos del acta original</h3>
+                    <ul>{(c.leyesNombre ?? []).map((l) => <li key={l}>{l}</li>)}</ul>
+                  </>
+                ) : (<>
+                <h3 className="subtitulo-paso mt-3">Artículos y valorización{subCampos.leyes && verSubsanada ? <span className="dato-subsanado ms-2" title={`Antes: ${subCampos.leyes.antes}`}>subsanados</span> : null}</h3>
                 <div className="table-responsive">
                   <table className="table custom-table align-middle">
                     <thead><tr><th>Norma</th><th>Artículo</th><th>Descripción</th><th className="text-end">Unidades</th></tr></thead>
@@ -204,6 +268,7 @@ export function CausaDetalle() {
                     </tbody>
                   </table>
                 </div>
+                </>)}
                 {d.imagenes.length ? (
                   <div className="d-flex gap-2 flex-wrap mt-2">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -214,7 +279,7 @@ export function CausaDetalle() {
                   <div className="mt-2"><span className="texto-ayuda">Firma del infractor:</span><br />{/* eslint-disable-next-line @next/next/no-img-element */}<img src={c.firmaInfractor} alt="Firma del infractor" style={{ height: 70, background: '#fff', borderRadius: 6 }} /></div>
                 ) : null}
                 <div className="botonera">
-                  <button type="button" className="btn btn-outline-primary" onClick={() => printActa(c, { imagenes: (d.imagenes ?? []).map((x) => x.preview_raw).filter(Boolean) })}><i className="fa-solid fa-file-pdf" aria-hidden="true" /> Ver acta (PDF)</button>
+                  <button type="button" className="btn btn-outline-primary" onClick={() => printActa(cf, { imagenes: (d.imagenes ?? []).map((x) => x.preview_raw).filter(Boolean) })}><i className="fa-solid fa-file-pdf" aria-hidden="true" /> Ver acta (PDF)</button>
                   <button type="button" className="btn btn-outline-secondary" onClick={() => void printTicket(c)}><i className="fa-solid fa-print" aria-hidden="true" /> Ticket</button>
                   <a className="btn btn-outline-secondary" href={`/imprimir/legajo/${uuid}`} target="_blank" rel="noreferrer"><i className="fa-solid fa-book" aria-hidden="true" /> Legajo completo (PDF)</a>
                 </div>
@@ -256,13 +321,8 @@ export function CausaDetalle() {
             {tab === 'presentaciones' ? (
               <ul className="lista-items">
                 {d.presentaciones.map((p) => (
-                  <li key={p.uuid}>
-                    <div>
-                      <div className="li-titulo">{TIPO_PRES[p.tipo]}{p.reenvio_de ? ' (reenvío)' : ''} · {p.origen === 'mesa' ? 'Mesa de entradas' : 'Portal'}</div>
-                      <div className="li-sub">{fechaHora(p.date_created)} · {p.estado}{p.cuotas_solicitadas ? ` · ${p.cuotas_solicitadas} cuotas pedidas` : ''}{p.respuesta ? ` · Respuesta: ${p.respuesta}` : ''}</div>
-                      {p.texto ? <div className="li-sub">«{p.texto}»</div> : null}
-                    </div>
-                    {p.estado === 'pendiente' ? <Link className="btn btn-sm btn-primary" href="/private/presentaciones">Resolver</Link> : null}
+                  <li key={p.uuid} className="d-block">
+                    <TarjetaPresentacion p={p} causa={causaTarjeta} adjuntos={adjuntosDe(p)} gestion={gestion} onResuelta={presentacionResuelta} />
                   </li>
                 ))}
                 {!d.presentaciones.length ? <li><span className="texto-ayuda">Sin presentaciones.</span></li> : null}
@@ -308,9 +368,12 @@ export function CausaDetalle() {
             <div className="card-step-header"><h2>Acciones</h2><p>Según el estado y su rol</p></div>
             <div className="card-step-body acciones-lista">
               {botones.filter((b) => b.ver).map((b) => (
-                <button key={b.t} type="button" className={`btn ${b.destacado ? 'btn-primary' : b.peligro ? 'btn-outline-danger' : 'btn-outline-secondary'} btn-accion-causa`} onClick={b.on}>
-                  <i className={b.i} aria-hidden="true" /> {b.t}
-                </button>
+                <div key={b.t}>
+                  <button type="button" className={`btn ${b.destacado ? 'btn-primary' : b.peligro ? 'btn-outline-danger' : 'btn-outline-secondary'} btn-accion-causa w-100`} onClick={b.on} disabled={Boolean(b.deshabilitado)} title={b.deshabilitado}>
+                    <i className={b.i} aria-hidden="true" /> {b.t}
+                  </button>
+                  {b.deshabilitado ? <div className="texto-ayuda small mt-1">{b.deshabilitado}</div> : null}
+                </div>
               ))}
             </div>
           </div>

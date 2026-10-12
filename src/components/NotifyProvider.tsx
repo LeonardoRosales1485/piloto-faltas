@@ -15,10 +15,14 @@ export type Notificacion = {
   titulo: string;
   detalle?: string;
   tipo: 'success' | 'error' | 'info' | 'warning';
+  accion?: AccionToast;
 };
 
+/** Acceso directo dentro del aviso (por ejemplo «Dictar fallo»). */
+export type AccionToast = { texto: string; href?: string; on?: () => void };
+
 type NotifyContextValue = {
-  success: (titulo: string, detalle?: string) => void;
+  success: (titulo: string, detalle?: string, accion?: AccionToast) => void;
   error: (titulo: string, detalle?: string) => void;
   warning: (titulo: string, detalle?: string) => void;
   info: (titulo: string, detalle?: string) => void;
@@ -43,17 +47,17 @@ export function NotifyProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const push = useCallback(
-    (titulo: string, detalle: string | undefined, tipo: Notificacion['tipo']) => {
+    (titulo: string, detalle: string | undefined, tipo: Notificacion['tipo'], accion?: AccionToast) => {
       const id = nextId.current++;
-      setItems((list) => [...list, { id, titulo, detalle, tipo }]);
-      window.setTimeout(() => close(id), 4200);
+      setItems((list) => [...list, { id, titulo, detalle, tipo, accion }]);
+      window.setTimeout(() => close(id), accion ? 9000 : 4200);
     },
     [close],
   );
 
   const value = useMemo<NotifyContextValue>(
     () => ({
-      success: (t, d) => push(t, d, 'success'),
+      success: (t, d, a) => push(t, d, 'success', a),
       error: (t, d) => push(t, d, 'error'),
       warning: (t, d) => push(t, d, 'warning'),
       info: (t, d) => push(t, d, 'info'),
@@ -77,6 +81,11 @@ export function NotifyProvider({ children }: { children: ReactNode }) {
             <div>
               <strong>{n.titulo}</strong>
               {n.detalle ? <p>{n.detalle}</p> : null}
+              {n.accion ? (
+                n.accion.href
+                  ? <a className="toast-accion" href={n.accion.href} onClick={(e) => e.stopPropagation()}>{n.accion.texto} <i className="fa-solid fa-arrow-right" aria-hidden="true" /></a>
+                  : <button type="button" className="toast-accion" onClick={(e) => { e.stopPropagation(); n.accion?.on?.(); close(n.id); }}>{n.accion.texto} <i className="fa-solid fa-arrow-right" aria-hidden="true" /></button>
+              ) : null}
             </div>
             <button
               type="button"

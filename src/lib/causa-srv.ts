@@ -3,6 +3,7 @@
  * Todo cambio de estado pasa por cambiarEstado() y deja historial.
  */
 import { esContravencional, fechaCorta, pesos, resolverLeyes, TIPOS_ACTA, tipoActa } from './dominio';
+import { causaVigente, leyesVigentes, subsanacionDe } from './subsanacion';
 import {
   cambiarEstado, causaPorId, check, config, configNum, enviarCorreo, feriados, historial, HttpError,
   nombreUsuario, sha, sumarCorridos, sumarHabiles, uuid, type CausaRow, type Db,
@@ -19,7 +20,8 @@ export const PLAZO_CONTRAVENCION = 15;
 // ---------------------------------------------------------------------------
 export async function leyesDeCausa(d: Db, id: number) {
   const { data: rel } = await d.from('infraccion_ley').select('ley_nombre').eq('infraccion_id', id);
-  const nombres = ((rel ?? []) as { ley_nombre: string }[]).map((r) => r.ley_nombre);
+  // Artículos vigentes: los subsanados si hubo subsanación (el acta original no cambia).
+  const nombres = leyesVigentes(((rel ?? []) as { ley_nombre: string }[]).map((r) => r.ley_nombre), await subsanacionDe(d, id));
   if (!nombres.length) return [] as { nombre: string; articulo: string; descripcion: string; multiplicador: number }[];
   const { data } = await d.from('ley').select('nombre, articulo, descripcion, multiplicador');
   return resolverLeyes(nombres, (data ?? []) as { nombre: string; articulo: string; descripcion: string; multiplicador: number }[]);
@@ -55,7 +57,8 @@ function esc(s: unknown) {
   return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
-export async function camposDeCausa(d: Db, c: CausaRow, user?: UsuarioRow) {
+export async function camposDeCausa(d: Db, c0: CausaRow, user?: UsuarioRow) {
+  const c = await causaVigente(d, c0);
   const v = await valorizacion(d, c);
   const ahora = new Date();
   const [fecha, hora] = String(c.legajo_fecha ?? '').split('T');

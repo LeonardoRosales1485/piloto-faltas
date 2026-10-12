@@ -30,10 +30,10 @@ Guía paso a paso para recorrer un acta de tránsito de punta a punta: desde que
 2. El sistema reserva solo el **número de acta** (por ejemplo T-001023) y el **legajo**, y toma la fecha y la hora. No se pueden cambiar.
 3. Completá los pasos con **Siguiente**:
    - **Acta:** cómo está el infractor: presente, ausente o no identificado (NN). No viene elegido: hay que marcarlo. Si después se niega a firmar, se marca en el paso de firma.
-   - **Lugar de infracción:** el botón **«Usar mi ubicación (GPS)»** completa la dirección y si el lugar está dentro o fuera del ejido urbano. Las entre calles son opcionales.
+   - **Lugar de infracción:** el botón **«Usar mi ubicación (GPS)»** completa la dirección y calcula solo si el lugar está dentro o fuera del ejido urbano (las coordenadas no se muestran y el inspector no lo cambia; si no hay GPS, lo determina Faltas desde la causa con **«Corregir»**). Las entre calles son opcionales.
    - **Infractor:** si está presente, nombre, documento y domicilio son obligatorios. Si es una empresa, se elige **Persona jurídica** y se cargan razón social y CUIT. Primero se elige la localidad y después el partido (si no está en la lista, se escribe libre). El correo no va en el acta: lo puede agregar Faltas desde la causa. En tránsito, acá también va el **N.° de licencia de conducir**.
    - **Vehículo:** dominio, tipo, marca y modelo son obligatorios (marca y modelo, si no están en la lista, se escriben libres). También el municipio emisor de la licencia.
-   - **Artículos:** con **«Agregar artículo»** se busca por número o palabra. El inspector no ve unidades ni importes: la valorización la hace Faltas. Abajo se marcan las medidas: retención de licencia o de vehículo, acarreo y alcoholemia.
+   - **Artículos:** con **«Agregar artículo»** se busca por artículo o nombre y se toca **«Agregar»** en cada uno (queda «Agregado»; no se repite). Se quitan con la papelera de la tabla. El inspector no ve unidades ni importes: la valorización la hace Faltas. Abajo se marcan las medidas: retención de licencia o de vehículo, acarreo y alcoholemia.
    - **Fotos:** al menos 1 y hasta 5, más las observaciones.
    - **Firma:** se revisa el resumen, el infractor firma con el dedo en el recuadro y se presiona **«Firmar y confirmar»**. Si el infractor se niega, se marca **«El infractor está presente pero se negó a firmar»** debajo del recuadro.
 
@@ -41,6 +41,8 @@ Guía paso a paso para recorrer un acta de tránsito de punta a punta: desde que
 4. Desde ese momento **el acta no se puede modificar**. Se imprime el **ticket con el QR** y se le entrega al infractor.
 
 > Si el inspector se equivoca antes de firmar, usa **«Descartar acta»** e indica el motivo. Ese número queda anulado y no se vuelve a usar.
+
+> En el celular, la barra «Acta de tránsito» con el estado del borrador y el número de acta aparecen al pie de cada paso.
 
 ## 2. El acta entra como causa
 
@@ -148,3 +150,12 @@ Para cualquier opción debe adjuntar el **DNI de frente y de dorso**, y el **est
 - **Correos:** quedan registrados en «Correos enviados».
 - **Pagos:** Malvinas 2000 se simula con el botón «Pagar (simulado)» y la confirmación en Pagos.
 - **Fuera de esta fase:** notificaciones en persona (cédulas), Depósito Vehicular y funcionamiento sin señal.
+
+
+## Presentaciones, fallo y subsanación (actualizado)
+
+- **Tres caminos del infractor** una vez notificado: **pago voluntario**, **descargo** o **no hacer nada**. En tránsito son excluyentes (si pide el pago voluntario no puede presentar descargo, y al revés). Las mismas reglas valen para «Presentación en mesa». El detalle de la causa muestra el camino elegido y la etapa del recorrido lo refleja.
+- **Vencido el plazo sin presentación**, la causa aparece sola en **«Para fallo»** con la marca «Sin presentación (vencido el plazo)» y queda constancia en el historial.
+- **Descargo antes del fallo:** mientras haya un descargo pendiente, «Dictar fallo» está deshabilitado y la causa no figura en «Para fallo» (se marca «Presentación a resolver»). Al aceptar el descargo, el aviso ofrece **«Dictar fallo»**.
+- **Presentaciones en la causa:** las pendientes se ven arriba del detalle, con el texto, los adjuntos y los botones Aceptar / Observar / Rechazar. La pestaña «Presentaciones» tiene el historial con las respuestas. La bandeja «Presentaciones» sigue disponible.
+- **Subsanar datos:** se corrigen los datos del acta (infractor, vehículo, lugar, artículos, observaciones) con un motivo obligatorio, **una sola vez por causa**. El acta firmada no cambia: arriba de la ficha aparecen las pestañas **«Acta subsanada» | «Acta original»**, con los datos corregidos resaltados. Se genera la constancia, y los escritos, la valorización y el portal usan los datos corregidos. La acción pasa a «Ver subsanación».

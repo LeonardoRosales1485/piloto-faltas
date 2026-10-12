@@ -4,6 +4,7 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { fechaHora, infoEstado } from '@/lib/dominio';
+import type { Camino } from '@/lib/camino';
 
 type Etapa = { id: string; t: string; i: string };
 
@@ -33,10 +34,10 @@ export function etapaDe(estado?: string | null): string | null {
 
 const PAUSAS: Record<string, string> = { 'Espera respuesta': 'Espera respuesta del área', 'Despacho Directora': 'En despacho de la Directora' };
 
-type Props = { estado: string; historial: any[]; medidaVigente?: boolean };
+type Props = { estado: string; historial: any[]; medidaVigente?: boolean; camino?: Camino };
 
 /** Roadmap de la causa: etapas del ciclo de vida, la actual resaltada. Se dibuja en la barra superior. */
-export function RoadmapCausa({ estado, historial, medidaVigente }: Props) {
+export function RoadmapCausa({ estado, historial, medidaVigente, camino }: Props) {
   const [destino, setDestino] = useState<HTMLElement | null>(null);
   useEffect(() => setDestino(document.getElementById('topbar-extra')), []);
 
@@ -65,7 +66,9 @@ export function RoadmapCausa({ estado, historial, medidaVigente }: Props) {
           const salteado = i < idx && i > 0 && !entrada[e.id];
           const clase = e.id === actual && actual !== 'cierre' ? 'actual' : hecho ? (salteado ? 'salteado' : 'hecho') : 'futuro';
           const fecha = entrada[e.id];
-          const etiqueta = e.id === 'cierre' && actual === 'cierre' ? infoEstado(estado).portal : e.t;
+          // La etapa de presentación muestra el camino elegido: pago voluntario, descargo o sin presentación.
+          const etiquetaCamino = camino && ['pago', 'descargo', 'ignorado'].includes(camino.id) ? (camino.id === 'ignorado' ? 'Sin presentación' : camino.titulo) : null;
+          const etiqueta = e.id === 'cierre' && actual === 'cierre' ? infoEstado(estado).portal : e.id === 'presentacion' && etiquetaCamino ? etiquetaCamino : e.t;
           const titulo = salteado ? `${e.t}: no corresponde en esta causa` : fecha ? `${e.t} · ${fechaHora(fecha)}` : e.t;
           return (
             <li key={e.id} className={`roadmap-paso ${clase}`} title={titulo}>

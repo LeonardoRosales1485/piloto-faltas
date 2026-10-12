@@ -21,7 +21,16 @@ export type BandejaId = (typeof BANDEJAS)[number]['id'];
 
 const MES = 30 * 24 * 3600 * 1000;
 
-export function enBandeja(c: FilaCausa, b: BandejaId, ahora = Date.now(), cuotasVencidas = new Set<number>()): boolean {
+/** Plazo vencido sin presentación: el infractor ignoró el acta (va a fallo en rebeldía). */
+export function vencidoSinPresentacion(c: FilaCausa, ahora = Date.now(), conPresentacion = new Set<number>()) {
+  return c.estado_faltas === 'Notificado' && Number(c.vence_plazo_at) > 0 && Number(c.vence_plazo_at) < ahora && !conPresentacion.has(c.id);
+}
+
+/**
+ * `pendientes`: causas con una presentación sin resolver (esas se atienden en «Presentaciones», no en «Para fallo»).
+ * `conPresentacion`: causas con alguna presentación vigente (para distinguir el vencimiento sin presentación).
+ */
+export function enBandeja(c: FilaCausa, b: BandejaId, ahora = Date.now(), cuotasVencidas = new Set<number>(), pendientes = new Set<number>(), conPresentacion = new Set<number>()): boolean {
   const e = c.estado_faltas;
   const fin = estadoFinal(e);
   const medida = Number(c.medida_vigente) === 1;
@@ -29,7 +38,7 @@ export function enBandeja(c: FilaCausa, b: BandejaId, ahora = Date.now(), cuotas
     case 'activas': return !fin;
     case 'medidas': return medida && ['Iniciado', 'Notificado', 'En notificación'].includes(e);
     case 'notificacion': return e === 'Iniciado' || e === 'En notificación';
-    case 'para_fallo': return e === 'Descargo' || (e === 'Notificado' && Number(c.vence_plazo_at) > 0 && Number(c.vence_plazo_at) < ahora) || (e === 'Cuotas' && cuotasVencidas.has(c.id));
+    case 'para_fallo': return !pendientes.has(c.id) && (e === 'Descargo' || vencidoSinPresentacion(c, ahora, conPresentacion) || (e === 'Cuotas' && cuotasVencidas.has(c.id)));
     case 'pagos': return e === 'Esp. Acreditar Pago' || e === 'Cuotas';
     case 'post_fallo': return e === 'Fallo notificado' && Number(c.vence_plazo_at) > 0 && Number(c.vence_plazo_at) < ahora;
     case 'externas': return infoEstado(e).familia === 'externo';
