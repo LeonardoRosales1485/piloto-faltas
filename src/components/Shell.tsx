@@ -342,6 +342,54 @@ function ShellInner({ children }: { children: ReactNode }) {
     </>
   );
 
+  // Inspectores: interfaz propia, sin menú lateral (móvil y escritorio). Barra superior con Inicio, tema y salir.
+  if (user?.rol === 'Inspector') {
+    const enInicio = pathname.startsWith('/private/inicio');
+    return (
+      <div className={`layout-inspector ${layout.isMobile ? 'layout-movil' : ''}`}>
+        <header className="inspector-topbar">
+          <button type="button" className="inspector-topbar-marca" onClick={() => router.push('/private/inicio')} aria-label="Ir al inicio">
+            <img src="/images/Municipio_malvinas_argentinas_logo.png" alt="" />
+            <span><strong>SISTEMA DE FALTAS</strong><small>{user.nombre} {user.apellido}</small></span>
+          </button>
+          <div className="inspector-topbar-acciones">
+            {!enInicio ? (
+              <button type="button" className="inspector-topbar-btn" onClick={() => router.push('/private/inicio')} title="Inicio" aria-label="Inicio">
+                <i className="fa-solid fa-house" aria-hidden="true" /><span>Inicio</span>
+              </button>
+            ) : null}
+            <button type="button" className="inspector-topbar-btn" onClick={alternarTema} title="Cambiar tema" aria-label="Cambiar tema">
+              <i className={`fa-solid ${tema === 'light' ? 'fa-sun' : 'fa-moon'}`} aria-hidden="true" />
+            </button>
+            <button type="button" className="inspector-topbar-btn salir" onClick={() => logout()} title="Cerrar sesión" aria-label="Cerrar sesión">
+              <i className="fa-solid fa-right-from-bracket" aria-hidden="true" /><span>Salir</span>
+            </button>
+          </div>
+        </header>
+        <main className={`layout-contenido inspector-contenido ${enCrearEditar && layout.isMobile ? 'topbar-al-pie' : ''} ${enInicio ? 'en-inicio' : ''}`}>
+          {!enInicio && !layout.ocultarTopbar ? (
+            <header className={`top-navbar ${layout.isMobile ? 'top-navbar-movil' : ''}`}>
+              <div className="top-navbar-titulo">
+                <i className="fa-solid fa-file-invoice" aria-hidden="true" />
+                <span>{titulo()}</span>
+              </div>
+              <div id="topbar-extra" className="top-navbar-extra" />
+              <div className="top-navbar-acciones">
+                {tipo && !enCrearEditar ? (
+                  <button type="button" className="btn-nueva" onClick={() => router.push(`/private/crear-editar/${tipo}`)}>
+                    <i className="fa-solid fa-plus" aria-hidden="true" />
+                    <span>Labrar acta</span>
+                  </button>
+                ) : null}
+              </div>
+            </header>
+          ) : null}
+          {children}
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className={`layout-privado ${layout.isMobile ? 'layout-movil' : ''}`}>
       {layout.isMobile ? (

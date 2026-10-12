@@ -26,7 +26,7 @@ Guía paso a paso para recorrer un acta de tránsito de punta a punta: desde que
 
 ## 1. El inspector labra el acta
 
-1. Entrá como **inspector**. En el menú, en **Actas de tránsito**, elegí **Labrar acta**.
+1. Entrá como **inspector**. Se abre el **inicio** con dos botones grandes: **«Crear nueva acta»** y **«Ver mis borradores»**. Si tenés autorizado más de un tipo de acta, el botón dice **«Generar un acta»** y después elegís el tipo (tránsito, contravención o sustancias alimenticias). Los inspectores no tienen menú lateral: la barra de arriba tiene **Inicio**, el tema y **Salir**.
 2. El sistema reserva solo el **número de acta** (por ejemplo T-001023) y el **legajo**, y toma la fecha y la hora. No se pueden cambiar.
 3. Completá los pasos con **Siguiente**:
    - **Acta:** cómo está el infractor: presente, ausente o no identificado (NN). No viene elegido: hay que marcarlo. Si después se niega a firmar, se marca en el paso de firma.
@@ -38,7 +38,7 @@ Guía paso a paso para recorrer un acta de tránsito de punta a punta: desde que
    - **Firma:** se revisa el resumen, el infractor firma con el dedo en el recuadro y se presiona **«Firmar y confirmar»**. Si el infractor se niega, se marca **«El infractor está presente pero se negó a firmar»** debajo del recuadro.
 
    Si falta un dato obligatorio, el paso se marca **en rojo** en la barra de pasos (después de pasar por él o al intentar firmar), y en la firma se listan los faltantes con un enlace a cada paso.
-4. Desde ese momento **el acta no se puede modificar**. Se imprime el **ticket con el QR** y se le entrega al infractor.
+4. Al firmar se ve una **pantalla final** con todo lo cargado, para ver el acta o imprimir el ticket, y **«Listo, volver al inicio»**. Desde ese momento **el acta no se puede modificar**. Se imprime el **ticket con el QR** y se le entrega al infractor.
 
 > Si el inspector se equivoca antes de firmar, usa **«Descartar acta»** e indica el motivo. Ese número queda anulado y no se vuelve a usar.
 

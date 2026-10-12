@@ -537,3 +537,31 @@ span.dato-subsanado { font-size: .75rem; padding: .1rem .45rem; font-weight: 600
   p { margin: .2rem 0 0; font-size: .9rem; opacity: .85; }
 }
 .acta-confirmada-ok { min-height: 56px; font-weight: 700; }
+
+// ---------------------------------------------------------------- Interfaz de inspectores (sin menú lateral)
+.layout-inspector { min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; background: var(--bo-fondo, #f1f5f9); }
+.inspector-topbar { position: sticky; top: 0; z-index: 50; display: flex; align-items: center; justify-content: space-between; gap: .75rem; padding: .55rem 1rem; background: var(--bo-card); border-bottom: 1px solid var(--bo-borde); min-height: 58px; }
+.inspector-topbar-marca { display: flex; align-items: center; gap: .6rem; border: 0; background: transparent; color: inherit; padding: 0; min-width: 0; cursor: pointer; text-align: left;
+  img { height: 38px; width: auto; }
+  span { display: flex; flex-direction: column; min-width: 0; line-height: 1.15; }
+  strong { font-size: .85rem; color: var(--bo-azul); letter-spacing: .02em; }
+  small { font-size: .78rem; opacity: .75; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+}
+.inspector-topbar-acciones { display: flex; align-items: center; gap: .4rem; flex-shrink: 0; }
+.inspector-topbar-btn { display: inline-flex; align-items: center; gap: .4rem; min-height: 40px; padding: 0 .75rem; border: 1px solid var(--bo-borde); border-radius: 10px; background: transparent; color: inherit; font-weight: 600; font-size: .88rem; cursor: pointer;
+  &.salir { color: #dc2626; border-color: rgba(220, 38, 38, .4); }
+}
+@media (max-width: 480px) { .inspector-topbar-btn span { display: none; } }
+.inspector-contenido { flex: 1; margin-left: 0 !important; width: 100%; max-width: 1200px; margin: 0 auto !important; padding: 1rem; }
+.inspector-contenido.en-inicio { max-width: none; padding: 0; display: flex; }
+
+.inicio-inspector { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 1rem; padding: 1.25rem; width: 100%; max-width: 640px; margin: 0 auto; min-height: calc(100dvh - 58px); }
+.inicio-inspector-titulo { text-align: center; font-weight: 700; font-size: 1.15rem; margin: 0 0 .25rem; }
+.inicio-inspector-boton { flex: 1; max-height: 260px; min-height: 120px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .6rem; border: 2px solid var(--bo-borde); border-radius: 18px; background: var(--bo-card); color: inherit; font-size: 1.35rem; font-weight: 700; cursor: pointer; transition: transform .12s ease, border-color .12s ease;
+  i { font-size: 2.6rem; color: var(--bo-azul); }
+  small { font-size: .9rem; font-weight: 500; opacity: .75; }
+  &:active { transform: scale(.98); }
+  &:hover { border-color: var(--bo-azul); }
+  &.principal { background: var(--bo-azul); border-color: var(--bo-azul); color: #fff; i { color: #fff; } }
+}
+.inicio-inspector-volver { align-self: center; border: 0; background: transparent; color: inherit; font-weight: 600; padding: .6rem 1rem; cursor: pointer; opacity: .8; }

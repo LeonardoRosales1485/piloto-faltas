@@ -2,6 +2,7 @@ import { modulosDe, puede, tipoIdDe, tipoVisible, type ModuloActa, type Permiso 
 
 /** Qué permiso exige cada sección del back office (P-22: matriz propuesta para el piloto). */
 const RUTAS: { prefijo: string; permiso: Permiso }[] = [
+  { prefijo: '/private/inicio', permiso: 'labrar' },
   { prefijo: '/private/crear-editar', permiso: 'labrar' },
   { prefijo: '/private/lista-infracciones', permiso: 'labrar' },
   { prefijo: '/private/causas', permiso: 'verCausas' },
@@ -46,7 +47,7 @@ export function tipoInspector(sector?: string | null): 'multas' | 'contravencion
 }
 
 export function inicioPara(rol?: string, sector?: string | null, modulosActa?: string[]): string {
-  if (rol === 'Inspector') return `/private/crear-editar/${modulosDe({ rol, sector, modulosActa })[0] ?? tipoInspector(sector)}`;
+  if (rol === 'Inspector') return '/private/inicio';
   if (rol === 'Tributario') return '/private/finanzas';
   return '/private/causas';
 }
