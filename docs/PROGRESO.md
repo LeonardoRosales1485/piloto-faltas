@@ -15,9 +15,9 @@ Avance: **9 / 20**
 | 04 | [Municipio emisor autocompletable](prompts/04-municipio-emisor-autocompletable.md) | ✅ | 8c2563a · 2a47247 | Buscador con ingreso libre; fallback a los 135 partidos + CABA. |
 | 05 | [Ordenanzas para Directora y admin](prompts/05-ordenanzas-para-directora.md) | ✅ | 91b7f5f | |
 | 06 | [Ocultar «unidades» en artículos](prompts/06-ocultar-unidades-en-articulos.md) | ✅ | 250c9f9 | También se ocultan en la API para el rol Inspector. Ticket y acta impresa no muestran importes. |
-| 07 | [«Se niega a firmar» bajo la firma](prompts/07-negativa-a-firmar-bajo-la-firma.md) | ✅ | (este commit) | Paso 1: Presente / Ausente / NN. La negativa se marca en «Revisión y firma». |
-| 08 | [Stepper con faltantes en rojo](prompts/08-stepper-con-faltantes-en-rojo.md) | ✅ | (este commit) | Reglas en `faltantesPorPaso` (crear-editar-utils.ts), en sintonía con `firmarActa`. |
-| 09 | [«Lugar de infracción»](prompts/09-lugar-de-infraccion.md) | ✅ | (este commit) | Stepper, resumen, ficha de la causa y mensajes. |
+| 07 | [«Se niega a firmar» bajo la firma](prompts/07-negativa-a-firmar-bajo-la-firma.md) | ✅ | 0c04c0c | Paso 1: Presente / Ausente / NN. La negativa se marca en «Revisión y firma». |
+| 08 | [Stepper con faltantes en rojo](prompts/08-stepper-con-faltantes-en-rojo.md) | ✅ | 0c04c0c | Reglas en `faltantesPorPaso` (crear-editar-utils.ts), en sintonía con `firmarActa`. |
+| 09 | [«Lugar de infracción»](prompts/09-lugar-de-infraccion.md) | ✅ | 0c04c0c | Stepper, resumen, ficha de la causa y mensajes. |
 | 10 | [Ocultar GPS en el bloque de ejido](prompts/10-ocultar-gps-en-ejido.md) | ⬜ | | |
 | 11 | [Selección de artículos como stg](prompts/11-articulos-como-stg.md) | ⬜ | | Copiar el selector de stg (BOD). |
 | 12 | [Pago voluntario vs. Descargo vs. Ignorar](prompts/12-pago-voluntario-vs-descargo-vs-ignorar.md) | ⬜ | | Hacer antes que 13 y 14. |
