@@ -5,14 +5,15 @@ import { useParams, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { apiClient, http } from '@/lib/api-client';
 import { useLayout } from '@/lib/layout-context';
-import { printActa, printTicket } from '@/lib/print';
+import { printTicket } from '@/lib/print';
 import { puede, SITUACIONES, TIPOS_ACTA, claveLey, fechaHora, tipoActa } from '@/lib/dominio';
 import type { ImgModel, Infraccion, Ley, OpcionCatalogo } from '@/lib/types';
 import { type Paso, MAX_IMAGENES, ejidoPorGps, faltantesPorPaso, pasosPara, readImageFile, toDateTimeLocal, vacia } from './crear-editar-utils';
 import { useNotify } from './NotifyProvider';
-import { SignaturePad } from './SignaturePad';
+import { FirmaPantallaCompleta } from './FirmaPantallaCompleta';
 import { BarraSuperior } from './BarraSuperior';
 import { BuscadorOpciones } from './BuscadorOpciones';
+import { BotonVerActa, GaleriaFotos } from './ActaEvidencia';
 import { LOCALIDADES, PARTIDOS, PROVINCIAS_AR, partidosDe } from '@/lib/geo-ba';
 
 const NO_DESCRIBE = 'No se describe';
@@ -79,6 +80,7 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
   const [intentoFirma, setIntentoFirma] = useState(false);
   const [recienFirmada, setRecienFirmada] = useState(false);
   const [confirmarSalida, setConfirmarSalida] = useState(false);
+  const [padAbierto, setPadAbierto] = useState(false);
   const [gpsEstado, setGpsEstado] = useState<'' | 'buscando' | 'ok' | 'error'>('');
   const [cat, setCat] = useState<Record<string, OpcionCatalogo[]>>({});
   const iniciado = useRef(false);
@@ -336,10 +338,7 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
             {imagenes.length ? (
               <>
                 <h3 className="subtitulo-paso">Fotos</h3>
-                <div className="d-flex gap-2 flex-wrap mb-3">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  {imagenes.map((im, i) => <img key={i} src={im.previewRaw ?? ''} alt={`Foto ${i + 1}`} style={{ height: 88, borderRadius: 8 }} />)}
-                </div>
+                <div className="mb-3"><GaleriaFotos imagenes={imagenes.map((im) => im.previewRaw ?? '')} alto={88} /></div>
               </>
             ) : null}
             <h3 className="subtitulo-paso">Firmas</h3>
@@ -349,9 +348,7 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
               <span className="texto-ayuda"><i className="fa-solid fa-user-shield" aria-hidden="true" /> Firma digital de {form.inspectorNombre}</span>
             </div>
             <div className="botonera">
-              <button type="button" className="btn btn-outline-primary btn-lg" onClick={() => printActa(form, { imagenes: imagenes.map((x) => x.previewRaw ?? '').filter(Boolean) })}>
-                <i className="fa-solid fa-file-pdf" aria-hidden="true" /> Ver acta
-              </button>
+              <BotonVerActa acta={form as Infraccion} imagenes={imagenes.map((x) => x.previewRaw ?? '').filter(Boolean)} texto="Ver acta" className="btn btn-outline-primary btn-lg" />
               <button type="button" className="btn btn-outline-primary btn-lg" onClick={() => void printTicket(form)}>
                 <i className="fa-solid fa-print" aria-hidden="true" /> Imprimir ticket
               </button>
@@ -408,9 +405,7 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
                   <button type="button" className="btn btn-primary btn-lg" onClick={() => void printTicket(form)}>
                     <i className="fa-solid fa-print" aria-hidden="true" /> Imprimir ticket
                   </button>
-                  <button type="button" className="btn btn-outline-primary btn-lg" onClick={() => printActa(form, { imagenes: imagenes.map((x) => x.previewRaw ?? "").filter(Boolean) })}>
-                    <i className="fa-solid fa-file-pdf" aria-hidden="true" /> Ver acta (PDF)
-                  </button>
+                  <BotonVerActa acta={form as Infraccion} imagenes={imagenes.map((x) => x.previewRaw ?? '').filter(Boolean)} className="btn btn-outline-primary btn-lg" />
                   <Link className="btn btn-outline-secondary btn-lg" href={`/private/crear-editar/${tipo}`} onClick={() => (iniciado.current = false)}>
                     <i className="fa-solid fa-plus" aria-hidden="true" /> Labrar otra acta
                   </Link>
@@ -962,14 +957,30 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
               {form.situacionInfractor === 'presente' || form.situacionInfractor === 'se_niega' ? (
                 <div className="col-12 col-lg-7">
                   <h3 className="subtitulo-paso">1. Firma del infractor</h3>
-                  {form.situacionInfractor === 'se_niega' ? (
-                    <div className="firma-negada"><i className="fa-solid fa-signature" aria-hidden="true" /> Se negó a firmar</div>
-                  ) : <SignaturePad value={firma} onChange={setFirma} />}
-                  <label className="form-check mt-2 negativa-firma">
-                    <input type="checkbox" className="form-check-input" disabled={!habilitado} checked={form.situacionInfractor === 'se_niega'}
-                      onChange={(e) => { if (e.target.checked) setFirma(null); patch({ situacionInfractor: e.target.checked ? 'se_niega' : 'presente' }); }} />
-                    <span className="form-check-label">El infractor está presente pero se negó a firmar</span>
-                  </label>
+                  {/* El infractor firma a pantalla completa (el equipo lo tiene él o lo sostiene el inspector). */}
+                  <div className="firma-opciones">
+                    <button type="button" className="firma-abrir" disabled={!habilitado || form.situacionInfractor === 'se_niega'} onClick={() => setPadAbierto(true)}>
+                      {firma && form.situacionInfractor !== 'se_niega' ? (
+                        <>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={firma} alt="Firma del infractor" />
+                          <span><i className="fa-solid fa-rotate" aria-hidden="true" /> Volver a firmar</span>
+                        </>
+                      ) : (
+                        <>
+                          <i className="fa-solid fa-signature" aria-hidden="true" />
+                          <strong>Abrir pad de firma</strong>
+                          <span>{form.situacionInfractor === 'se_niega' ? 'El infractor se negó a firmar' : 'La pantalla completa queda para firmar'}</span>
+                        </>
+                      )}
+                    </button>
+                    <label className={`opcion-grande firma-niega ${form.situacionInfractor === 'se_niega' ? 'activa' : ''}`}>
+                      <input type="checkbox" disabled={!habilitado} checked={form.situacionInfractor === 'se_niega'}
+                        onChange={(e) => { if (e.target.checked) setFirma(null); patch({ situacionInfractor: e.target.checked ? 'se_niega' : 'presente' }); }} />
+                      <span>El infractor se niega a firmar</span>
+                    </label>
+                  </div>
+                  {padAbierto ? <FirmaPantallaCompleta onCancelar={() => setPadAbierto(false)} onListo={(f) => { setFirma(f); setPadAbierto(false); }} /> : null}
                 </div>
               ) : (
                 <div className="col-12 col-lg-7">

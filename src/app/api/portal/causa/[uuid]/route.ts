@@ -28,12 +28,13 @@ export async function GET(req: NextRequest, ctx: Ctx) {
     };
     if (!c.notificada_at) return { resumen, requiereAviso: true };
     const sub = await subsanacionDe(db, c.id);
-    const [acta, pres, bol, docs, notif] = await Promise.all([
+    const [acta, pres, bol, docs, notif, imgs] = await Promise.all([
       loadInfraccionByUuid(uuid, { vigente: true }),
       db.from('presentacion').select('id, uuid, tipo, texto, estado, respuesta, reenvio_de, cuotas_solicitadas, cuotas_otorgadas, date_created, resuelta_at').eq('infraccion_id', c.id).order('id', { ascending: false }),
       db.from('boleta').select('uuid, numero, concepto, monto, vencimiento, estado, cuota_nro, total_cuotas, a_nombre_de, pagado_at').eq('infraccion_id', c.id).neq('estado', 'anulada').order('id'),
       db.from('documento').select('id, uuid, titulo, numero, firmado_at, date_created, estado, plantilla(categoria)').eq('infraccion_id', c.id).eq('tipo', 'escrito').in('estado', ['firmado', 'definitivo']).order('id', { ascending: false }),
       db.from('notificacion').select('documento_id, estado, via, fecha_resultado, objeto').eq('infraccion_id', c.id),
+      db.from('infraccion_imagen').select('uuid, preview_raw').eq('infraccion_id', c.id),
     ]);
     const presentaciones = (pres.data ?? []) as unknown as Presentacion[];
     const boletas = (bol.data ?? []) as { estado: string }[];
@@ -46,7 +47,7 @@ export async function GET(req: NextRequest, ctx: Ctx) {
       delete (acta as Record<string, unknown>).firmaInfractor;
     }
     return {
-      resumen, acta, presentaciones, subsanacion: sub ? { motivo: sub.motivo, fecha: sub.date_created } : null, boletas, documentos, notificaciones: notif.data ?? [],
+      resumen, acta, imagenes: imgs.data ?? [], presentaciones, subsanacion: sub ? { motivo: sub.motivo, fecha: sub.date_created } : null, boletas, documentos, notificaciones: notif.data ?? [],
       acciones: accionesDisponibles(c, presentaciones, activas),
     };
   });

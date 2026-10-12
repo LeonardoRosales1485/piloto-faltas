@@ -573,3 +573,54 @@ span.dato-subsanado { font-size: .75rem; padding: .1rem .45rem; font-weight: 600
   .modal-fake-body { overflow-y: auto; }
   .lista-agregar-articulos { max-height: none; overflow: visible; }
 }
+
+// Acta: interruptor «Mostrar evidencia» y galería con vista ampliada
+.ver-acta-evidencia { display: inline-flex; align-items: center; gap: .6rem; flex-wrap: wrap; .form-switch { display: inline-flex; align-items: center; gap: .4rem; padding-left: 2.5em; font-size: .88rem; } }
+.galeria-fotos { display: flex; gap: .5rem; flex-wrap: wrap; }
+.galeria-mini { position: relative; padding: 0; border: 0; background: none; border-radius: 8px; overflow: hidden; cursor: zoom-in;
+  img { display: block; width: auto; border-radius: 8px; object-fit: cover; }
+  span { position: absolute; right: 4px; bottom: 4px; background: rgba(0,0,0,.55); color: #fff; border-radius: 6px; padding: 2px 6px; font-size: .75rem; }
+}
+.galeria-visor { position: fixed; inset: 0; z-index: 2000; background: rgba(0,0,0,.88); display: flex; align-items: center; justify-content: center; padding: 3rem 1rem;
+  img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 6px; }
+  .galeria-cerrar { position: absolute; top: .5rem; right: .75rem; border: 0; background: none; color: #fff; font-size: 2.2rem; line-height: 1; cursor: pointer; }
+  .galeria-nav { position: absolute; top: 50%; transform: translateY(-50%); border: 0; background: rgba(255,255,255,.15); color: #fff; width: 44px; height: 44px; border-radius: 50%; cursor: pointer; &.izq { left: .5rem; } &.der { right: .5rem; } }
+  .galeria-num { position: absolute; bottom: .75rem; color: #fff; font-size: .9rem; opacity: .8; }
+}
+
+// Retenciones
+.retenciones-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: .75rem; }
+.ret-stat { display: flex; flex-direction: column; gap: .25rem; padding: .9rem 1rem; border: 1px solid var(--bo-borde); border-radius: var(--bo-radio); background: var(--bo-card);
+  i { font-size: 1.1rem; } span { font-size: .75rem; text-transform: uppercase; letter-spacing: .03em; opacity: .75; font-weight: 600; } strong { font-size: 1.35rem; }
+  &.ret-aviso i { color: #d97706; } &.ret-ok i { color: #16a34a; } &.ret-info i { color: var(--bo-azul); }
+}
+.chip-ret { font-size: .75rem; font-weight: 700; padding: .15rem .55rem; border-radius: 999px; &.retenido { background: #fef3c7; color: #92400e; } &.liberado { background: #dcfce7; color: #166534; } }
+
+// Valores y tarifas (como stg)
+.fin-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1rem; }
+.fin-card { border: 1px solid var(--bo-borde); border-radius: var(--bo-radio-lg); padding: 1rem 1.1rem; display: flex; flex-direction: column; gap: .55rem; background: var(--bo-card); }
+.fin-cab { display: flex; justify-content: space-between; align-items: flex-start; gap: .5rem; margin-bottom: .25rem;
+  h3 { font-size: 1.05rem; font-weight: 700; margin: 0; } span { font-size: .82rem; opacity: .7; } i { font-size: 1.35rem; color: var(--bo-azul); }
+}
+.fin-fila { display: flex; justify-content: space-between; align-items: center; gap: .75rem; > span { font-weight: 600; } }
+.fin-valor { color: var(--bo-azul); font-weight: 700; &.grande { font-size: 1.6rem; text-align: center; padding: .4rem 0; } }
+.fin-input { display: flex; align-items: center; gap: .35rem; max-width: 170px; span { font-weight: 700; } .form-control { text-align: right; } }
+.fin-card > .fin-input { max-width: none; }
+
+// Firma del infractor: botón grande + pad a pantalla completa
+.firma-opciones { display: flex; flex-direction: column; gap: .75rem; }
+.firma-abrir { min-height: 150px; border: 2px dashed var(--bo-azul); border-radius: var(--bo-radio-lg); background: rgba(37, 99, 235, .06); color: inherit; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .4rem; cursor: pointer; padding: 1rem;
+  > i { font-size: 2.2rem; color: var(--bo-azul); } strong { font-size: 1.2rem; } span { font-size: .88rem; opacity: .75; }
+  img { max-height: 110px; max-width: 100%; background: #fff; border-radius: 6px; }
+  &:disabled { border-color: var(--bo-borde); background: rgba(148, 163, 184, .15); cursor: not-allowed; filter: grayscale(1); opacity: .6; }
+}
+.firma-niega { min-height: 60px; font-size: 1rem; }
+.firma-completa { position: fixed; inset: 0; z-index: 3000; background: #fff; touch-action: none; user-select: none; }
+.firma-completa-canvas { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; cursor: crosshair; }
+.firma-completa-guia { position: absolute; top: 38%; left: 0; right: 0; text-align: center; color: #94a3b8; font-size: 1.15rem; pointer-events: none; }
+.firma-completa-linea { position: absolute; left: 8%; right: 8%; top: 62%; border-bottom: 2px dashed #cbd5e1; pointer-events: none; }
+.firma-completa-cerrar { position: absolute; top: .5rem; right: .75rem; z-index: 2; border: 0; background: rgba(15, 23, 42, .08); color: #0f172a; width: 44px; height: 44px; border-radius: 50%; font-size: 1.8rem; line-height: 1; }
+.firma-completa-botones { position: absolute; left: 0; right: 0; bottom: max(1rem, env(safe-area-inset-bottom)); z-index: 2; display: flex; justify-content: center; gap: .75rem; padding: 0 1rem;
+  .btn { flex: 1; max-width: 220px; min-height: 56px; font-weight: 700; box-shadow: 0 6px 20px rgba(0,0,0,.18); }
+  .btn-light { background: #f1f5f9; border: 1px solid #cbd5e1; color: #0f172a; }
+}

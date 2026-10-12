@@ -30,6 +30,7 @@ const GRUPOS: MenuItem[] = [
   { id: 'presentaciones', titulo: 'Presentaciones', icono: 'fa-solid fa-inbox', route: '/private/presentaciones', permiso: 'verCausas' },
   { id: 'escritos', titulo: 'Escritos y firma', icono: 'fa-solid fa-file-signature', route: '/private/escritos', permiso: 'verCausas' },
   { id: 'pagos', titulo: 'Pagos', icono: 'fa-solid fa-money-check-dollar', route: '/private/pagos', permiso: 'verCausas' },
+  { id: 'retenciones', titulo: 'Retenciones', icono: 'fa-solid fa-warehouse', route: '/private/retenciones', permiso: 'gestionarCausas' },
   {
     id: 'multas',
     titulo: 'Actas de tránsito',
@@ -86,10 +87,10 @@ const GRUPOS: MenuItem[] = [
       { titulo: 'Feriados', route: '/private/feriados' },
       { titulo: 'Usuarios', route: '/private/usuarios' },
       { titulo: 'Marcas y modelos', route: '/private/marcas-modelos' },
+      { titulo: 'Registro de correos', route: '/private/correos' },
       { titulo: 'Opciones sandbox', route: '/private/sandbox' },
     ],
   },
-  { id: 'correos', titulo: 'Correos enviados', icono: 'fa-solid fa-envelope', route: '/private/correos', permiso: 'verCausas' },
   { id: 'auditoria', titulo: 'Auditoría', icono: 'fa-solid fa-user-shield', route: '/private/auditoria', permiso: 'auditoria' },
 ];
 
@@ -119,7 +120,8 @@ const TITULOS: Record<string, string> = {
   '/private/inspectores': 'Inspectores',
   '/private/seguimiento-gps': 'Seguimiento GPS',
   '/private/sandbox': 'Opciones sandbox',
-  '/private/correos': 'Correos enviados',
+  '/private/correos': 'Registro de correos',
+  '/private/retenciones': 'Retenciones',
   '/private/auditoria': 'Auditoría',
 };
 

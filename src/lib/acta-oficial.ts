@@ -340,7 +340,8 @@ export function actaOficialCss(): string {
   `;
 }
 
-export function actaOficialHtml(infraccion: Infraccion): string {
+export function actaOficialHtml(infraccion: Infraccion, extras: ActaExtras = {}): string {
+  const imgs = extras.evidencia === false ? [] : (extras.imagenes ?? []).filter(Boolean);
   const fh = parseFechaHora(infraccion.legajoFecha);
   const leyes = Array.isArray(infraccion.leyesNombre) ? infraccion.leyesNombre : [];
   const m = (key: string) => escapeHtml(infraccion.metadata?.[key] || '');
@@ -568,6 +569,11 @@ export function actaOficialHtml(infraccion: Infraccion): string {
         </table>
       </section>
 
+      ${imgs.length ? `<section class="acta-section">
+        <div class="acta-section-title">Imágenes de la infracción</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;padding:6px">${imgs.map((src) => `<img src="${src}" alt="" style="height:32mm;max-width:56mm;object-fit:cover;border:1px solid #ccc" />`).join('')}</div>
+      </section>` : ''}
+
       <section class="acta-section">
         <div class="acta-section-title">Información del Titular Dominial</div>
         <table class="acta-table">
@@ -630,7 +636,8 @@ export function actaOficialHtml(infraccion: Infraccion): string {
 // No incluye medidas en la vía pública ni acarreo porque el modelo no los trae (ver docs/pendientes-acta-transito.md).
 // ---------------------------------------------------------------------------
 
-export type ActaExtras = { imagenes?: string[] };
+/** `evidencia: false` imprime el acta sin la sección de imágenes (por defecto se muestran). */
+export type ActaExtras = { imagenes?: string[]; evidencia?: boolean };
 
 const v = (x: unknown) => escapeHtml(String(x ?? '').trim()) || '-';
 
@@ -798,10 +805,10 @@ export function actaTransitoHtml(i: Infraccion, extras: ActaExtras = {}): string
       </div>
     </section>
 
-    <section class="at-seccion">
+    ${extras.evidencia === false ? '' : `<section class="at-seccion">
       <h2>Imágenes de la infracción</h2>
       ${imgs.length ? `<div class="at-imagenes">${imgs.map((s) => `<img src="${s}" alt="" />`).join('')}</div>` : '<div class="at-valor">Sin imágenes</div>'}
-    </section>
+    </section>`}
 
     <div class="at-firmas">
       <div class="at-firma">
@@ -828,5 +835,5 @@ export function actaHtmlPorTipo(i: Infraccion, extras: ActaExtras = {}): { html:
   if ((i.infraccionTipoNombre ?? '') === 'multas' || /tr[aá]nsito/i.test(i.infraccionTipoNombre ?? '')) {
     return { html: actaTransitoHtml(i, extras), css: actaTransitoCss() };
   }
-  return { html: actaOficialHtml(i), css: actaOficialCss() };
+  return { html: actaOficialHtml(i, extras), css: actaOficialCss() };
 }

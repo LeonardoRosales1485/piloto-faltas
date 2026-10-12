@@ -40,6 +40,11 @@ export function Impresion({ modo, uuid }: { modo: 'documento' | 'legajo'; uuid: 
         }
         const hist = d.historial.slice().reverse().map((h: R) => `<tr><td>${fechaHora(h.fecha)}</td><td>${h.usuario}</td><td>${h.accion}${h.estado_nuevo ? ` (${h.estado_anterior ?? '-'} → ${h.estado_nuevo})` : ''}</td><td>${h.detalle ?? ''}</td></tr>`).join('');
         partes.push(`<section class="hoja">${membreteHtml()}<p style="text-align:center"><strong>HISTORIAL DE LA CAUSA ${d.acta.legajoNumeroActa}</strong></p><table style="width:100%;border-collapse:collapse;font-size:9pt" border="1" cellpadding="3"><thead><tr><th>Fecha</th><th>Usuario</th><th>Acción</th><th>Detalle</th></tr></thead><tbody>${hist}</tbody></table>${pieHtml()}</section>`);
+        // Legajo interno: incluye los memos (no se muestran en el portal del infractor).
+        if ((d.memos ?? []).length) {
+          const filas = d.memos.slice().reverse().map((m: R) => `<tr><td>${fechaHora(m.fecha)}</td><td>${m.usuario}</td><td style="white-space:pre-wrap">${String(m.texto).replace(/</g, '&lt;')}</td></tr>`).join('');
+          partes.push(`<section class="hoja">${membreteHtml()}<p style="text-align:center"><strong>MEMOS INTERNOS · CAUSA ${d.acta.legajoNumeroActa}</strong></p><table style="width:100%;border-collapse:collapse;font-size:9pt" border="1" cellpadding="3"><thead><tr><th>Fecha</th><th>Usuario</th><th>Memo</th></tr></thead><tbody>${filas}</tbody></table>${pieHtml()}</section>`);
+        }
         setHtml(partes.join(''));
       }
       setTimeout(() => window.print(), 600);

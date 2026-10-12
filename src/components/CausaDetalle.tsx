@@ -6,11 +6,12 @@ import { LoaderLogo } from './LoaderLogo';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { http } from '@/lib/api-client';
-import { printActa, printTicket } from '@/lib/print';
+import { printTicket } from '@/lib/print';
 import { ESTADOS_CAUSA, TIPOS_ACTA, claveLey, estadoFinal, fechaCorta, fechaHora, infoEstado, pesos, puede, tipoActa } from '@/lib/dominio';
 import { useAuthUser } from '@/lib/use-auth-user';
 import type { Infraccion } from '@/lib/types';
 import { RoadmapCausa } from './RoadmapCausa';
+import { BotonVerActa, GaleriaFotos } from './ActaEvidencia';
 import { EstadoChip } from './EstadoChip';
 import { ModalForm, type CampoModal } from './ModalForm';
 import { useNotify } from './NotifyProvider';
@@ -20,7 +21,7 @@ import { caminoInfractor, descargoPendiente } from '@/lib/camino';
 
 type R = Record<string, any>;
 type Detalle = {
-  acta: Infraccion; actaVigente: Infraccion | null; subsanacion: R | null; subsanables: { k: string; t: string; grupo: string; valor: string }[]; historial: R[]; documentos: R[]; presentaciones: R[]; boletas: R[]; notificaciones: R[]; imagenes: R[];
+  acta: Infraccion; actaVigente: Infraccion | null; subsanacion: R | null; subsanables: { k: string; t: string; grupo: string; valor: string }[]; memos: R[]; historial: R[]; documentos: R[]; presentaciones: R[]; boletas: R[]; notificaciones: R[]; imagenes: R[];
   valorizacion: { uf: number; unidades: number; multa: number; leyes: R[]; ajustado: number | null; motivoAjuste: string | null };
 };
 type Modal = { titulo: string; icono?: string; campos: CampoModal[]; accion: string; textoOk?: string; peligro?: boolean; aviso?: string; extra?: R } | null;
@@ -32,6 +33,7 @@ const TABS = [
   { id: 'presentaciones', t: 'Presentaciones' },
   { id: 'pagos', t: 'Boletas y pagos' },
   { id: 'notificaciones', t: 'Notificaciones' },
+  { id: 'memos', t: 'Memos internos' },
 ] as const;
 
 const TIPO_PRES: Record<string, string> = { pago_voluntario: 'Pago voluntario', boleta: 'Boleta', cuotas: 'Plan de cuotas', descargo: 'Descargo', apelacion: 'Apelación' };
@@ -50,6 +52,7 @@ export function CausaDetalle() {
   const [motivos, setMotivos] = useState<string[]>([]);
   const [leyesCat, setLeyesCat] = useState<R[]>([]);
   const [vista, setVista] = useState<'subsanada' | 'original'>('subsanada');
+  const [memo, setMemo] = useState('');
 
   const cargar = useCallback(() => {
     http.get<Detalle>(`/api/causa/${uuid}`).then(setD).catch((e: Error) => notify.error('No se pudo cargar la causa', e.message));
@@ -148,7 +151,7 @@ export function CausaDetalle() {
         { k: 'motivo', t: 'Motivo de la subsanación', tipo: 'area' as const, req: true },
       ],
     })) },
-    { t: 'Nota a un área (espera respuesta)', i: 'fa-solid fa-hourglass-half', ver: gestion && !final && estado !== 'Espera respuesta', on: () => setModal({ titulo: 'Espera respuesta de un área', accion: 'espera_respuesta', campos: [{ k: 'detalle', t: 'Área y motivo', tipo: 'area', req: true }] }) },
+    { t: 'Memo interno', i: 'fa-solid fa-note-sticky', ver: gestion || puede(user?.rol, 'redactarEscritos'), on: () => { setTab('memos'); setTimeout(() => document.getElementById('memo-nuevo')?.focus(), 50); } },
     { t: 'Cambiar estado', i: 'fa-solid fa-arrows-rotate', ver: puede(user?.rol, 'cambiarEstadoManual'), on: () => setModal({ titulo: 'Cambiar estado manualmente', accion: 'cambiar_estado', campos: [{ k: 'estado', t: 'Nuevo estado', tipo: 'select', opciones: ESTADOS_CAUSA.map((e) => ({ v: e.nombre, t: e.nombre })) }, { k: 'motivo', t: 'Motivo', tipo: 'area', req: true }] }) },
     { t: 'Archivar', i: 'fa-solid fa-box-archive', ver: gestion && !final, on: () => setModal({ titulo: 'Archivar causa', accion: 'archivar', campos: [{ k: 'motivo', t: 'Tipo de archivo', tipo: 'select', opciones: motivos.map((m) => ({ v: m, t: m })) }, { k: 'detalle', t: 'Detalle', tipo: 'area' }], aviso: c.medidaVigente === 1 ? 'La causa tiene una medida vigente: el archivo por pago no procede hasta su levantamiento.' : undefined }) },
     { t: 'Reingresar', i: 'fa-solid fa-rotate-left', ver: gestion && final, on: () => setModal({ titulo: 'Reingresar causa archivada', accion: 'reingresar', campos: [{ k: 'motivo', t: 'Motivo', tipo: 'area', req: true }] }) },
@@ -195,7 +198,7 @@ export function CausaDetalle() {
         </div>
         <div className="tabs-causa" role="tablist">
           {TABS.map((t) => {
-            const n = t.id === 'historial' ? d.historial.length : t.id === 'documentos' ? d.documentos.length : t.id === 'presentaciones' ? d.presentaciones.length : t.id === 'pagos' ? d.boletas.length : t.id === 'notificaciones' ? d.notificaciones.length : 0;
+            const n = t.id === 'historial' ? d.historial.length : t.id === 'documentos' ? d.documentos.length : t.id === 'presentaciones' ? d.presentaciones.length : t.id === 'pagos' ? d.boletas.length : t.id === 'notificaciones' ? d.notificaciones.length : t.id === 'memos' ? d.memos.length : 0;
             return (
               <button key={t.id} type="button" role="tab" aria-selected={tab === t.id} className={`tab-causa ${tab === t.id ? 'activa' : ''}`} onClick={() => setTab(t.id)}>
                 {t.t} {n ? <span className="n">{n}</span> : null}
@@ -269,17 +272,12 @@ export function CausaDetalle() {
                   </table>
                 </div>
                 </>)}
-                {d.imagenes.length ? (
-                  <div className="d-flex gap-2 flex-wrap mt-2">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    {d.imagenes.map((i) => <img key={i.uuid} src={i.preview_raw} alt="Imagen del acta" style={{ height: 96, borderRadius: 8 }} />)}
-                  </div>
-                ) : null}
+                {d.imagenes.length ? <div className="mt-2"><GaleriaFotos imagenes={d.imagenes.map((x) => x.preview_raw)} /></div> : null}
                 {c.firmaInfractor ? (
                   <div className="mt-2"><span className="texto-ayuda">Firma del infractor:</span><br />{/* eslint-disable-next-line @next/next/no-img-element */}<img src={c.firmaInfractor} alt="Firma del infractor" style={{ height: 70, background: '#fff', borderRadius: 6 }} /></div>
                 ) : null}
                 <div className="botonera">
-                  <button type="button" className="btn btn-outline-primary" onClick={() => printActa(cf, { imagenes: (d.imagenes ?? []).map((x) => x.preview_raw).filter(Boolean) })}><i className="fa-solid fa-file-pdf" aria-hidden="true" /> Ver acta (PDF)</button>
+                  <BotonVerActa acta={cf} imagenes={(d.imagenes ?? []).map((x) => x.preview_raw).filter(Boolean)} />
                   <button type="button" className="btn btn-outline-secondary" onClick={() => void printTicket(c)}><i className="fa-solid fa-print" aria-hidden="true" /> Ticket</button>
                   <a className="btn btn-outline-secondary" href={`/imprimir/legajo/${uuid}`} target="_blank" rel="noreferrer"><i className="fa-solid fa-book" aria-hidden="true" /> Legajo completo (PDF)</a>
                 </div>
@@ -345,6 +343,29 @@ export function CausaDetalle() {
                 ))}
                 {!d.boletas.length ? <li><span className="texto-ayuda">Sin boletas emitidas.</span></li> : null}
               </ul>
+            ) : null}
+
+            {tab === 'memos' ? (
+              <div className="memos">
+                <p className="texto-ayuda">Notas internas del personal de Faltas. No cambian el estado de la causa y no se ven en el portal del infractor.</p>
+                {gestion || puede(user?.rol, 'redactarEscritos') ? (
+                  <div className="memo-nuevo">
+                    <textarea id="memo-nuevo" className="form-control" rows={3} placeholder="Escriba un memo interno…" value={memo} onChange={(e) => setMemo(e.target.value)} />
+                    <button type="button" className="btn btn-primary mt-2" disabled={!memo.trim()} onClick={async () => { const r = await accion('memo', { texto: memo }, 'Memo agregado'); if (r) setMemo(''); }}>
+                      <i className="fa-solid fa-paper-plane" aria-hidden="true" /> Agregar memo
+                    </button>
+                  </div>
+                ) : null}
+                <ul className="timeline mt-3">
+                  {d.memos.map((m) => (
+                    <li key={m.uuid}>
+                      <div className="t-fecha">{fechaHora(m.fecha)} · {m.usuario}</div>
+                      <div className="t-detalle" style={{ whiteSpace: 'pre-wrap' }}>{m.texto}</div>
+                    </li>
+                  ))}
+                  {!d.memos.length ? <li><span className="texto-ayuda">Todavía no hay memos.</span></li> : null}
+                </ul>
+              </div>
             ) : null}
 
             {tab === 'notificaciones' ? (

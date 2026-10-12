@@ -3,6 +3,7 @@
  * Todo cambio de estado pasa por cambiarEstado() y deja historial.
  */
 import { esContravencional, fechaCorta, pesos, resolverLeyes, TIPOS_ACTA, tipoActa } from './dominio';
+import { claseVehiculo, tarifaAcarreo } from './tarifas';
 import { causaVigente, leyesVigentes, subsanacionDe } from './subsanacion';
 import {
   cambiarEstado, causaPorId, check, config, configNum, enviarCorreo, feriados, historial, HttpError,
@@ -284,7 +285,7 @@ export async function emitirBoletas(
   const { count } = await d.from('boleta').select('*', { count: 'exact', head: true }).eq('infraccion_id', c.id).neq('estado', 'anulada');
   const yaCobroDerecho = (count ?? 0) > 0; // derecho de oficina: una vez por acta
   const multa = modo === 'voluntario' ? v.multa * (1 - descuento / 100) : v.multa;
-  const acarreoMonto = Number(c.acarreo) === 1 ? await configNum(d, 'finanza_acarreo_auto', 45000) : 0;
+  const acarreoMonto = Number(c.acarreo) === 1 ? await tarifaAcarreo(d, claseVehiculo(c.vehiculo_tipo_nombre as string | null)) : 0;
   const total = multa + acarreoMonto + (yaCobroDerecho ? 0 : derecho);
   const detalle = { multa, acarreo: acarreoMonto, derecho_oficina: yaCobroDerecho ? 0 : derecho, unidades: v.unidades, uf: v.uf, modo };
   const n = modo === 'cuotas' ? Math.max(1, cuotas) : 1;

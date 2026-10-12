@@ -35,7 +35,7 @@ Guía paso a paso para recorrer un acta de tránsito de punta a punta: desde que
    - **Vehículo:** dominio, tipo, marca y modelo son obligatorios (marca y modelo, si no están en la lista, se escriben libres). También el municipio emisor de la licencia.
    - **Artículos:** con **«Agregar artículo»** se busca por artículo o nombre y se toca **«Agregar»** en cada uno (queda «Agregado»; no se repite). Se quitan con la papelera de la tabla. El inspector no ve unidades ni importes: la valorización la hace Faltas. Abajo se marcan las medidas: retención de licencia o de vehículo, acarreo y alcoholemia.
    - **Fotos:** al menos 1 y hasta 5, más las observaciones.
-   - **Firma:** se revisa el resumen, el infractor firma con el dedo en el recuadro y se presiona **«Firmar y confirmar»**. Si el infractor se niega, se marca **«El infractor está presente pero se negó a firmar»** debajo del recuadro.
+   - **Firma:** se revisa el resumen y se toca **«Abrir pad de firma»**: toda la pantalla queda para que el infractor firme con el dedo, con los botones **Borrar** y **Listo** abajo. Si se niega, se marca **«El infractor se niega a firmar»** (el botón del pad queda en gris). Después se presiona **«Firmar y confirmar»**.
 
    Si falta un dato obligatorio, el paso se marca **en rojo** en la barra de pasos (después de pasar por él o al intentar firmar), y en la firma se listan los faltantes con un enlace a cada paso.
 4. Al firmar se ve una **pantalla final** con todo lo cargado, para ver el acta o imprimir el ticket, y **«Listo, volver al inicio»**. Desde ese momento **el acta no se puede modificar**. Se imprime el **ticket con el QR** y se le entrega al infractor.
@@ -159,3 +159,12 @@ Para cualquier opción debe adjuntar el **DNI de frente y de dorso**, y el **est
 - **Descargo antes del fallo:** mientras haya un descargo pendiente, «Dictar fallo» está deshabilitado y la causa no figura en «Para fallo» (se marca «Presentación a resolver»). Al aceptar el descargo, el aviso ofrece **«Dictar fallo»**.
 - **Presentaciones en la causa:** las pendientes se ven arriba del detalle, con el texto, los adjuntos y los botones Aceptar / Observar / Rechazar. La pestaña «Presentaciones» tiene el historial con las respuestas. La bandeja «Presentaciones» sigue disponible.
 - **Subsanar datos:** se corrigen los datos del acta (infractor, vehículo, lugar, artículos, observaciones) con un motivo obligatorio, **una sola vez por causa**. El acta firmada no cambia: arriba de la ficha aparecen las pestañas **«Acta subsanada» | «Acta original»**, con los datos corregidos resaltados. Se genera la constancia, y los escritos, la valorización y el portal usan los datos corregidos. La acción pasa a «Ver subsanación».
+
+
+## Memos, retenciones, tarifas y evidencia (actualizado)
+
+- **Memos internos:** en la causa, la pestaña **«Memos internos»** (o la acción «Memo interno») guarda notas del personal de Faltas. No cambian el estado y no se ven en el portal; sí en el legajo completo interno. El estado «Espera respuesta» queda disponible desde «Cambiar estado».
+- **Retenciones:** menú **«Retenciones»**: estadísticas (retenidos, liberados, montos pendiente y recaudado), filtro por fechas y listado de vehículos retenidos. **«Liberar»** muestra el total a pagar (acarreo según el tipo de vehículo + estadía según los días en depósito), emite la boleta y, si la retención era la medida vigente, deja la disposición de levantamiento en borrador.
+- **Valores y tarifas:** como en el sistema anterior: Unidad Tributaria, Acarreo (autos, motos, camiones), Medio Salario, Derecho de Oficina y Estadías por tipo de vehículo (3 a 7 días, 8 a 30 días y +31 por día). Se editan todos juntos con **«Editar»**.
+- **Registro de correos:** ya no aparece en el menú general; el Administrador lo ve en Configuración → «Registro de correos».
+- **Evidencia en el acta:** junto a «Ver acta» está el interruptor **«Mostrar evidencia»** para imprimir el acta con o sin las fotos (se recuerda en el equipo). Las fotos se pueden ver ampliadas tocándolas, también en el portal del infractor.

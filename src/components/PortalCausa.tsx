@@ -1,12 +1,12 @@
 'use client';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+import { BotonVerActa, GaleriaFotos } from './ActaEvidencia';
 import Link from 'next/link';
 import { LoaderLogo } from './LoaderLogo';
 import { useParams } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import { fechaCorta, fechaHora, pesos } from '@/lib/dominio';
-import { printActa } from '@/lib/print';
 import { portal, portalPerfil } from '@/lib/portal-client';
 
 type R = Record<string, any>;
@@ -123,7 +123,7 @@ export function PortalCausa() {
             <h1 className="mb-1">{r.tipoTitulo} {r.numero}</h1>
             <p className="texto-ayuda mb-0">Legajo {r.legajo} · {String(r.fecha ?? '').replace('T', ' ')} · {r.lugar}{r.dominio ? ` · Dominio ${r.dominio}` : ''}</p>
           </div>
-          <button type="button" className="btn btn-outline-primary" onClick={() => d.acta && printActa(d.acta)}><i className="fa-solid fa-eye" aria-hidden="true" /> Visualizar acta</button>
+          {d.acta ? <BotonVerActa acta={d.acta} imagenes={(d.imagenes ?? []).map((x: R) => x.preview_raw).filter(Boolean)} texto="Visualizar acta" /> : null}
         </div>
         <dl className="ficha mt-3">
           <div><dt>Estado</dt><dd>{r.estadoVisible}</dd></div>
@@ -131,6 +131,7 @@ export function PortalCausa() {
           <div><dt>{r.estado === 'Fallo notificado' ? 'Plazo para pagar o apelar' : 'Plazo para pagar o presentar descargo'}</dt><dd>{r.venceAt ? `Hasta el ${fechaCorta(r.venceAt)}` : '-'}</dd></div>
           <div><dt>Artículos</dt><dd>{(d.acta?.leyesNombre ?? []).join(', ')}</dd></div>
         </dl>
+        {(d.imagenes ?? []).length ? <div className="mt-3"><div className="texto-ayuda mb-1">Imágenes de la infracción</div><GaleriaFotos imagenes={(d.imagenes as R[]).map((x) => x.preview_raw)} alto={80} /></div> : null}
         {r.medidaVigente ? <div className="aviso aviso-peligro mt-2 mb-0"><i className="fa-solid fa-triangle-exclamation" aria-hidden="true" /> Esta acta tiene una <strong>medida preventiva vigente</strong> ({[d.acta?.retencionDeLicencia ? 'retención de licencia' : '', d.acta?.retencionDeVehiculo ? 'retención de vehículo' : '', ...(d.acta?.medidasPreventivas ?? [])].filter(Boolean).join(', ')}). Sigue vigente aunque pague, hasta que la Dirección de Faltas disponga su levantamiento.</div> : null}
       </div>
 

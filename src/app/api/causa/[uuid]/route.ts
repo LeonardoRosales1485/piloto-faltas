@@ -11,7 +11,7 @@ export async function GET(req: NextRequest, ctx: Ctx) {
   const { uuid } = await ctx.params;
   return handle(req, async ({ db }) => {
     const c = await causaPorUuid(db, uuid);
-    const [acta, hist, docs, pres, bol, notif, imgs, v, sub, actaVigente] = await Promise.all([
+    const [acta, hist, docs, pres, bol, notif, imgs, v, sub, actaVigente, memos] = await Promise.all([
       loadInfraccionByUuid(uuid),
       db.from('causa_historial').select('*').eq('infraccion_id', c.id).order('id', { ascending: false }),
       db.from('documento').select('id, uuid, tipo, titulo, estado, numero, fecha_numero, firmado_por, firmado_at, creado_por, date_created, observacion, archivo_nombre, presentacion_id, plantilla(categoria, codigo)').eq('infraccion_id', c.id).order('id', { ascending: false }),
@@ -22,11 +22,13 @@ export async function GET(req: NextRequest, ctx: Ctx) {
       valorizacion(db, c),
       subsanacionDe(db, c.id),
       loadInfraccionByUuid(uuid, { vigente: true }),
+      db.from('memo').select('*').eq('infraccion_id', c.id).order('id', { ascending: false }),
     ]);
     return {
       acta,
       actaVigente: sub ? actaVigente : null,
       subsanacion: sub,
+      memos: memos.data ?? [],
       // Valores actuales (originales) de los campos corregibles, para precargar «Subsanar datos».
       subsanables: CAMPOS_SUBSANABLES.map((f) => ({ ...f, valor: valorDe(c as unknown as Record<string, unknown>, f.k, acta?.leyesNombre ?? []) })),
       historial: hist.data ?? [],

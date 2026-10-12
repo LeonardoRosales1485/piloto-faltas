@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { emitirBoletas, evaluarArchivoPorPago, generarEscrito, notificarDocumento } from '@/lib/causa-srv';
 import { ESTADOS, estadoFinal, puede, pesos } from '@/lib/dominio';
 import { descargoPendiente } from '@/lib/camino';
+import { calculoLiberacion, claseVehiculo, diasEnDeposito, tarifaEstadia } from '@/lib/tarifas';
 import { CAMPOS_SUBSANABLES, subsanacionDe, valorDe } from '@/lib/subsanacion';
 import { accionesDisponibles, type Presentacion } from '@/lib/portal-srv';
 import {
@@ -126,13 +127,13 @@ export async function POST(req: NextRequest) {
         check(gestion, 'Sin permiso', 403);
         const ingreso = Number(d.ingresoAt);
         check(ingreso > 0, 'Indique la fecha de ingreso al depósito');
-        const dias = Math.max(1, Math.ceil((Date.now() - ingreso) / 86400000));
-        const diaria = await configNum(db, 'finanza_estadia_diaria', 8000);
+        const dias = diasEnDeposito(ingreso);
+        const est = await tarifaEstadia(db, claseVehiculo(c.vehiculo_tipo_nombre as string | null), dias);
         const { reservar } = await import('@/lib/acta-srv');
         const num = await reservar(db, `BOL-${new Date().getFullYear()}`);
         await db.from('infraccion').update({ estadia_ingreso_at: ingreso }).eq('id', c.id);
-        await db.from('boleta').insert({ uuid: uuid(), infraccion_id: c.id, numero: `M2000-${String(num).padStart(7, '0')}`, concepto: `Estadía en depósito (${dias} días) · Acta ${c.legajo_numero_acta}`, detalle_json: JSON.stringify({ dias, diaria }), monto: dias * diaria, vencimiento: Date.now() + 5 * 86400000, a_nombre_de: txt('aNombre') || c.infractor_nombre, estado: 'emitida', date_created: Date.now() });
-        await historial(db, c.id, quien, 'Boleta de estadía emitida', `${dias} días × ${pesos(diaria)}`);
+        await db.from('boleta').insert({ uuid: uuid(), infraccion_id: c.id, numero: `M2000-${String(num).padStart(7, '0')}`, concepto: `Estadía en depósito (${dias} días) · Acta ${c.legajo_numero_acta}`, detalle_json: JSON.stringify({ dias, tramo: est.tramo }), monto: est.monto, vencimiento: Date.now() + 5 * 86400000, a_nombre_de: txt('aNombre') || c.infractor_nombre, estado: 'emitida', date_created: Date.now() });
+        await historial(db, c.id, quien, 'Boleta de estadía emitida', `${dias} días (${est.tramo}): ${pesos(est.monto)}`);
         return { ok: true };
       }
       case 'informar_pago': {
@@ -191,6 +192,37 @@ export async function POST(req: NextRequest) {
         await db.from('infraccion').update({ ejido: txt('ejido') }).eq('id', c.id);
         await historial(db, c.id, quien, 'Ejido corregido', txt('ejido') === 'dentro' ? 'Dentro del ejido urbano' : 'Fuera del ejido urbano');
         return { ok: true };
+      }
+      case 'memo': {
+        check(gestion || puede(user.rol, 'redactarEscritos'), 'Sin permiso', 403);
+        const texto = txt('texto');
+        check(texto, 'Escriba el memo');
+        await db.from('memo').insert({ uuid: uuid(), infraccion_id: c.id, texto, usuario: quien, fecha: Date.now() });
+        // El memo no cambia el estado. En el historial queda solo un extracto.
+        await historial(db, c.id, quien, 'Memo interno agregado', texto.length > 60 ? `${texto.slice(0, 60)}…` : texto);
+        return { ok: true };
+      }
+      case 'liberar_vehiculo': {
+        check(gestion, 'Sin permiso', 403);
+        check(Number(c.retencion_de_vehiculo) === 1, 'El acta no tiene retención de vehículo');
+        check(!c.vehiculo_liberado_at, 'El vehículo ya fue liberado', 409);
+        const ingreso = Number(d.ingresoAt) || Number(c.estadia_ingreso_at) || Number(c.firmada_at);
+        check(ingreso > 0, 'Indique la fecha de ingreso al depósito');
+        const calc = await calculoLiberacion(db, c.vehiculo_tipo_nombre as string | null, ingreso);
+        const { reservar } = await import('@/lib/acta-srv');
+        const num = await reservar(db, `BOL-${new Date().getFullYear()}`);
+        const aNombre = txt('aNombre') || String(c.infractor_razon_social || c.infractor_nombre || '');
+        await db.from('boleta').insert({ uuid: uuid(), infraccion_id: c.id, numero: `M2000-${String(num).padStart(7, '0')}`, concepto: `Liberación de vehículo: acarreo y estadía (${calc.dias} días) · Acta ${c.legajo_numero_acta}`, detalle_json: JSON.stringify({ liberacion: true, ...calc }), monto: calc.total, vencimiento: Date.now() + 5 * 86400000, a_nombre_de: aNombre, estado: 'emitida', date_created: Date.now() });
+        await db.from('infraccion').update({ estadia_ingreso_at: ingreso, vehiculo_liberado_at: Date.now(), vehiculo_liberacion_json: JSON.stringify(calc) }).eq('id', c.id);
+        await historial(db, c.id, quien, 'Vehículo liberado', `${calc.claseNombre} · ${calc.dias} días · acarreo ${pesos(calc.acarreo)} + estadía ${pesos(calc.estadia)} (${calc.tramo}) = ${pesos(calc.total)}`);
+        // Si la retención es la medida vigente, queda la disposición de levantamiento en borrador para revisión y firma.
+        let disposicion: string | null = null;
+        if (Number(c.medida_vigente) === 1) {
+          const { data: pl } = await db.from('plantilla').select('id').eq('codigo', 'DISPOSICION_LEVANTAMIENTO').maybeSingle();
+          const { data: ya } = await db.from('documento').select('id, plantilla!inner(codigo)').eq('infraccion_id', c.id).eq('plantilla.codigo', 'DISPOSICION_LEVANTAMIENTO').limit(1);
+          if (pl && !(ya ?? []).length) disposicion = (await generarEscrito(db, user, c, (pl as { id: number }).id)).uuid;
+        }
+        return { ...calc, disposicion };
       }
       case 'correo_infractor': {
         check(gestion, 'Sin permiso', 403);
