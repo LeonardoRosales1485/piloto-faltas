@@ -18,12 +18,12 @@ Avance: **15 / 20**
 | 07 | [«Se niega a firmar» bajo la firma](prompts/07-negativa-a-firmar-bajo-la-firma.md) | ✅ | 0c04c0c | Paso 1: Presente / Ausente / NN. La negativa se marca en «Revisión y firma». |
 | 08 | [Stepper con faltantes en rojo](prompts/08-stepper-con-faltantes-en-rojo.md) | ✅ | 0c04c0c | Reglas en `faltantesPorPaso` (crear-editar-utils.ts), en sintonía con `firmarActa`. |
 | 09 | [«Lugar de infracción»](prompts/09-lugar-de-infraccion.md) | ✅ | 0c04c0c | Stepper, resumen, ficha de la causa y mensajes. |
-| 10 | [Ocultar GPS en el bloque de ejido](prompts/10-ocultar-gps-en-ejido.md) | ✅ | (este commit) | Coordenadas se guardan pero no se muestran; ejido automático y no editable por el inspector; Faltas lo corrige desde la causa. |
-| 11 | [Selección de artículos como stg](prompts/11-articulos-como-stg.md) | ✅ | (este commit) | Relevado en stg (documentado en el prompt): botón Agregar/Agregado, sin repetidos, tabla con papelera. |
-| 12 | [Pago voluntario vs. Descargo vs. Ignorar](prompts/12-pago-voluntario-vs-descargo-vs-ignorar.md) | ✅ | (este commit) | Excluyentes en tránsito (contravención sigue el Informe: compatibles). Mesa con las mismas reglas que el portal. Vencido sin presentación → «Para fallo» con marca e historial. |
-| 13 | [Descargo antes del fallo](prompts/13-descargo-antes-del-fallo.md) | ✅ | (este commit) | «Dictar fallo» deshabilitado + 409 en el servidor; fuera de «Para fallo» mientras esté pendiente; acceso directo al aceptar. |
-| 14 | [Presentaciones en el detalle](prompts/14-presentaciones-en-el-detalle.md) | ✅ | (este commit) | Componente `TarjetaPresentacion` compartido con la bandeja. Adjuntos como enlaces (sin vista previa embebida). |
-| 15 | [Subsanar datos](prompts/15-subsanar-datos.md) | ✅ | (este commit) | Requiere correr `sql/015_subsanacion.sql`. Pestañas «Acta subsanada / Acta original»; escritos, valorización y portal usan el dato vigente. |
+| 10 | [Ocultar GPS en el bloque de ejido](prompts/10-ocultar-gps-en-ejido.md) | ✅ | 931f535 | Coordenadas se guardan pero no se muestran; ejido automático y no editable por el inspector; Faltas lo corrige desde la causa. |
+| 11 | [Selección de artículos como stg](prompts/11-articulos-como-stg.md) | ✅ | 931f535 | Relevado en stg (documentado en el prompt): botón Agregar/Agregado, sin repetidos, tabla con papelera. |
+| 12 | [Pago voluntario vs. Descargo vs. Ignorar](prompts/12-pago-voluntario-vs-descargo-vs-ignorar.md) | ✅ | 931f535 | Excluyentes en tránsito (contravención sigue el Informe: compatibles). Mesa con las mismas reglas que el portal. Vencido sin presentación → «Para fallo» con marca e historial. |
+| 13 | [Descargo antes del fallo](prompts/13-descargo-antes-del-fallo.md) | ✅ | 931f535 | «Dictar fallo» deshabilitado + 409 en el servidor; fuera de «Para fallo» mientras esté pendiente; acceso directo al aceptar. |
+| 14 | [Presentaciones en el detalle](prompts/14-presentaciones-en-el-detalle.md) | ✅ | 931f535 | Componente `TarjetaPresentacion` compartido con la bandeja. Adjuntos como enlaces (sin vista previa embebida). |
+| 15 | [Subsanar datos](prompts/15-subsanar-datos.md) | ✅ | 931f535 | Requiere correr `sql/015_subsanacion.sql`. Pestañas «Acta subsanada / Acta original»; escritos, valorización y portal usan el dato vigente. |
 | 16 | [Memos internos](prompts/16-memos-internos.md) | ⬜ | | Nota interna simple en pestaña «Memos internos». |
 | 17 | [Acarreos y retenciones](prompts/17-acarreos-y-retenciones.md) | ⬜ | | Hacer después de 18 (tarifas). |
 | 18 | [«Valores y tarifas» como stg](prompts/18-finanzas-como-stg.md) | ⬜ | | |
@@ -37,7 +37,7 @@ Avance: **15 / 20**
 | Radio y texto alineados en «Situación del infractor» | dab2d1e |
 | Correo del infractor editable desde la causa | 68e6fbf |
 | Localidad antes que partido (catálogo BA + CABA, ingreso libre) y alcoholemia alineada | 2a47247 |
-| Móvil: barra «Acta de tránsito» con el estado y número de acta al pie de cada paso | (este commit) |
+| Móvil: barra «Acta de tránsito» con el estado y número de acta al pie de cada paso | 931f535 |
 | Obligatorios: situación del infractor sin preselección, vehículo (dominio, tipo, marca, modelo) y al menos una foto; N.° de licencia pasa al paso Infractor | 718758a |
 
 ## Fuera del alcance del prototipo
