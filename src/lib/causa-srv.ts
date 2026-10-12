@@ -104,7 +104,7 @@ export async function camposDeCausa(d: Db, c: CausaRow, user?: UsuarioRow) {
 const ETIQUETA_AUTO: Record<string, string> = {
   'Acta:Dominio.Vehiculo': 'Dominio', 'Acta:Nro.Puerta': 'Altura del domicilio', 'Acta:Calle': 'Domicilio del infractor',
   'Acta:Localidad': 'Localidad', 'Acta:Partido': 'Partido', 'Acta:Provincia.Infractor': 'Provincia', 'Acta:Titular': 'Titular',
-  'Acta:Nro.Documento': 'N° de documento', 'Acta:Nro.Puerta.Infraccion': 'Altura del lugar del hecho', 'Acta:Calle.Infraccion': 'Calle del hecho',
+  'Acta:Nro.Documento': 'N° de documento', 'Acta:Nro.Puerta.Infraccion': 'Altura del lugar de infracción', 'Acta:Calle.Infraccion': 'Calle del lugar de infracción',
   'Acta:Localidad_Infraccion': 'Localidad del hecho', 'Acta:Hora': 'Hora', 'Acta:Fecha': 'Fecha del acta', 'Causa:FechaNotificacion': 'Fecha de notificación',
   'Causa:Vencimiento': 'Vencimiento', 'Acta:Infracciones': 'Infracciones',
 };

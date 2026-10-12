@@ -29,13 +29,15 @@ Guía paso a paso para recorrer un acta de tránsito de punta a punta: desde que
 1. Entrá como **inspector**. En el menú, en **Actas de tránsito**, elegí **Labrar acta**.
 2. El sistema reserva solo el **número de acta** (por ejemplo T-001023) y el **legajo**, y toma la fecha y la hora. No se pueden cambiar.
 3. Completá los pasos con **Siguiente**:
-   - **Acta:** cómo está el infractor: presente, ausente, se niega a firmar o no identificado (NN).
-   - **Lugar:** el botón **«Usar mi ubicación (GPS)»** completa la dirección y si el lugar está dentro o fuera del ejido urbano. Las entre calles son opcionales.
-   - **Infractor:** si está presente, nombre, documento y domicilio son obligatorios. Si es una empresa, se elige **Persona jurídica** y se cargan razón social y CUIT. El correo es solo un dato de contacto.
-   - **Vehículo:** dominio, tipo y licencia.
-   - **Artículos:** con **«Agregar artículo»** se busca por número o palabra. Abajo se marcan las medidas: retención de licencia o de vehículo, acarreo y alcoholemia.
+   - **Acta:** cómo está el infractor: presente, ausente o no identificado (NN). Si después se niega a firmar, se marca en el paso de firma.
+   - **Lugar de infracción:** el botón **«Usar mi ubicación (GPS)»** completa la dirección y si el lugar está dentro o fuera del ejido urbano. Las entre calles son opcionales.
+   - **Infractor:** si está presente, nombre, documento y domicilio son obligatorios. Si es una empresa, se elige **Persona jurídica** y se cargan razón social y CUIT. Primero se elige la localidad y después el partido (si no está en la lista, se escribe libre). El correo no va en el acta: lo puede agregar Faltas desde la causa.
+   - **Vehículo:** dominio, tipo, marca y modelo (si no están en la lista, se escriben libres), licencia y municipio emisor.
+   - **Artículos:** con **«Agregar artículo»** se busca por número o palabra. El inspector no ve unidades ni importes: la valorización la hace Faltas. Abajo se marcan las medidas: retención de licencia o de vehículo, acarreo y alcoholemia.
    - **Fotos:** hasta 5, más las observaciones.
-   - **Firma:** se revisa el resumen, el infractor firma con el dedo en el recuadro y se presiona **«Firmar y confirmar»**.
+   - **Firma:** se revisa el resumen, el infractor firma con el dedo en el recuadro y se presiona **«Firmar y confirmar»**. Si el infractor se niega, se marca **«El infractor está presente pero se negó a firmar»** debajo del recuadro.
+
+   Si falta un dato obligatorio, el paso se marca **en rojo** en la barra de pasos (después de pasar por él o al intentar firmar), y en la firma se listan los faltantes con un enlace a cada paso.
 4. Desde ese momento **el acta no se puede modificar**. Se imprime el **ticket con el QR** y se le entrega al infractor.
 
 > Si el inspector se equivoca antes de firmar, usa **«Descartar acta»** e indica el motivo. Ese número queda anulado y no se vuelve a usar.

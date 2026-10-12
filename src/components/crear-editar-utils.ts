@@ -7,7 +7,7 @@ export type Paso = { id: 'acta' | 'lugar' | 'infractor' | 'vehiculo' | 'articulo
 
 const TODOS: Paso[] = [
   { id: 'acta', corto: 'Acta', titulo: 'Datos del acta', ayuda: 'Número, legajo y fecha se asignan solos' },
-  { id: 'lugar', corto: 'Lugar', titulo: 'Lugar del hecho', ayuda: 'Use el GPS para completar la ubicación' },
+  { id: 'lugar', corto: 'Lugar de infracción', titulo: 'Lugar de infracción', ayuda: 'Use el GPS para completar la ubicación' },
   { id: 'infractor', corto: 'Infractor', titulo: 'Datos del infractor', ayuda: 'Obligatorios si el infractor está presente' },
   { id: 'vehiculo', corto: 'Vehículo', titulo: 'Datos del vehículo', ayuda: 'Vehículo involucrado' },
   { id: 'articulos', corto: 'Artículos', titulo: 'Artículos y medidas', ayuda: 'Normas infringidas y medidas adoptadas' },
@@ -116,4 +116,24 @@ export function readImageFile(file: File): Promise<string> {
     reader.onerror = reject;
     reader.readAsDataURL(file);
   });
+}
+
+/**
+ * Datos obligatorios que faltan para poder firmar, agrupados por paso del wizard.
+ * Mismas reglas que valida `firmarActa` en el servidor (src/lib/acta-srv.ts): mantener ambas en sintonía.
+ */
+export function faltantesPorPaso(form: Partial<Infraccion>, firma: string | null): Partial<Record<Paso['id'], string[]>> {
+  const out: Partial<Record<Paso['id'], string[]>> = {};
+  const add = (p: Paso['id'], t: string) => { (out[p] ??= []).push(t); };
+  const txt = (v: unknown) => String(v ?? '').trim();
+  const sit = form.situacionInfractor ?? 'presente';
+  if (!txt(form.domicilioInfraccionCalle)) add('lugar', 'calle del lugar de infracción');
+  if (sit !== 'nn') {
+    if (!txt(form.infractorNombre) && !txt(form.infractorRazonSocial)) add('infractor', 'nombre o razón social');
+    if (!txt(form.infractorDocumentoNumero) && !txt(form.infractorCuit)) add('infractor', 'documento o CUIT');
+    if ((sit === 'presente' || sit === 'se_niega') && !txt(form.infractorDomicilio)) add('infractor', 'domicilio');
+  }
+  if (!(form.leyesNombre ?? []).length) add('articulos', 'al menos un artículo');
+  if (sit === 'presente' && !firma) add('firma', 'firma del infractor (o marcar que se negó)');
+  return out;
 }

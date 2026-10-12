@@ -8,7 +8,7 @@ import { useLayout } from '@/lib/layout-context';
 import { printActa, printTicket } from '@/lib/print';
 import { puede, SITUACIONES, TIPOS_ACTA, claveLey, fechaHora, tipoActa } from '@/lib/dominio';
 import type { ImgModel, Infraccion, Ley, OpcionCatalogo } from '@/lib/types';
-import { MAX_IMAGENES, ejidoPorGps, pasosPara, readImageFile, toDateTimeLocal, vacia } from './crear-editar-utils';
+import { type Paso, MAX_IMAGENES, ejidoPorGps, faltantesPorPaso, pasosPara, readImageFile, toDateTimeLocal, vacia } from './crear-editar-utils';
 import { useNotify } from './NotifyProvider';
 import { SignaturePad } from './SignaturePad';
 import { BarraSuperior } from './BarraSuperior';
@@ -58,6 +58,9 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
   const [imagenes, setImagenes] = useState<ImgModel[]>([]);
   const [pasosAbiertos, setPasosAbiertos] = useState(false);
   const [firma, setFirma] = useState<string | null>(null);
+  // Pasos que el inspector ya dejó atrás: recién ahí se marcan en rojo sus faltantes (o al intentar firmar).
+  const [visitados, setVisitados] = useState<Set<string>>(new Set());
+  const [intentoFirma, setIntentoFirma] = useState(false);
   const [gpsEstado, setGpsEstado] = useState<'' | 'buscando' | 'ok' | 'error'>('');
   const [cat, setCat] = useState<Record<string, OpcionCatalogo[]>>({});
   const iniciado = useRef(false);
@@ -65,6 +68,7 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
   const soloLectura = form.estadoFaltas !== undefined && form.estadoFaltas !== 'Borrador';
   const habilitado = !soloLectura && !guardando;
   const pasos = useMemo(() => pasosPara(tipo, form.situacionInfractor), [tipo, form.situacionInfractor]);
+  const faltantes = useMemo(() => faltantesPorPaso(form, firma), [form, firma]);
   const paso = pasos[Math.min(idx, pasos.length - 1)];
 
   const patch = useCallback((partial: Partial<Infraccion>) => setForm((prev) => ({ ...prev, ...partial })), []);
@@ -189,6 +193,7 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
 
   async function irA(n: number) {
     const next = Math.min(pasos.length - 1, Math.max(0, n));
+    if (next !== idx) setVisitados((v) => new Set(v).add(paso.id));
     if (!soloLectura && next !== idx) void guardarBorrador();
     setIdx(next);
     // La barra «Acta de tránsito» queda visible en todos los pasos (lleva el estado del borrador).
@@ -196,8 +201,14 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
   }
 
   async function firmarYConfirmar() {
+    setIntentoFirma(true);
+    const pendientes = pasos.filter((p) => faltantes[p.id]?.length);
+    if (pendientes.some((p) => p.id !== 'firma')) {
+      notify.error('Faltan datos', pendientes.map((p) => `${p.corto}: ${faltantes[p.id]!.join(', ')}`).join(' · '));
+      return;
+    }
     if (form.situacionInfractor === 'presente' && !firma) {
-      notify.error('Falta la firma', 'El infractor presente debe firmar el acta. Si se niega, cambie la situación en el paso 1.');
+      notify.error('Falta la firma', 'El infractor presente debe firmar el acta. Si se niega, marque «Se negó a firmar» debajo del recuadro.');
       return;
     }
     setGuardando(true);
@@ -308,6 +319,9 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
   }
 
   // ---------------------------------------------------------------- wizard
+  const faltaEn = (p: { id: Paso['id'] }) => ((intentoFirma || visitados.has(p.id)) && p.id !== 'firma' ? faltantes[p.id] ?? [] : []);
+  const hayRojo = pasos.some((p) => faltaEn(p).length);
+  const pendientesFirma = pasos.filter((p) => p.id !== 'firma' && faltantes[p.id]?.length);
   const nav = (
     <div className="wizard-nav">
       <button type="button" className="btn btn-lg btn-secondary" disabled={idx === 0} onClick={() => void irA(idx - 1)}>
@@ -338,7 +352,7 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
       {/* Móvil: barra compacta con el paso actual; al tocarla se despliegan todos los pasos. */}
       <div className="wizard-movil">
         <button type="button" className="wizard-movil-barra" aria-expanded={pasosAbiertos} aria-controls="wizard-movil-lista" onClick={() => setPasosAbiertos((v) => !v)}>
-          <span className="wizard-movil-num">{idx + 1}/{pasos.length}</span>
+          <span className="wizard-movil-num">{idx + 1}/{pasos.length}{hayRojo ? <span className="wizard-movil-alerta" title="Hay pasos con datos faltantes" /> : null}</span>
           <span className="wizard-movil-titulo">{paso.corto}</span>
           <i className={`fa-solid fa-chevron-down wizard-movil-chev ${pasosAbiertos ? 'abierto' : ''}`} aria-hidden="true" />
           <span className="wizard-movil-progreso" aria-hidden="true"><span style={{ width: `${((idx + 1) / pasos.length) * 100}%` }} /></span>
@@ -347,9 +361,9 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
           <ol id="wizard-movil-lista" className="wizard-movil-lista">
             {pasos.map((p, i) => (
               <li key={p.id}>
-                <button type="button" className={`${i === idx ? 'activo' : ''} ${i < idx ? 'completado' : ''}`} onClick={() => { setPasosAbiertos(false); void irA(i); }}>
-                  <span className="n">{i < idx ? <i className="fa-solid fa-check" aria-hidden="true" /> : i + 1}</span>
-                  <span>{p.titulo}</span>
+                <button type="button" className={`${i === idx ? 'activo' : ''} ${i < idx ? 'completado' : ''} ${faltaEn(p).length ? 'con-faltantes' : ''}`} onClick={() => { setPasosAbiertos(false); void irA(i); }}>
+                  <span className="n">{faltaEn(p).length ? <i className="fa-solid fa-exclamation" aria-hidden="true" /> : i < idx ? <i className="fa-solid fa-check" aria-hidden="true" /> : i + 1}</span>
+                  <span>{p.titulo}{faltaEn(p).length ? <small className="faltan">Faltan: {faltaEn(p).join(', ')}</small> : null}</span>
                   {i === idx ? <span className="actual">Actual</span> : null}
                 </button>
               </li>
@@ -360,8 +374,9 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
 
       <nav className="wizard-pasos" aria-label="Pasos del formulario">
         {pasos.map((p, i) => (
-          <button key={p.id} type="button" className={`wizard-paso ${i === idx ? 'activo' : ''} ${i < idx ? 'completado' : ''}`} onClick={() => void irA(i)}>
-            <span className="wizard-paso-num">{i + 1}</span>
+          <button key={p.id} type="button" className={`wizard-paso ${i === idx ? 'activo' : ''} ${i < idx ? 'completado' : ''} ${faltaEn(p).length ? 'con-faltantes' : ''}`} onClick={() => void irA(i)}
+            title={faltaEn(p).length ? `Faltan: ${faltaEn(p).join(', ')}` : undefined}>
+            <span className="wizard-paso-num">{faltaEn(p).length ? <i className="fa-solid fa-exclamation" aria-hidden="true" /> : i + 1}</span>
             <span className="wizard-paso-label">{p.corto}</span>
           </button>
         ))}
@@ -403,12 +418,16 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
                 <fieldset className="form-group" disabled={!habilitado}>
                   <legend>Situación del infractor</legend>
                   <div className="opciones-grandes">
-                    {SITUACIONES.map((s) => (
-                      <label key={s.v} className={`opcion-grande ${form.situacionInfractor === s.v ? 'activa' : ''}`}>
-                        <input type="radio" name="situacion" checked={form.situacionInfractor === s.v} onChange={() => patch({ situacionInfractor: s.v })} />
+                    {SITUACIONES.filter((s) => s.v !== 'se_niega').map((s) => {
+                      // «Se niega a firmar» se marca al final, debajo de la firma: acá cuenta como «Presente».
+                      const activa = form.situacionInfractor === s.v || (s.v === 'presente' && form.situacionInfractor === 'se_niega');
+                      return (
+                      <label key={s.v} className={`opcion-grande ${activa ? 'activa' : ''}`}>
+                        <input type="radio" name="situacion" checked={activa} onChange={() => patch({ situacionInfractor: s.v })} />
                         <span>{s.t}</span>
                       </label>
-                    ))}
+                      );
+                    })}
                   </div>
                 </fieldset>
               </div>
@@ -815,7 +834,7 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
                 <dl className="resumen-acta">
                   <div><dt>Acta</dt><dd>{form.legajoNumeroActa} · {info.corto}</dd></div>
                   <div><dt>Fecha</dt><dd>{form.legajoFecha?.replace('T', ' ')}</dd></div>
-                  <div><dt>Lugar</dt><dd>{[form.domicilioInfraccionCalle, form.domicilioInfraccionNumero].filter(Boolean).join(' ') || <span className="texto-error">Falta</span>}{form.entreCalle1 ? ` (entre ${form.entreCalle1} y ${form.entreCalle2 ?? ''})` : ''}</dd></div>
+                  <div><dt>Lugar de infracción</dt><dd>{[form.domicilioInfraccionCalle, form.domicilioInfraccionNumero].filter(Boolean).join(' ') || <span className="texto-error">Falta</span>}{form.entreCalle1 ? ` (entre ${form.entreCalle1} y ${form.entreCalle2 ?? ''})` : ''}</dd></div>
                   <div><dt>Infractor</dt><dd>{form.situacionInfractor === 'nn' ? 'No identificado (NN)' : (esJuridica ? `${form.infractorRazonSocial ?? ''} · CUIT ${form.infractorCuit ?? ''}` : `${form.infractorNombre || '—'} · ${form.infractorDocumentoTipoNombre ?? ''} ${form.infractorDocumentoNumero ?? ''}`)}</dd></div>
                   {tipo !== 'contravenciones' ? <div><dt>Vehículo</dt><dd>{form.vehiculoNumeroDominio || '-'} {form.vehiculoTipoNombre ?? ''}</dd></div> : null}
                   <div><dt>Artículos</dt><dd>{leyesSeleccionadas.map((l) => claveLey(l)).join(' · ') || <span className="texto-error">Falta</span>}</dd></div>
@@ -823,20 +842,41 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
                   <div><dt>Imágenes</dt><dd>{imagenes.length}</dd></div>
                 </dl>
               </div>
-              {form.situacionInfractor === 'presente' ? (
+              {pendientesFirma.length ? (
+                <div className="col-12">
+                  <div className="aviso aviso-error faltantes-firma">
+                    <strong><i className="fa-solid fa-triangle-exclamation" aria-hidden="true" /> Antes de firmar complete:</strong>
+                    <ul>
+                      {pendientesFirma.map((p) => (
+                        <li key={p.id}>
+                          <button type="button" className="btn btn-link p-0" onClick={() => void irA(pasos.indexOf(p))}>{p.titulo}</button>: {faltantes[p.id]!.join(', ')}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              ) : null}
+              {form.situacionInfractor === 'presente' || form.situacionInfractor === 'se_niega' ? (
                 <div className="col-12 col-lg-7">
                   <h3 className="subtitulo-paso">1. Firma del infractor</h3>
-                  <SignaturePad value={firma} onChange={setFirma} />
+                  {form.situacionInfractor === 'se_niega' ? (
+                    <div className="firma-negada"><i className="fa-solid fa-signature" aria-hidden="true" /> Se negó a firmar</div>
+                  ) : <SignaturePad value={firma} onChange={setFirma} />}
+                  <label className="form-check mt-2 negativa-firma">
+                    <input type="checkbox" className="form-check-input" disabled={!habilitado} checked={form.situacionInfractor === 'se_niega'}
+                      onChange={(e) => { if (e.target.checked) setFirma(null); patch({ situacionInfractor: e.target.checked ? 'se_niega' : 'presente' }); }} />
+                    <span className="form-check-label">El infractor está presente pero se negó a firmar</span>
+                  </label>
                 </div>
               ) : (
                 <div className="col-12 col-lg-7">
                   <div className="aviso aviso-info">
-                    {form.situacionInfractor === 'nn' ? 'Acta NN: firma solo el inspector.' : form.situacionInfractor === 'ausente' ? 'Infractor ausente: firma solo el inspector.' : 'El infractor se negó a firmar: se deja constancia y firma solo el inspector.'}
+                    {form.situacionInfractor === 'nn' ? 'Acta NN: firma solo el inspector.' : form.situacionInfractor === 'ausente' ? 'Infractor ausente: firma solo el inspector.' : ''}
                   </div>
                 </div>
               )}
               <div className="col-12 col-lg-5">
-                <h3 className="subtitulo-paso">{form.situacionInfractor === 'presente' ? '2. ' : ''}Firma del inspector</h3>
+                <h3 className="subtitulo-paso">{form.situacionInfractor === 'presente' || form.situacionInfractor === 'se_niega' ? '2. ' : ''}Firma del inspector</h3>
                 <div className="firma-inspector-box">
                   <i className="fa-solid fa-user-shield" aria-hidden="true" />
                   <div>

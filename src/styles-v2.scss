@@ -468,3 +468,23 @@
 
 // El wizard no recorta las listas desplegables de los buscadores (municipio, marca, localidad).
 .card-step-wizard { overflow: visible; > .card-step-header { border-radius: var(--bo-radio-lg) var(--bo-radio-lg) 0 0; } }
+
+// Firma del infractor: constancia de negativa
+.firma-negada { display: flex; align-items: center; justify-content: center; gap: 0.5rem; min-height: 160px; border: 2px dashed var(--bo-borde); border-radius: var(--bo-radio); color: var(--bo-texto-suave, #64748b); font-weight: 600; font-style: italic; }
+.negativa-firma { display: flex; align-items: center; gap: 0.5rem; padding-left: 0; .form-check-input { margin: 0; float: none; } }
+
+// Stepper: pasos con datos obligatorios faltantes
+.wizard-paso.con-faltantes .wizard-paso-num { border-color: #dc2626 !important; background: #fef2f2 !important; color: #dc2626 !important; }
+.wizard-paso.con-faltantes .wizard-paso-label { color: #dc2626 !important; }
+[data-theme='dark'] .wizard-paso.con-faltantes .wizard-paso-num { background: rgba(220, 38, 38, .18) !important; color: #f87171 !important; border-color: #f87171 !important; }
+[data-theme='dark'] .wizard-paso.con-faltantes .wizard-paso-label { color: #f87171 !important; }
+.wizard-movil-num { position: relative; }
+.wizard-movil-alerta { position: absolute; top: -3px; right: -3px; width: 10px; height: 10px; border-radius: 50%; background: #dc2626; border: 2px solid var(--bo-card); }
+.wizard-movil-lista button.con-faltantes { color: #dc2626; .n { background: #dc2626 !important; color: #fff !important; } }
+[data-theme='dark'] .wizard-movil-lista button.con-faltantes { color: #f87171; }
+.wizard-movil-lista .faltan { display: block; font-size: .78rem; font-weight: 500; }
+.aviso-error { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; border-radius: var(--bo-radio); padding: .75rem 1rem; }
+[data-theme='dark'] .aviso-error { background: rgba(220, 38, 38, .12); border-color: rgba(248, 113, 113, .4); color: #fca5a5; }
+.faltantes-firma ul { margin: .4rem 0 0; padding-left: 1.2rem; }
+.faltantes-firma .btn-link { color: inherit; font-weight: 700; text-decoration: underline; vertical-align: baseline; }
+[data-theme='dark'] .wizard-movil-lista button.activo { background: #1e3a8a; color: #fff; }

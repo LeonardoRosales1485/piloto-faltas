@@ -66,7 +66,7 @@ export async function firmarActa(d: Db, user: UsuarioRow, uuidActa: string, firm
       check(String(c.infractor_domicilio ?? '').trim(), 'Complete el domicilio del infractor');
     }
   }
-  check(String(c.domicilio_infraccion_calle ?? '').trim(), 'Complete el lugar del hecho');
+  check(String(c.domicilio_infraccion_calle ?? '').trim(), 'Complete el lugar de infracción');
   const { count } = await d.from('infraccion_ley').select('*', { count: 'exact', head: true }).eq('infraccion_id', c.id);
   check((count ?? 0) > 0, 'Seleccione al menos un artículo');
   if (sit === 'presente') check(firmaInfractor && firmaInfractor.startsWith('data:image'), 'Falta la firma del infractor');
