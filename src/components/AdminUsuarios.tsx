@@ -8,6 +8,7 @@ import { fechaCorta, MODULOS_ACTA, modulosDe, ROL_ETIQUETA } from '@/lib/dominio
 import { useAuthUser } from '@/lib/use-auth-user';
 import { ModalForm, type CampoModal } from './ModalForm';
 import { useNotify } from './NotifyProvider';
+import { PermisosDeUsuario, PermisosPorTipo } from './AdminPermisos';
 
 type U = { uuid: string; username: string; nombre: string; apellido: string; email: string | null; sector: string | null; legajo?: string | null; modulos_acta?: string | null; rol: string; activo: boolean; date_created: number };
 
@@ -22,6 +23,8 @@ export function AdminUsuarios() {
   const [rol, setRol] = useState('');
   const [verBajas, setVerBajas] = useState(false);
   const [modal, setModal] = useState<{ u?: U } | null>(null);
+  const [pestana, setPestana] = useState<'usuarios' | 'tipos'>('usuarios');
+  const [permisosDe, setPermisosDe] = useState<U | null>(null);
 
   const [cargando, seguir] = useCarga();
   const cargar = useCallback(() => { void seguir(http.get<U[]>('/api/admin/usuarios').then(setItems)).catch((e: Error) => notify.error('Error', e.message)); }, [notify, seguir]);
@@ -48,6 +51,11 @@ export function AdminUsuarios() {
 
   return (
     <div className="pagina">
+      <div className="bandeja-tabs mb-3">
+        <button type="button" className={`bandeja-tab ${pestana === 'usuarios' ? 'activa' : ''}`} onClick={() => setPestana('usuarios')}><i className="fa-solid fa-users" aria-hidden="true" /> Usuarios</button>
+        <button type="button" className={`bandeja-tab ${pestana === 'tipos' ? 'activa' : ''}`} onClick={() => setPestana('tipos')}><i className="fa-solid fa-user-shield" aria-hidden="true" /> Tipos de usuario y permisos</button>
+      </div>
+      {pestana === 'tipos' ? <PermisosPorTipo /> : (<>
       <div className="card-step mb-3"><div className="card-step-body">
         <div className="row g-2 align-items-end">
           <div className="col-12 col-md-5"><label className="form-label-v2" htmlFor="u-t">Buscar</label><input id="u-t" className="form-control" placeholder="Usuario, nombre, correo o sector" value={texto} onChange={(e) => setTexto(e.target.value)} /></div>
@@ -72,6 +80,7 @@ export function AdminUsuarios() {
                 <td>{u.activo === false ? <span className="badge bg-secondary">Baja</span> : <span className="badge bg-success">Activo</span>}</td>
                 <td className="text-end text-nowrap">
                   <button type="button" className="btn btn-sm btn-outline-primary me-1" onClick={() => setModal({ u })}><i className="fa-solid fa-pen" aria-hidden="true" /> Editar</button>
+                  <button type="button" className="btn btn-sm btn-outline-secondary me-1" onClick={() => setPermisosDe(u)}><i className="fa-solid fa-user-lock" aria-hidden="true" /> Permisos</button>
                   {u.username !== yo?.username ? (
                     u.activo === false
                       ? <button type="button" className="btn btn-sm btn-outline-success" onClick={() => void guardar({ ...u, activo: true }, 'Usuario reactivado')}>Reactivar</button>
@@ -85,6 +94,8 @@ export function AdminUsuarios() {
         </table>
       </div></div>
       <p className="texto-ayuda mt-2">Las bajas no borran al usuario: queda inactivo, no puede ingresar y su historial se conserva.</p>
+      </>)}
+      {permisosDe ? <PermisosDeUsuario username={permisosDe.username} rol={permisosDe.rol} onCerrar={() => setPermisosDe(null)} /> : null}
 
       {modal ? (
         <ModalForm

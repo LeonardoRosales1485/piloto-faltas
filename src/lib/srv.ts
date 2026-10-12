@@ -5,7 +5,7 @@ import { requireUser } from './auth';
 import { jsonFail, jsonOk } from './http-data';
 import { createServerClient } from './supabase-server';
 import type { UsuarioRow } from './types';
-import { estadoFinal, PERMISOS, tipoVisible, type Permiso } from './dominio';
+import { estadoFinal, puede, tipoVisible, type Permiso } from './dominio';
 
 export type Db = ReturnType<typeof createServerClient>;
 
@@ -35,7 +35,7 @@ export async function handle<T>(
 ) {
   try {
     const user = await requireUser(req);
-    if (permiso && !(PERMISOS[permiso] as readonly string[]).includes(user.rol)) {
+    if (permiso && !puede(user, permiso)) {
       return jsonFail(403, 'No tiene permiso para esta acción');
     }
     const data = await rolActual.run(user.rol, () => fn({ user, db: db() }));

@@ -6,6 +6,8 @@ export type Usuario = {
   sector: string;
   rol: string;
   modulosActa?: string[];
+  /** Permisos efectivos (usuario > tipo de usuario > por defecto). */
+  permisos?: string[];
   token?: string;
 };
 
@@ -189,6 +191,7 @@ export type UsuarioRow = {
   terminal?: string | null;
   firma_activa?: boolean | null;
   modulos_acta?: string | null;
+  permisos?: string[];
 };
 
 export type InfraccionRow = {

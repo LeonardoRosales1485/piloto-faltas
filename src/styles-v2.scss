@@ -629,3 +629,12 @@ span.dato-subsanado { font-size: .75rem; padding: .1rem .45rem; font-weight: 600
 [data-theme='dark'] .chip-categoria { background: #334155; color: #e2e8f0; }
 .td-acciones .btn-accion + .btn-accion, .td-acciones .btn + .btn, .td-acciones a + .btn { margin-left: .4rem; }
 .fin-ayuda { font-size: .78rem; opacity: .7; text-align: center; }
+
+// ABM: permisos por tipo de usuario y por usuario
+.matriz-permisos th { font-size: .78rem; white-space: nowrap; }
+.matriz-permisos td.permiso-cambiado, .lista-permisos-usuario li.permiso-cambiado { background: rgba(245, 158, 11, .1); }
+.matriz-permisos .form-check-input { width: 1.2rem; height: 1.2rem; float: none; margin: 0; }
+.lista-permisos-usuario { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .4rem;
+  li { display: flex; justify-content: space-between; align-items: center; gap: .75rem; flex-wrap: wrap; padding: .6rem .75rem; border: 1px solid var(--bo-borde); border-radius: var(--bo-radio); }
+  li > div:first-child { display: flex; flex-direction: column; min-width: 220px; span { font-size: .8rem; opacity: .7; } }
+}

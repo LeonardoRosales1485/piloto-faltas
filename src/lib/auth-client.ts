@@ -1,6 +1,7 @@
 'use client';
 
 import { apiClient } from './api-client';
+import { registrarResolverPermisos } from './dominio';
 import type { Usuario } from './types';
 
 export const TOKEN_KEY = 'faltas-piloto-token';
@@ -9,6 +10,8 @@ export const USER_KEY = 'faltas-piloto-user';
 type Listener = (user: Usuario | null) => void;
 
 let cachedUser: Usuario | null = null;
+// En el navegador, puede() usa los permisos efectivos del usuario logueado (los define el administrador).
+registrarResolverPermisos(() => { const u = getUser(); return u && Array.isArray(u.permisos) ? { rol: u.rol, permisos: u.permisos } : null; });
 const listeners = new Set<Listener>();
 
 function readUser(): Usuario | null {

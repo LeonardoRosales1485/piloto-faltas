@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import { toUsuarioDto } from '@/lib/auth';
 import { jsonFail, jsonOk } from '@/lib/http-data';
 import { issueToken } from '@/lib/jwt';
+import { cargarPermisos } from '@/lib/permisos-srv';
 import { createServerClient } from '@/lib/supabase-server';
 import type { UsuarioRow } from '@/lib/types';
 
@@ -17,22 +18,17 @@ export async function POST(req: NextRequest) {
       .select('*')
       .eq('username', username)
       .maybeSingle();
-    if (error) {
-      console.error('[login] Error consultando usuario en Supabase:', error.message);
-      return jsonFail(500, `No se pudo consultar la base: ${error.message}`);
-    }
-    if (!data) {
-      console.warn(`[login] El usuario «${username}» no existe en la tabla usuario`);
+    if (error || !data) {
       return jsonFail(401, 'Usuario o contraseña incorrectos');
     }
     const row = data as UsuarioRow;
     if (row.activo === false) return jsonFail(401, 'Usuario dado de baja');
     const match = await bcrypt.compare(password, row.password_hash);
     if (!match) {
-      console.warn(`[login] Contraseña incorrecta para «${username}»`);
       return jsonFail(401, 'Usuario o contraseña incorrectos');
     }
     const token = await issueToken(row.username);
+    row.permisos = await cargarPermisos(supabase, row.username, row.rol);
     return jsonOk(toUsuarioDto(row, token));
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Error de login';

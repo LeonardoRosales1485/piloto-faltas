@@ -1,6 +1,7 @@
 import { modulosDe } from './dominio';
 import { NextRequest } from 'next/server';
 import { subjectFromToken } from './jwt';
+import { cargarPermisos, permisosActuales } from './permisos-srv';
 import { createServerClient } from './supabase-server';
 import type { Usuario, UsuarioRow } from './types';
 
@@ -31,7 +32,11 @@ export async function requireUser(req: NextRequest): Promise<UsuarioRow> {
   if (error || !data || (data as UsuarioRow).activo === false) {
     throw Object.assign(new Error('Sin sesión'), { status: 401 });
   }
-  return data as UsuarioRow;
+  const user = data as UsuarioRow;
+  user.permisos = await cargarPermisos(supabase, user.username, user.rol);
+  // El resto de la request (puede(), handle()) usa estos permisos efectivos.
+  permisosActuales.enterWith({ rol: user.rol, permisos: user.permisos });
+  return user;
 }
 
 export function toUsuarioDto(row: UsuarioRow, token?: string | null): Usuario {
@@ -43,6 +48,7 @@ export function toUsuarioDto(row: UsuarioRow, token?: string | null): Usuario {
     sector: row.sector ?? '',
     modulosActa: modulosDe(row),
     rol: row.rol,
+    permisos: row.permisos ?? [],
     ...(token ? { token } : {}),
   };
 }

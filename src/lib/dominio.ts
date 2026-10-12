@@ -85,8 +85,55 @@ export function tipoVisible(rol: string | undefined | null, tipoId: number | str
   return !t || t.includes(Number(tipoId));
 }
 
-export function puede(rol: string | undefined | null, permiso: Permiso): boolean {
+/** Descripción de cada permiso para el ABM (qué secciones habilita). */
+export const PERMISO_INFO: Record<Permiso, { t: string; d: string }> = {
+  labrar: { t: 'Labrar actas', d: 'Inicio del inspector, labrado y borradores de actas' },
+  verCausas: { t: 'Ver causas', d: 'Causas, presentaciones, escritos, pagos y reportes' },
+  gestionarCausas: { t: 'Gestionar causas', d: 'Acciones de la causa, boletas, presentaciones en mesa y retenciones' },
+  cambiarEstadoManual: { t: 'Cambiar estado manualmente', d: 'Acción «Cambiar estado» de la causa' },
+  redactarEscritos: { t: 'Redactar escritos', d: 'Generar y editar escritos, adjuntar documentos, memos' },
+  firmar: { t: 'Firmar escritos', d: 'Firma digital de resoluciones, disposiciones y fallos' },
+  confirmarPagos: { t: 'Confirmar pagos', d: 'Acreditar pagos (a verificar → definitivo)' },
+  parametrizar: { t: 'Configuración', d: 'Plantillas, textos, feriados, usuarios y permisos, marcas, registro de correos, sandbox' },
+  valores: { t: 'Valores y tarifas', d: 'Unidad tributaria, acarreos, estadías, derecho de oficina' },
+  auditoria: { t: 'Auditoría', d: 'Registro de auditoría' },
+  inspectores: { t: 'Inspectores', d: 'ABM de inspectores y seguimiento GPS' },
+  ordenanzas: { t: 'Ordenanzas', d: 'Alta y edición de ordenanzas y artículos' },
+};
+
+export type Overrides = Partial<Record<Permiso, boolean>>;
+
+/**
+ * Permisos efectivos: el permiso particular del usuario tiene prioridad sobre el de su tipo (rol), y el del tipo
+ * (si el administrador lo cambió) sobre el valor por defecto de PERMISOS. El Administrador nunca pierde «Configuración»
+ * (para no quedar sin acceso al ABM).
+ */
+export function permisosEfectivos(rol: string, delRol: Overrides = {}, delUsuario: Overrides = {}): Permiso[] {
+  return (Object.keys(PERMISOS) as Permiso[]).filter((p) => {
+    if (rol === 'Administrador' && p === 'parametrizar') return true;
+    if (delUsuario[p] !== undefined) return Boolean(delUsuario[p]);
+    if (delRol[p] !== undefined) return Boolean(delRol[p]);
+    return (PERMISOS[p] as readonly string[]).includes(rol);
+  });
+}
+
+type CtxPermisos = { rol: string; permisos: string[] } | null;
+let resolverPermisos: (() => CtxPermisos) | null = null;
+/** El servidor (por request) y el navegador (usuario logueado) registran de dónde salen los permisos efectivos. */
+export function registrarResolverPermisos(fn: () => CtxPermisos) { resolverPermisos = fn; }
+
+/**
+ * ¿El rol/usuario tiene el permiso? Acepta el rol (usa los permisos efectivos del usuario en curso si coincide) o un
+ * objeto con `permisos` ya calculados.
+ */
+export function puede(rol: string | { rol?: string | null; permisos?: string[] } | undefined | null, permiso: Permiso): boolean {
   if (!rol) return false;
+  if (typeof rol === 'object') {
+    if (Array.isArray(rol.permisos)) return rol.permisos.includes(permiso);
+    return puede(rol.rol, permiso);
+  }
+  const ctx = resolverPermisos?.();
+  if (ctx && ctx.rol === rol && Array.isArray(ctx.permisos)) return ctx.permisos.includes(permiso);
   return (PERMISOS[permiso] as readonly string[]).includes(rol);
 }
 
