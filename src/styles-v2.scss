@@ -624,3 +624,8 @@ span.dato-subsanado { font-size: .75rem; padding: .1rem .45rem; font-weight: 600
   .btn { flex: 1; max-width: 220px; min-height: 56px; font-weight: 700; box-shadow: 0 6px 20px rgba(0,0,0,.18); }
   .btn-light { background: #f1f5f9; border: 1px solid #cbd5e1; color: #0f172a; }
 }
+
+// Chips de categoría legibles en modo oscuro; acciones de tabla separadas
+[data-theme='dark'] .chip-categoria { background: #334155; color: #e2e8f0; }
+.td-acciones .btn-accion + .btn-accion, .td-acciones .btn + .btn, .td-acciones a + .btn { margin-left: .4rem; }
+.fin-ayuda { font-size: .78rem; opacity: .7; text-align: center; }

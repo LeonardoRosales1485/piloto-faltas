@@ -28,7 +28,7 @@ Avance: **20 / 20**
 | 17 | [Acarreos y retenciones](prompts/17-acarreos-y-retenciones.md) | ✅ | f2fa1a1 | Sección «Retenciones» como stg. Liberar = acarreo por tipo + estadía por tramos; emite boleta y deja la disposición de levantamiento en borrador si había medida. |
 | 18 | [«Valores y tarifas» como stg](prompts/18-finanzas-como-stg.md) | ✅ | f2fa1a1 | Estructura y textos de stg; sin «Información de tarifas». Estadía: tramo 3–7 y 8–30 como monto fijo, desde el día 31 se suma el valor diario (a confirmar). |
 | 19 | [Ocultar «Correos enviados»](prompts/19-ocultar-correos-enviados.md) | ✅ | f2fa1a1 | Solo Administrador, en Configuración → «Registro de correos». La tabla y el registro siguen. |
-| 20 | [Evidencia en el acta](prompts/20-evidencia-en-el-acta.md) | ✅ | f2fa1a1 | Interruptor «Mostrar evidencia» (recordado por usuario), fotos también en actas de contravención/sustancias y en el portal, galería ampliada. El link público sigue sin datos personales ni fotos. |
+| 20 | [Evidencia en el acta](prompts/20-evidencia-en-el-acta.md) | ✅ | f2fa1a1 | Interruptor «Mostrar evidencia» (recordado por usuario), fotos también en actas de contravención/sustancias y en el portal, galería ampliada. El link público suma el botón «Evidencias» con las fotos (sin datos personales). |
 
 ## Otros ajustes fuera de la lista
 

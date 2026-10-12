@@ -162,6 +162,8 @@ export function OrdenanzasView({ uuidProp }: { uuidProp?: string }) {
     );
   }
 
+  const buscar = () => { setAplicados({ ...filtros }); cargar(0, filtros); };
+
   return (
     <div className="pagina">
       <div className="card-seccion">
@@ -212,35 +214,32 @@ export function OrdenanzasView({ uuidProp }: { uuidProp?: string }) {
       </div>
 
       <div className="filtros-card">
-        <div className="filtros-header">
-          <h5><i className="fa-solid fa-magnifying-glass" aria-hidden="true" /> Filtros Búsqueda</h5>
-          <div className="d-flex gap-2">
-            <button type="button" className="btn btn-warning" title="Limpiar" onClick={() => { setFiltros(vacios()); setAplicados(vacios()); cargar(0, vacios()); }}>
-              <i className="fa-solid fa-trash-can" aria-hidden="true" />
-            </button>
-            <button type="button" className="btn btn-primary" onClick={() => { setAplicados({ ...filtros }); cargar(0, filtros); }}>
-              <i className="fa-solid fa-magnifying-glass" aria-hidden="true" /> Buscar
-            </button>
-          </div>
-        </div>
         <div className="filtros-body">
           <div className="row g-3 align-items-end">
-            <div className="col-12 col-md-4">
-              <label htmlFor="fley-articulo">Artículo:</label>
-              <input id="fley-articulo" className="form-control" value={filtros.articulo} onChange={(e) => setFiltros({ ...filtros, articulo: e.target.value })} />
+            <div className="col-12 col-md-3">
+              <label htmlFor="fley-articulo">Artículo</label>
+              <input id="fley-articulo" className="form-control" value={filtros.articulo} onChange={(e) => setFiltros({ ...filtros, articulo: e.target.value })} onKeyDown={(e) => e.key === 'Enter' && buscar()} />
             </div>
-            <div className="col-12 col-md-4">
-              <label htmlFor="fley-nombre">Nombre:</label>
-              <input id="fley-nombre" className="form-control" value={filtros.nombre} onChange={(e) => setFiltros({ ...filtros, nombre: e.target.value })} />
+            <div className="col-12 col-md-3">
+              <label htmlFor="fley-nombre">Nombre</label>
+              <input id="fley-nombre" className="form-control" value={filtros.nombre} onChange={(e) => setFiltros({ ...filtros, nombre: e.target.value })} onKeyDown={(e) => e.key === 'Enter' && buscar()} />
             </div>
-            <div className="col-12 col-md-4">
-              <label htmlFor="fley-categoria">Categoría:</label>
+            <div className="col-12 col-md-3">
+              <label htmlFor="fley-categoria">Categoría</label>
               <select id="fley-categoria" className="form-select" value={filtros.categoria} onChange={(e) => setFiltros({ ...filtros, categoria: e.target.value })}>
                 <option value="">Todas</option>
                 {categorias.map((c) => (
                   <option key={c.nombre} value={c.nombre}>{c.nombre}</option>
                 ))}
               </select>
+            </div>
+            <div className="col-12 col-md-3 d-flex gap-2">
+              <button type="button" className="btn btn-outline-secondary flex-fill" title="Quitar filtros" onClick={() => { setFiltros(vacios()); setAplicados(vacios()); cargar(0, vacios()); }}>
+                <i className="fa-solid fa-arrows-rotate" aria-hidden="true" /> Quitar filtros
+              </button>
+              <button type="button" className="btn btn-primary flex-fill" onClick={buscar}>
+                <i className="fa-solid fa-magnifying-glass" aria-hidden="true" /> Buscar
+              </button>
             </div>
           </div>
         </div>
@@ -278,7 +277,7 @@ export function OrdenanzasView({ uuidProp }: { uuidProp?: string }) {
                       <ul className="list-unstyled mb-0" style={{ fontSize: '0.875rem' }}>
                         <li><strong>Nombre:</strong> {l.nombre}</li>
                         <li><strong>Categoría:</strong> {l.categoriaNombre}</li>
-                        <li><strong>Unidad:</strong> {l.multiplicador}</li>
+                        <li><strong>Unidades (UF):</strong> {l.multiplicador}</li>
                         <li>
                           <strong>Descripción:</strong>
                           <textarea className="form-control mt-1" rows={2} value={l.descripcion ?? ''} disabled readOnly />
@@ -295,7 +294,7 @@ export function OrdenanzasView({ uuidProp }: { uuidProp?: string }) {
             <table className="table custom-table">
               <thead className="table-dark">
                 <tr>
-                  <th>Artículo</th><th>Nombre</th><th>Descripción</th><th>Categoría</th><th>Unidad</th><th className="th-acciones">Acciones</th>
+                  <th>Artículo</th><th>Nombre</th><th>Descripción</th><th>Categoría</th><th title="Unidades fijas: multa = unidades × Unidad Tributaria (Valores y tarifas)">Unidades (UF)</th><th className="th-acciones">Acciones</th>
                 </tr>
               </thead>
               <tbody>

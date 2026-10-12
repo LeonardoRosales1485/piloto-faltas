@@ -97,6 +97,7 @@ export function FinanzasView() {
             <div className="fin-card">
               <div className="fin-cab"><div><h3>{SIMPLES[0].t}</h3><span>{SIMPLES[0].sub}</span></div><i className={SIMPLES[0].i} aria-hidden="true" /></div>
               {valor(SIMPLES[0].k, true)}
+              <small className="fin-ayuda">Valor de 1 UF. Multa = unidades del artículo (Ordenanzas) × este valor.</small>
             </div>
             <div className="fin-card">
               <div className="fin-cab"><div><h3>Acarreo de Vehículo</h3><span>Traslado a depósito</span></div><i className="fa-solid fa-truck-pickup" aria-hidden="true" /></div>
