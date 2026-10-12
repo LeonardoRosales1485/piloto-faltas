@@ -28,7 +28,7 @@ export async function iniciarActa(d: Db, user: UsuarioRow, tipoNombre: string, u
     legajo_fecha: fecha,
     estado: 'Activo',
     estado_faltas: 'Borrador',
-    situacion_infractor: 'presente',
+    situacion_infractor: null,
     infractor_provincia_nombre: 'Buenos Aires',
     infractor_partido_nombre: 'Malvinas Argentinas',
     inspector_username: user.username,
@@ -58,7 +58,8 @@ export async function firmarActa(d: Db, user: UsuarioRow, uuidActa: string, firm
   check(c.estado_faltas === 'Borrador', 'El acta ya fue firmada o anulada', 409);
   check(modulosDe(user).includes(String(c.infraccion_tipo_nombre) as ModuloActa), 'No tiene autorizado labrar este tipo de acta', 403);
   check(user.firma_activa !== false, 'Su firma digital está inactiva: pida a la Dirección de Faltas que la habilite en «Inspectores».', 403);
-  const sit = String(c.situacion_infractor ?? 'presente');
+  const sit = String(c.situacion_infractor ?? '');
+  check(['presente', 'ausente', 'se_niega', 'nn'].includes(sit), 'Indique la situación del infractor');
   if (sit !== 'nn') {
     check(String(c.infractor_nombre ?? '').trim() || String(c.infractor_razon_social ?? '').trim(), 'Complete el nombre o la razón social del infractor');
     check(String(c.infractor_documento_numero ?? '').trim() || String(c.infractor_cuit ?? '').trim(), 'Complete el documento o CUIT del infractor');
@@ -67,6 +68,17 @@ export async function firmarActa(d: Db, user: UsuarioRow, uuidActa: string, firm
     }
   }
   check(String(c.domicilio_infraccion_calle ?? '').trim(), 'Complete el lugar de infracción');
+  if (String(c.infraccion_tipo_nombre) !== 'contravenciones') {
+    check(String(c.vehiculo_numero_dominio ?? '').trim(), 'Complete el dominio del vehículo');
+    check(String(c.vehiculo_tipo_nombre ?? '').trim(), 'Complete el tipo de vehículo');
+    if (String(c.infraccion_tipo_nombre) === 'multas') {
+      const meta = (() => { try { return JSON.parse(String(c.metadata_json ?? '{}')) as Record<string, string>; } catch { return {}; } })();
+      check(String(meta.marca ?? '').trim(), 'Complete la marca del vehículo');
+      check(String(meta.modelo ?? '').trim(), 'Complete el modelo del vehículo');
+    }
+  }
+  const { count: fotos } = await d.from('infraccion_imagen').select('*', { count: 'exact', head: true }).eq('infraccion_id', c.id);
+  check((fotos ?? 0) > 0, 'Suba al menos una foto');
   const { count } = await d.from('infraccion_ley').select('*', { count: 'exact', head: true }).eq('infraccion_id', c.id);
   check((count ?? 0) > 0, 'Seleccione al menos un artículo');
   if (sit === 'presente') check(firmaInfractor && firmaInfractor.startsWith('data:image'), 'Falta la firma del infractor');

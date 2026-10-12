@@ -68,7 +68,7 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
   const soloLectura = form.estadoFaltas !== undefined && form.estadoFaltas !== 'Borrador';
   const habilitado = !soloLectura && !guardando;
   const pasos = useMemo(() => pasosPara(tipo, form.situacionInfractor), [tipo, form.situacionInfractor]);
-  const faltantes = useMemo(() => faltantesPorPaso(form, firma), [form, firma]);
+  const faltantes = useMemo(() => faltantesPorPaso(form, firma, imagenes.length), [form, firma, imagenes.length]);
   const paso = pasos[Math.min(idx, pasos.length - 1)];
 
   const patch = useCallback((partial: Partial<Infraccion>) => setForm((prev) => ({ ...prev, ...partial })), []);
@@ -512,7 +512,7 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
 
           {paso.id === 'infractor' ? (
             <div className="row g-3">
-              {form.situacionInfractor !== 'presente' ? (
+              {form.situacionInfractor === 'ausente' || form.situacionInfractor === 'se_niega' ? (
                 <div className="col-12">
                   <div className="aviso aviso-info">El infractor {form.situacionInfractor === 'ausente' ? 'está ausente' : 'se niega a firmar'}: cargue los datos que pueda constatar (por ejemplo, del titular del vehículo).</div>
                 </div>
@@ -613,6 +613,13 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
                     ) : <input id="infractorPartidoNombre" className="form-control" disabled value="" placeholder="Elija primero la localidad" />}
                 </Campo>
               </div>
+              {tipo === 'multas' ? (
+                <div className="col-12 col-md-4">
+                  <Campo id="vehiculoNumeroLicencia" label="N.° de licencia de conducir">
+                    {inp('vehiculoNumeroLicencia')}
+                  </Campo>
+                </div>
+              ) : null}
             </div>
           ) : null}
 
@@ -648,11 +655,6 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
                       {habilitado && form.metadata?.marca && form.metadata.marca !== NO_DESCRIBE ? (
                         <BuscadorOpciones id="vehiculoModelo" libre valor={form.metadata?.modelo ?? ''} placeholder="Buscar modelo…" opciones={opcModelos} onChange={(v) => patchMeta('modelo', v)} />
                       ) : <input id="vehiculoModelo" className="form-control" disabled value={form.metadata?.modelo ?? ''} placeholder={habilitado ? 'Elija primero la marca' : ''} />}
-                    </Campo>
-                  </div>
-                  <div className="col-6">
-                    <Campo id="vehiculoNumeroLicencia" label="N.° de licencia">
-                      {inp('vehiculoNumeroLicencia')}
                     </Campo>
                   </div>
                   <div className="col-6">
@@ -871,7 +873,7 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
               ) : (
                 <div className="col-12 col-lg-7">
                   <div className="aviso aviso-info">
-                    {form.situacionInfractor === 'nn' ? 'Acta NN: firma solo el inspector.' : form.situacionInfractor === 'ausente' ? 'Infractor ausente: firma solo el inspector.' : ''}
+                    {form.situacionInfractor === 'nn' ? 'Acta NN: firma solo el inspector.' : form.situacionInfractor === 'ausente' ? 'Infractor ausente: firma solo el inspector.' : 'Elija primero la situación del infractor en «Datos del acta».'}
                   </div>
                 </div>
               )}

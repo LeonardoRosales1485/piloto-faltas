@@ -90,7 +90,7 @@ export function vacia(tipo: string): Infraccion {
     retencionDeVehiculo: 0,
     estado: 'Activo',
     metadata: {},
-    situacionInfractor: 'presente',
+    situacionInfractor: '',
     medidasPreventivas: [],
     acarreo: 0,
   };
@@ -122,18 +122,28 @@ export function readImageFile(file: File): Promise<string> {
  * Datos obligatorios que faltan para poder firmar, agrupados por paso del wizard.
  * Mismas reglas que valida `firmarActa` en el servidor (src/lib/acta-srv.ts): mantener ambas en sintonía.
  */
-export function faltantesPorPaso(form: Partial<Infraccion>, firma: string | null): Partial<Record<Paso['id'], string[]>> {
+export function faltantesPorPaso(form: Partial<Infraccion>, firma: string | null, cantImagenes = 0): Partial<Record<Paso['id'], string[]>> {
   const out: Partial<Record<Paso['id'], string[]>> = {};
   const add = (p: Paso['id'], t: string) => { (out[p] ??= []).push(t); };
   const txt = (v: unknown) => String(v ?? '').trim();
-  const sit = form.situacionInfractor ?? 'presente';
+  const sit = form.situacionInfractor ?? '';
+  if (!sit) add('acta', 'situación del infractor');
   if (!txt(form.domicilioInfraccionCalle)) add('lugar', 'calle del lugar de infracción');
   if (sit !== 'nn') {
     if (!txt(form.infractorNombre) && !txt(form.infractorRazonSocial)) add('infractor', 'nombre o razón social');
     if (!txt(form.infractorDocumentoNumero) && !txt(form.infractorCuit)) add('infractor', 'documento o CUIT');
     if ((sit === 'presente' || sit === 'se_niega') && !txt(form.infractorDomicilio)) add('infractor', 'domicilio');
   }
+  if (form.infraccionTipoNombre !== 'contravenciones') {
+    if (!txt(form.vehiculoNumeroDominio)) add('vehiculo', 'dominio');
+    if (!txt(form.vehiculoTipoNombre)) add('vehiculo', 'tipo de vehículo');
+    if (form.infraccionTipoNombre === 'multas') {
+      if (!txt(form.metadata?.marca)) add('vehiculo', 'marca');
+      if (!txt(form.metadata?.modelo)) add('vehiculo', 'modelo');
+    }
+  }
   if (!(form.leyesNombre ?? []).length) add('articulos', 'al menos un artículo');
+  if (cantImagenes < 1) add('fotos', 'al menos una foto');
   if (sit === 'presente' && !firma) add('firma', 'firma del infractor (o marcar que se negó)');
   return out;
 }
