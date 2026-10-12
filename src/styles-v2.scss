@@ -555,9 +555,9 @@ span.dato-subsanado { font-size: .75rem; padding: .1rem .45rem; font-weight: 600
 .inspector-contenido { flex: 1; margin-left: 0 !important; width: 100%; max-width: 1200px; margin: 0 auto !important; padding: 1rem; }
 .inspector-contenido.en-inicio { max-width: none; padding: 0; display: flex; }
 
-.inicio-inspector { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 1rem; padding: 1.25rem; width: 100%; max-width: 640px; margin: 0 auto; min-height: calc(100dvh - 58px); }
+.inicio-inspector { flex: 1; display: flex; flex-direction: column; justify-content: flex-start; gap: 1rem; padding: 1.25rem; width: 100%; max-width: 640px; margin: 0 auto; min-height: calc(100dvh - 58px); }
 .inicio-inspector-titulo { text-align: center; font-weight: 700; font-size: 1.15rem; margin: 0 0 .25rem; }
-.inicio-inspector-boton { flex: 1; max-height: 260px; min-height: 120px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .6rem; border: 2px solid var(--bo-borde); border-radius: 18px; background: var(--bo-card); color: inherit; font-size: 1.35rem; font-weight: 700; cursor: pointer; transition: transform .12s ease, border-color .12s ease;
+.inicio-inspector-boton { flex: 1; max-height: 340px; min-height: 120px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .6rem; border: 2px solid var(--bo-borde); border-radius: 18px; background: var(--bo-card); color: inherit; font-size: 1.35rem; font-weight: 700; cursor: pointer; transition: transform .12s ease, border-color .12s ease;
   i { font-size: 2.6rem; color: var(--bo-azul); }
   small { font-size: .9rem; font-weight: 500; opacity: .75; }
   &:active { transform: scale(.98); }
