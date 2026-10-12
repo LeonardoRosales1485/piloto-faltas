@@ -127,7 +127,6 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
     () => (form.leyesNombre ?? []).map((n) => leyes.find((l) => claveLey(l) === n) ?? leyes.find((l) => l.nombre === n) ?? ({ uuid: n, nombre: n, articulo: '', multiplicador: 0 } as Ley)),
     [form.leyesNombre, leyes],
   );
-  const unidades = leyesSeleccionadas.reduce((a, l) => a + Number(l.multiplicador ?? 0), 0);
 
   const leyesVisibles = useMemo(() => {
     const q = busquedaLey.toLowerCase().trim();
@@ -668,7 +667,6 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
                       <th>Norma</th>
                       <th>Artículo</th>
                       <th>Descripción</th>
-                      <th className="text-end">Unidades</th>
                       <th className="text-end">Acción</th>
                     </tr>
                   </thead>
@@ -678,7 +676,6 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
                         <td>{l.nombre}</td>
                         <td>{l.articulo || '-'}</td>
                         <td>{l.descripcion || '-'}</td>
-                        <td className="text-end">{l.multiplicador}</td>
                         <td className="text-end">
                           <button type="button" className="btn btn-danger btn-sm" disabled={!habilitado} onClick={() => patch({ leyesNombre: (form.leyesNombre ?? []).filter((k) => k !== claveLey(l) && k !== l.nombre) })}>
                             Quitar
@@ -688,7 +685,7 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
                     ))}
                     {!leyesSeleccionadas.length ? (
                       <tr>
-                        <td colSpan={5}>
+                        <td colSpan={4}>
                           <div className="sin-resultados py-3">
                             <p className="mb-0">No hay artículos seleccionados.</p>
                           </div>
@@ -698,7 +695,6 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
                   </tbody>
                 </table>
               </div>
-              <p className="texto-ayuda">Total: {unidades} unidades fijas. La valorización la revisa Faltas.</p>
 
               {tipo === 'multas' ? (
                 <div className="row g-3 mt-1 align-items-end">
@@ -824,7 +820,6 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
                   {tipo !== 'contravenciones' ? <div><dt>Vehículo</dt><dd>{form.vehiculoNumeroDominio || '-'} {form.vehiculoTipoNombre ?? ''}</dd></div> : null}
                   <div><dt>Artículos</dt><dd>{leyesSeleccionadas.map((l) => claveLey(l)).join(' · ') || <span className="texto-error">Falta</span>}</dd></div>
                   <div><dt>Medidas</dt><dd>{[form.retencionDeLicencia ? 'Retención de licencia' : '', form.retencionDeVehiculo ? 'Retención de vehículo' : '', form.acarreo ? 'Acarreo' : '', ...(form.medidasPreventivas ?? [])].filter(Boolean).join(' · ') || 'Ninguna'}</dd></div>
-                  <div><dt>Valor estimado</dt><dd>{unidades} UF</dd></div>
                   <div><dt>Imágenes</dt><dd>{imagenes.length}</dd></div>
                 </dl>
               </div>
@@ -911,9 +906,6 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
                       <div className="card-ley-descripcion">{l.descripcion}</div>
                       <div className="card-ley-footer">
                         <span>{l.categoriaNombre}</span>
-                        <span className="card-ley-multiplicador">
-                          Unidades: <strong>{l.multiplicador}</strong>
-                        </span>
                       </div>
                     </button>
                   </div>

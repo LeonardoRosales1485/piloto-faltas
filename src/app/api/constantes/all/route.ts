@@ -3,7 +3,7 @@ import { requireUser } from '@/lib/auth';
 import { jsonFail, jsonOk } from '@/lib/http-data';
 import { leyFromRow } from '@/lib/mappers';
 import { createServerClient } from '@/lib/supabase-server';
-import type { CatalogoRow, Constantes, LeyRow } from '@/lib/types';
+import type { Ley, CatalogoRow, Constantes, LeyRow } from '@/lib/types';
 
 function opt(id: number, nombre: string) {
   return { id, nombre };
@@ -11,7 +11,9 @@ function opt(id: number, nombre: string) {
 
 export async function GET(req: NextRequest) {
   try {
-    await requireUser(req);
+    const user = await requireUser(req);
+    // Los inspectores no ven la valorización (unidades) de los artículos: la calcula Faltas.
+    const sinValor = (l: Ley) => (user.rol === 'Inspector' ? { ...l, multiplicador: 0 } : l);
     const supabase = createServerClient();
     const tipos = [
       'documento',
@@ -44,7 +46,7 @@ export async function GET(req: NextRequest) {
       dependencias: byTipo.dependencia ?? [],
       estados: byTipo.estado ?? [],
       leyCategorias: byTipo.ley_categoria ?? [],
-      leyes: ((leyesData ?? []) as LeyRow[]).map(leyFromRow),
+      leyes: ((leyesData ?? []) as LeyRow[]).map(leyFromRow).map(sinValor),
       infraccionTipos: [opt(1, 'multas'), opt(2, 'contravenciones'), opt(3, 'sustancias')],
       medidasContravencion: byTipo.medida_contravencion ?? [],
       tiposSocietarios: byTipo.tipo_societario ?? [],
