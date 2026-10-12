@@ -565,3 +565,11 @@ span.dato-subsanado { font-size: .75rem; padding: .1rem .45rem; font-weight: 600
   &.principal { background: var(--bo-azul); border-color: var(--bo-azul); color: #fff; i { color: #fff; } }
 }
 .inicio-inspector-volver { align-self: center; border: 0; background: transparent; color: inherit; font-weight: 600; padding: .6rem 1rem; cursor: pointer; opacity: .8; }
+
+// Celular: los modales arriba (no centrados) para que el teclado no tape lo que se escribe
+@media (max-width: 899px) {
+  .modal-fake-overlay { align-items: flex-start !important; padding-top: .75rem !important; }
+  .modal-fake { max-height: calc(100dvh - 1.5rem); display: flex; flex-direction: column; }
+  .modal-fake-body { overflow-y: auto; }
+  .lista-agregar-articulos { max-height: none; overflow: visible; }
+}

@@ -13,11 +13,12 @@ import { useNotify } from './NotifyProvider';
 import { SignaturePad } from './SignaturePad';
 import { BarraSuperior } from './BarraSuperior';
 import { BuscadorOpciones } from './BuscadorOpciones';
-import { LOCALIDADES, PARTIDOS, partidosDe } from '@/lib/geo-ba';
+import { LOCALIDADES, PARTIDOS, PROVINCIAS_AR, partidosDe } from '@/lib/geo-ba';
 
 const NO_DESCRIBE = 'No se describe';
 import { useAuthUser } from '@/lib/use-auth-user';
 import { inicioPara } from '@/lib/role-guard';
+import { useScrollAlEnfocar } from '@/lib/use-scroll-al-enfocar';
 
 const ALCOHOLEMIA = [
   { v: '', t: 'No realizada' },
@@ -36,11 +37,25 @@ function Campo({ id, label, children, req }: { id: string; label: string; childr
   );
 }
 
+// Lugar de infracción precargado entre actas del mismo operativo (por inspector, en este dispositivo).
+const CAMPOS_LUGAR = ['domicilioInfraccionCalle', 'domicilioInfraccionNumero', 'domicilioInfraccionLocalidadNombre', 'entreCalle1', 'entreCalle2', 'ejido', 'gpsLat', 'gpsLng', 'nomenclaturaCatastral'] as const;
+const claveLugar = (u?: string | null) => `faltas-piloto:ultimo-lugar:${u ?? ''}`;
+function leerUltimoLugar(usuario?: string | null): Partial<Infraccion> {
+  try { return JSON.parse(localStorage.getItem(claveLugar(usuario)) ?? '{}') as Partial<Infraccion>; } catch { return {}; }
+}
+function guardarUltimoLugar(f: Partial<Infraccion>) {
+  try {
+    const lugar = Object.fromEntries(CAMPOS_LUGAR.map((k) => [k, f[k as keyof Infraccion] ?? null]));
+    localStorage.setItem(claveLugar(f.inspectorUsername), JSON.stringify(lugar));
+  } catch { /* sin almacenamiento */ }
+}
+
 export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
   const params = useParams();
   const router = useRouter();
   const notify = useNotify();
   const user = useAuthUser();
+  useScrollAlEnfocar();
   const { setOcultarTopbar } = useLayout();
   const tipo = tipoActa((params.tipo as string) ?? 'multas');
   const info = TIPOS_ACTA[tipo];
@@ -63,6 +78,7 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
   const [visitados, setVisitados] = useState<Set<string>>(new Set());
   const [intentoFirma, setIntentoFirma] = useState(false);
   const [recienFirmada, setRecienFirmada] = useState(false);
+  const [confirmarSalida, setConfirmarSalida] = useState(false);
   const [gpsEstado, setGpsEstado] = useState<'' | 'buscando' | 'ok' | 'error'>('');
   const [cat, setCat] = useState<Record<string, OpcionCatalogo[]>>({});
   const iniciado = useRef(false);
@@ -117,14 +133,16 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
     const carga = uuid ? apiClient.getInfraccion(uuid) : apiClient.iniciarActa(tipo);
     carga
       .then((inf) => {
-        setForm({ ...vacia(tipo), ...inf, legajoFecha: toDateTimeLocal(inf.legajoFecha) });
+        // Operativo: el lugar de infracción de la última acta firmada queda precargado en la siguiente.
+        const lugar = !uuid ? leerUltimoLugar(inf.inspectorUsername) : {};
+        setForm({ ...vacia(tipo), ...inf, ...lugar, legajoFecha: toDateTimeLocal(inf.legajoFecha) });
         setFirma(inf.firmaInfractor ?? null);
         if (uuid) apiClient.imagenes(uuid).then((r) => setImagenes(r.content ?? []));
         if (!uuid && inf.uuid) window.history.replaceState(null, '', `/private/crear-editar/${tipo}/${inf.uuid}`);
       })
       .catch((e: Error) => {
         notify.error('No se pudo abrir el acta', e.message);
-        router.push(`/private/lista-infracciones/${tipo}`);
+        router.push(user?.rol === 'Inspector' ? '/private/inicio' : `/private/lista-infracciones/${tipo}`);
       })
       .finally(() => setCargando(false));
   }, [uuid, tipo, notify, router]);
@@ -222,6 +240,7 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
       const final = r.acta;
       setForm({ ...final, legajoFecha: toDateTimeLocal(final.legajoFecha) });
       setRecienFirmada(true);
+      guardarUltimoLugar(form);
       window.scrollTo({ top: 0 });
       notify.success('Acta firmada', `${final.legajoNumeroActa} ingresó como causa.`);
     } catch (e) {
@@ -236,7 +255,7 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
     try {
       await apiClient.anularActa(form.uuid!, motivoDescarte);
       notify.success('Borrador descartado', `El número ${form.legajoNumeroActa} quedó anulado.`);
-      router.push(`/private/lista-infracciones/${tipo}`);
+      router.push(user?.rol === 'Inspector' ? '/private/inicio' : `/private/lista-infracciones/${tipo}`);
     } catch (e) {
       notify.error('No se pudo descartar', (e as Error).message);
     }
@@ -274,6 +293,8 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
       ))}
     </select>
   );
+  // Campos numéricos: teclado numérico en el celular y solo dígitos.
+  const soloNumeros = (id: keyof Infraccion): React.InputHTMLAttributes<HTMLInputElement> => ({ inputMode: 'numeric', pattern: '[0-9]*', onChange: (e) => patch({ [id]: e.target.value.replace(/\D/g, '') } as Partial<Infraccion>) });
   const inp = (id: keyof Infraccion, props: React.InputHTMLAttributes<HTMLInputElement> = {}) => (
     <input id={String(id)} className="form-control" disabled={!habilitado} value={(form[id] as string | undefined) ?? ''} onChange={(e) => patch({ [id]: e.target.value } as Partial<Infraccion>)} {...props} />
   );
@@ -335,11 +356,29 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
                 <i className="fa-solid fa-print" aria-hidden="true" /> Imprimir ticket
               </button>
             </div>
-            <button type="button" className="btn btn-success btn-lg w-100 mt-3 acta-confirmada-ok" onClick={() => router.push(inicioPara(user?.rol, user?.sector, user?.modulosActa))}>
+            <button type="button" className="btn btn-success btn-lg w-100 mt-3 acta-confirmada-ok" onClick={() => setConfirmarSalida(true)}>
               <i className="fa-solid fa-check" aria-hidden="true" /> Listo, volver al inicio
             </button>
           </div>
         </article>
+        {confirmarSalida ? (
+          <div className="modal-fake-overlay" onClick={(e) => e.target === e.currentTarget && setConfirmarSalida(false)}>
+            <div className="modal-fake" role="dialog" aria-modal="true" aria-label="Salir del acta">
+              <div className="modal-fake-header">
+                <i className="fa-solid fa-triangle-exclamation" aria-hidden="true" />
+                <h2>¿Volver al inicio?</h2>
+                <button type="button" aria-label="Cerrar" onClick={() => setConfirmarSalida(false)}>&times;</button>
+              </div>
+              <div className="modal-fake-body">
+                <p className="mb-0">Después <strong>ya no podrá volver a ver esta acta</strong> desde su usuario. Si necesita el ticket o el acta, imprímalos antes de salir.</p>
+              </div>
+              <div className="modal-fake-footer">
+                <button type="button" className="btn btn-outline-secondary" onClick={() => setConfirmarSalida(false)}>Quedarme</button>
+                <button type="button" className="btn btn-success" onClick={() => router.push(inicioPara(user?.rol, user?.sector, user?.modulosActa))}>Sí, volver al inicio</button>
+              </div>
+            </div>
+          </div>
+        ) : null}
       </div>
     );
   }
@@ -649,7 +688,7 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
               </div>
               <div className="col-12 col-md-4">
                 <Campo id="infractorProvinciaNombre" label="Provincia">
-                  {sel(cat.provincia, form.infractorProvinciaNombre, (v) => patch({ infractorProvinciaNombre: v }), 'infractorProvinciaNombre')}
+                  {sel(PROVINCIAS_AR.map((n, i) => ({ id: i + 1, nombre: n })), form.infractorProvinciaNombre, (v) => patch({ infractorProvinciaNombre: v }), 'infractorProvinciaNombre')}
                 </Campo>
               </div>
               <div className="col-12 col-md-4">
@@ -676,7 +715,7 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
               {tipo === 'multas' ? (
                 <div className="col-12 col-md-4">
                   <Campo id="vehiculoNumeroLicencia" label="N.° de licencia de conducir">
-                    {inp('vehiculoNumeroLicencia')}
+                    {inp('vehiculoNumeroLicencia', soloNumeros('vehiculoNumeroLicencia'))}
                   </Campo>
                 </div>
               ) : null}
@@ -697,7 +736,7 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
               </div>
               <div className="col-12 col-md-4">
                 <Campo id="vehiculoNumeroControlInterno" label="N.° de control interno">
-                  {inp('vehiculoNumeroControlInterno')}
+                  {inp('vehiculoNumeroControlInterno', soloNumeros('vehiculoNumeroControlInterno'))}
                 </Campo>
               </div>
               {tipo === 'multas' ? (
@@ -817,7 +856,9 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
                       ].map(([k, t]) => (
                         <div key={k} className="col-6 col-md-4">
                           <Campo id={k} label={t}>
-                            <input id={k} className="form-control" disabled={!habilitado} value={form.metadata?.[k] ?? ''} onChange={(e) => patchMeta(k, e.target.value)} />
+                            {['alcoholimetroSerie', 'alcoholimetroMedicion'].includes(k)
+                              ? <input id={k} className="form-control" inputMode="numeric" pattern="[0-9]*" disabled={!habilitado} value={form.metadata?.[k] ?? ''} onChange={(e) => patchMeta(k, e.target.value.replace(/\D/g, ''))} />
+                              : <input id={k} className="form-control" disabled={!habilitado} value={form.metadata?.[k] ?? ''} onChange={(e) => patchMeta(k, e.target.value)} />}
                           </Campo>
                         </div>
                       ))}

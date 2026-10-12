@@ -37,6 +37,7 @@ Avance: **15 / 20**
 | Radio y texto alineados en «Situación del infractor» | dab2d1e |
 | Correo del infractor editable desde la causa | 68e6fbf |
 | Localidad antes que partido (catálogo BA + CABA, ingreso libre) y alcoholemia alineada | 2a47247 |
+| Labrado en operativo: provincias de todo el país, campos numéricos (licencia, control interno, serie y medición), el campo enfocado sube arriba en el celular (también en el modal de artículos), aviso al salir de la pantalla final, lugar de infracción precargado entre actas y regreso al inicio al descartar | (este commit) |
 | Inicio de inspectores (móvil y escritorio): «Crear nueva acta» / «Ver mis borradores» a pantalla completa, elección de tipo si tiene varios, sin menú lateral y con Inicio / tema / Salir en la barra | 847c19a |
 | Pantalla final del labrado: resumen completo, ver acta / ticket y «Listo, volver al inicio»; quita el texto de ayuda del ejido | 7b98517 |
 | Móvil: barra «Acta de tránsito» con el estado y número de acta al pie de cada paso | 931f535 |
