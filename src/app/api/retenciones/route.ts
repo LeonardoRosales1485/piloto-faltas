@@ -42,5 +42,5 @@ export async function GET(req: NextRequest) {
       estadisticas: { retenidos: lista.filter((x) => x.estado === 'Retenido').length, liberados: lista.filter((x) => x.estado === 'Liberado').length, totales: lista.length, pendiente, recaudado, total: pendiente + recaudado },
       lista,
     };
-  }, 'gestionarCausas');
+  }, 'retenciones');
 }

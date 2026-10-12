@@ -32,7 +32,7 @@ export function Presentaciones() {
   }
 
   const lista = (items ?? []).filter((p) => !tipo || p.tipo === tipo);
-  const gestion = puede(user?.rol, 'gestionarCausas');
+  const gestion = puede(user?.rol, 'resolverPresentaciones');
 
   return (
     <div className="pagina">

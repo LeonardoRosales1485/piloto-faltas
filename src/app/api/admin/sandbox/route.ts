@@ -7,7 +7,7 @@ export async function GET(req: NextRequest) {
     const { data, error } = await db.rpc('sandbox_info');
     if (error) throw new Error(error.message);
     return data ?? {};
-  }, 'parametrizar');
+  }, 'sandbox');
 }
 
 type Body = { accion: 'borrar' | 'usuarios' | 'cargar' | 'guardar_foto'; origen?: 'default' | 'foto'; confirmacion?: string };
@@ -29,5 +29,5 @@ export async function POST(req: NextRequest) {
     if (error) throw new Error(error.message);
     console.info(`[sandbox] ${user.username} ejecutó ${b.accion}${b.origen ? ` (${b.origen})` : ''}`);
     return { resultado: data };
-  }, 'parametrizar');
+  }, 'sandbox');
 }

@@ -76,5 +76,5 @@ export async function POST(req: NextRequest) {
       await enviarCorreo(db, p.ciudadano.email, `Respuesta a su ${NOMBRE[tipo] ?? 'presentación'} · Acta ${c.legajo_numero_acta}`, `${body.accion === 'aceptar' ? 'Su solicitud fue aceptada.' : body.accion === 'observar' ? 'Su descargo fue observado. Puede reenviarlo una única vez desde el portal.' : 'Su solicitud fue rechazada.'} ${respuesta}${body.accion === 'aceptar' && tipo !== 'descargo' && tipo !== 'apelacion' ? ' La boleta está disponible en el portal.' : ''}`, c.id);
     }
     return { ok: true };
-  }, 'gestionarCausas');
+  }, 'resolverPresentaciones');
 }

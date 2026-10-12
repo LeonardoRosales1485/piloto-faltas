@@ -12,5 +12,5 @@ export async function POST(req: NextRequest) {
     check(b.texto?.trim(), 'El texto no puede quedar vacío');
     await db.from('texto_portal').update({ texto: b.texto.trim() }).eq('llave', b.llave);
     return { ok: true };
-  }, 'parametrizar');
+  }, 'textos');
 }

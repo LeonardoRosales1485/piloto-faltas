@@ -30,7 +30,7 @@ export function PermisosPorTipo() {
   const roles = Object.keys(ROL_ETIQUETA);
   return (
     <div className="card-step">
-      <div className="card-step-header"><h2>Tipos de usuario y permisos</h2><p>Qué secciones ve cada tipo de usuario. Los permisos particulares de un usuario (botón «Permisos» en la lista) tienen prioridad sobre los de su tipo.</p></div>
+      <div className="card-step-header"><h2>Tipos de usuario y permisos</h2><p>Qué secciones ve cada tipo de usuario. Los permisos particulares de un usuario (en «Editar» de cada usuario) tienen prioridad sobre los de su tipo.</p></div>
       <div className="card-step-body table-responsive">
         <table className="table align-middle matriz-permisos mb-0">
           <thead><tr><th>Permiso</th>{roles.map((r) => <th key={r} className="text-center">{ROL_ETIQUETA[r]}</th>)}</tr></thead>

@@ -17,5 +17,5 @@ export async function GET(req: NextRequest) {
     const conteos: Record<string, number> = {};
     for (const r of ((cnt ?? []) as unknown as { estado: string; infraccion?: { infraccion_tipo_id?: number } | null }[]).filter(vis)) conteos[r.estado] = (conteos[r.estado] ?? 0) + 1;
     return { items: ((data ?? []) as unknown as { infraccion?: { infraccion_tipo_id?: number } | null }[]).filter(vis), conteos };
-  }, 'verCausas');
+  }, 'verEscritos');
 }

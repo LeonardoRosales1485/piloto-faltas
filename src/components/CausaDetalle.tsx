@@ -126,7 +126,7 @@ export function CausaDetalle() {
     { t: 'Disposición de levantamiento', i: 'fa-solid fa-lock-open', ver: gestion && c.medidaVigente === 1 && !tieneEscrito('DISPOSICION_LEVANTAMIENTO'), on: () => void generarDesde('DISPOSICION_LEVANTAMIENTO') },
     { t: 'Dictar fallo', i: 'fa-solid fa-scale-balanced', ver: puedeFallo, deshabilitado: descPend ? 'Hay un descargo sin resolver: resuélvalo primero (aceptar, observar o rechazar).' : undefined, on: abrirFallo },
     { t: 'Generar escrito', i: 'fa-solid fa-file-circle-plus', on: abrirEscrito, ver: puede(user?.rol, 'redactarEscritos') && !final, destacado: true },
-    { t: 'Emitir boleta', i: 'fa-solid fa-receipt', ver: gestion && !final && !['Esp. Acreditar Pago', 'Cuotas', 'En Juzgado', 'En Apremios'].includes(estado), on: () => setModal({
+    { t: 'Emitir boleta', i: 'fa-solid fa-receipt', ver: puede(user?.rol, 'emitirBoletas') && !final && !['Esp. Acreditar Pago', 'Cuotas', 'En Juzgado', 'En Apremios'].includes(estado), on: () => setModal({
       titulo: 'Emitir boleta (Malvinas 2000 simulado)', icono: 'fa-solid fa-receipt', accion: 'emitir_boleta', textoOk: 'Emitir',
       campos: [
         { k: 'modo', t: 'Tipo', tipo: 'select', opciones: [{ v: 'voluntario', t: 'Pago voluntario (50 %)' }, { v: 'total', t: 'Sin beneficio (100 %)' }, { v: 'cuotas', t: 'Plan de cuotas' }] },
@@ -134,7 +134,7 @@ export function CausaDetalle() {
         { k: 'aNombre', t: 'A nombre de (quien firma el compromiso)', tipo: 'texto', valor: String(c.infractorRazonSocial || c.infractorNombre || '') },
       ],
     }) },
-    { t: 'Boleta de estadía', i: 'fa-solid fa-warehouse', ver: gestion && c.retencionDeVehiculo === 1 && !final, on: () => setModal({ titulo: 'Boleta de estadía', accion: 'emitir_estadia', icono: 'fa-solid fa-warehouse', aviso: 'Se cobra al retirar el vehículo. La fecha de ingreso al depósito la carga Faltas.', campos: [{ k: 'ingreso', t: 'Fecha de ingreso al depósito', tipo: 'fecha', req: true }], extra: { conv: 'ingreso' } }) },
+    { t: 'Boleta de estadía', i: 'fa-solid fa-warehouse', ver: puede(user?.rol, 'emitirBoletas') && c.retencionDeVehiculo === 1 && !final, on: () => setModal({ titulo: 'Boleta de estadía', accion: 'emitir_estadia', icono: 'fa-solid fa-warehouse', aviso: 'Se cobra al retirar el vehículo. La fecha de ingreso al depósito la carga Faltas.', campos: [{ k: 'ingreso', t: 'Fecha de ingreso al depósito', tipo: 'fecha', req: true }], extra: { conv: 'ingreso' } }) },
     { t: 'Ajustar valorización', i: 'fa-solid fa-scale-unbalanced', ver: gestion && !final, on: () => setModal({ titulo: 'Ajustar valorización', accion: 'ajustar_monto', icono: 'fa-solid fa-scale-unbalanced', campos: [{ k: 'monto', t: 'Monto de la multa ($)', tipo: 'numero', req: true, valor: String(d.valorizacion.multa) }, { k: 'motivo', t: 'Motivo', tipo: 'area', req: true, ayuda: 'Por ejemplo: falta de exhibición de documentación acreditada luego.' }] }) },
     { t: 'Continuar procedimiento', i: 'fa-solid fa-forward', ver: gestion && estado === 'Cuotas' && cuotasVencidas, peligro: true, on: () => setModal({ titulo: 'Caducidad del plan de cuotas', accion: 'continuar_procedimiento', campos: [], aviso: 'Hay cuotas vencidas sin pagar. La causa sigue a fallo, o a Apremios si las cuotas eran de un fallo.', textoOk: 'Continuar' }) },
     { t: 'Derivar a Apremios', i: 'fa-solid fa-building-columns', ver: gestion && ['Fallo notificado', 'Cuotas'].includes(estado), on: () => setModal({ titulo: 'Derivar a Apremios', accion: 'derivar', extra: { destino: 'apremios' }, campos: [{ k: 'detalle', t: 'Detalle', tipo: 'area', valor: 'Vencido el plazo de 5 días hábiles sin pago ni apelación. Se remite el legajo completo en PDF.' }] }) },
@@ -142,7 +142,7 @@ export function CausaDetalle() {
     { t: 'Registrar resultado externo', i: 'fa-solid fa-flag-checkered', ver: gestion && infoEstado(estado).familia === 'externo', on: () => setModal({ titulo: 'Resultado informado por Juzgado de Paz o Apremios', accion: 'resultado_externo', campos: [{ k: 'estado', t: 'Resultado', tipo: 'select', opciones: ['Pago en Apremios', 'Archivo judicial', 'Archivo absolución', 'Archivo nulidad', 'Archivo prescripción'].map((x) => ({ v: x, t: x })) }, { k: 'detalle', t: 'Detalle', tipo: 'area' }] }) },
     { t: 'Presentación en mesa', i: 'fa-solid fa-person-walking', ver: gestion && !final, on: () => setModal({ titulo: 'Registrar presentación en mesa', accion: 'presentacion_mesa', campos: [{ k: 'tipo', t: 'Tipo', tipo: 'select', opciones: Object.entries(TIPO_PRES).map(([v, t]) => ({ v, t })) }, { k: 'texto', t: 'Detalle', tipo: 'area', req: true }, { k: 'cuotas', t: 'Cuotas solicitadas', tipo: 'numero' }] }) },
     { t: 'Adjuntar documento', i: 'fa-solid fa-paperclip', ver: puede(user?.rol, 'redactarEscritos'), on: () => setModal({ titulo: 'Adjuntar documento escaneado', accion: 'adjuntar', icono: 'fa-solid fa-paperclip', campos: [{ k: 'titulo', t: 'Título', tipo: 'texto', req: true }, { k: 'archivo', t: 'Archivo (imagen o PDF)', tipo: 'archivo', req: true }], extra: { conv: 'archivo' } }) },
-    { t: d.subsanacion ? 'Ver subsanación' : 'Subsanar datos', i: 'fa-solid fa-pen-to-square', ver: gestion || Boolean(d.subsanacion), on: () => (d.subsanacion ? (setTab('resumen'), setVista('subsanada'), window.scrollTo({ top: 0, behavior: 'smooth' })) : setModal({
+    { t: d.subsanacion ? 'Ver subsanación' : 'Subsanar datos', i: 'fa-solid fa-pen-to-square', ver: puede(user?.rol, 'subsanar') || Boolean(d.subsanacion), on: () => (d.subsanacion ? (setTab('resumen'), setVista('subsanada'), window.scrollTo({ top: 0, behavior: 'smooth' })) : setModal({
       titulo: 'Subsanar datos del acta', accion: 'subsanar', icono: 'fa-solid fa-pen-to-square', textoOk: 'Guardar subsanación', extra: { conv: 'subsanar' },
       aviso: 'Corrija solo los datos que correspondan. El acta firmada no se modifica: la corrección se guarda aparte, se genera una constancia y se usa en adelante. Solo se puede subsanar una vez.',
       campos: [
@@ -151,11 +151,11 @@ export function CausaDetalle() {
         { k: 'motivo', t: 'Motivo de la subsanación', tipo: 'area' as const, req: true },
       ],
     })) },
-    { t: 'Memo interno', i: 'fa-solid fa-note-sticky', ver: gestion || puede(user?.rol, 'redactarEscritos'), on: () => { setTab('memos'); setTimeout(() => document.getElementById('memo-nuevo')?.focus(), 50); } },
+    { t: 'Memo interno', i: 'fa-solid fa-note-sticky', ver: puede(user?.rol, 'memos'), on: () => { setTab('memos'); setTimeout(() => document.getElementById('memo-nuevo')?.focus(), 50); } },
     { t: 'Cambiar estado', i: 'fa-solid fa-arrows-rotate', ver: puede(user?.rol, 'cambiarEstadoManual'), on: () => setModal({ titulo: 'Cambiar estado manualmente', accion: 'cambiar_estado', campos: [{ k: 'estado', t: 'Nuevo estado', tipo: 'select', opciones: ESTADOS_CAUSA.map((e) => ({ v: e.nombre, t: e.nombre })) }, { k: 'motivo', t: 'Motivo', tipo: 'area', req: true }] }) },
-    { t: 'Archivar', i: 'fa-solid fa-box-archive', ver: gestion && !final, on: () => setModal({ titulo: 'Archivar causa', accion: 'archivar', campos: [{ k: 'motivo', t: 'Tipo de archivo', tipo: 'select', opciones: motivos.map((m) => ({ v: m, t: m })) }, { k: 'detalle', t: 'Detalle', tipo: 'area' }], aviso: c.medidaVigente === 1 ? 'La causa tiene una medida vigente: el archivo por pago no procede hasta su levantamiento.' : undefined }) },
-    { t: 'Reingresar', i: 'fa-solid fa-rotate-left', ver: gestion && final, on: () => setModal({ titulo: 'Reingresar causa archivada', accion: 'reingresar', campos: [{ k: 'motivo', t: 'Motivo', tipo: 'area', req: true }] }) },
-    { t: 'Desestimar', i: 'fa-solid fa-ban', ver: gestion && !final, peligro: true, on: () => setModal({ titulo: 'Desestimar causa', accion: 'desestimar', peligro: true, textoOk: 'Desestimar', aviso: 'La causa se cierra sin eliminarse: queda el registro completo.', campos: [{ k: 'motivo', t: 'Motivo', tipo: 'area', req: true }] }) },
+    { t: 'Archivar', i: 'fa-solid fa-box-archive', ver: puede(user?.rol, 'archivar') && !final, on: () => setModal({ titulo: 'Archivar causa', accion: 'archivar', campos: [{ k: 'motivo', t: 'Tipo de archivo', tipo: 'select', opciones: motivos.map((m) => ({ v: m, t: m })) }, { k: 'detalle', t: 'Detalle', tipo: 'area' }], aviso: c.medidaVigente === 1 ? 'La causa tiene una medida vigente: el archivo por pago no procede hasta su levantamiento.' : undefined }) },
+    { t: 'Reingresar', i: 'fa-solid fa-rotate-left', ver: puede(user?.rol, 'archivar') && final, on: () => setModal({ titulo: 'Reingresar causa archivada', accion: 'reingresar', campos: [{ k: 'motivo', t: 'Motivo', tipo: 'area', req: true }] }) },
+    { t: 'Desestimar', i: 'fa-solid fa-ban', ver: puede(user?.rol, 'archivar') && !final, peligro: true, on: () => setModal({ titulo: 'Desestimar causa', accion: 'desestimar', peligro: true, textoOk: 'Desestimar', aviso: 'La causa se cierra sin eliminarse: queda el registro completo.', campos: [{ k: 'motivo', t: 'Motivo', tipo: 'area', req: true }] }) },
   ];
 
   const subCampos = (d.subsanacion?.campos ?? {}) as Record<string, { antes: string; despues: string }>;
@@ -212,7 +212,7 @@ export function CausaDetalle() {
         <div className="card-step">
           <div className="card-step-body">
             {pendientes.map((p) => (
-              <TarjetaPresentacion key={p.uuid} p={p} causa={causaTarjeta} adjuntos={adjuntosDe(p)} gestion={gestion} destacada onResuelta={presentacionResuelta} />
+              <TarjetaPresentacion key={p.uuid} p={p} causa={causaTarjeta} adjuntos={adjuntosDe(p)} gestion={puede(user?.rol, 'resolverPresentaciones')} destacada onResuelta={presentacionResuelta} />
             ))}
 
             {tab === 'resumen' ? (
@@ -320,7 +320,7 @@ export function CausaDetalle() {
               <ul className="lista-items">
                 {d.presentaciones.map((p) => (
                   <li key={p.uuid} className="d-block">
-                    <TarjetaPresentacion p={p} causa={causaTarjeta} adjuntos={adjuntosDe(p)} gestion={gestion} onResuelta={presentacionResuelta} />
+                    <TarjetaPresentacion p={p} causa={causaTarjeta} adjuntos={adjuntosDe(p)} gestion={puede(user?.rol, 'resolverPresentaciones')} onResuelta={presentacionResuelta} />
                   </li>
                 ))}
                 {!d.presentaciones.length ? <li><span className="texto-ayuda">Sin presentaciones.</span></li> : null}
@@ -348,7 +348,7 @@ export function CausaDetalle() {
             {tab === 'memos' ? (
               <div className="memos">
                 <p className="texto-ayuda">Notas internas del personal de Faltas. No cambian el estado de la causa y no se ven en el portal del infractor.</p>
-                {gestion || puede(user?.rol, 'redactarEscritos') ? (
+                {puede(user?.rol, 'memos') ? (
                   <div className="memo-nuevo">
                     <textarea id="memo-nuevo" className="form-control" rows={3} placeholder="Escriba un memo interno…" value={memo} onChange={(e) => setMemo(e.target.value)} />
                     <button type="button" className="btn btn-primary mt-2" disabled={!memo.trim()} onClick={async () => { const r = await accion('memo', { texto: memo }, 'Memo agregado'); if (r) setMemo(''); }}>

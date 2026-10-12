@@ -53,19 +53,42 @@ export const ROL_ETIQUETA: Record<string, string> = {
 
 const BACK_OFFICE = ['Administrador', 'Usuario', 'Directora', 'Abogada', 'Becario'];
 
+const GESTION = ['Administrador', 'Usuario', 'Directora', 'Abogada'];
+const ESCRITOS = ['Administrador', 'Usuario', 'Directora', 'Abogada', 'Becario'];
+const SUPERVISION = ['Directora', 'Abogada', 'Administrador'];
+const ADMIN = ['Administrador'];
+
+/** Valores por defecto de cada permiso. El Administrador puede cambiarlos por tipo de usuario o por usuario. */
 export const PERMISOS = {
   labrar: ['Inspector', 'Administrador'],
   verCausas: BACK_OFFICE,
-  gestionarCausas: ['Administrador', 'Usuario', 'Directora', 'Abogada'],
-  cambiarEstadoManual: ['Administrador', 'Usuario', 'Directora', 'Abogada'],
-  redactarEscritos: ['Administrador', 'Usuario', 'Directora', 'Abogada', 'Becario'],
+  gestionarCausas: GESTION,
+  cambiarEstadoManual: GESTION,
+  subsanar: GESTION,
+  archivar: GESTION,
+  memos: ESCRITOS,
+  verPresentaciones: BACK_OFFICE,
+  resolverPresentaciones: GESTION,
+  verEscritos: BACK_OFFICE,
+  redactarEscritos: ESCRITOS,
   firmar: ['Directora', 'Abogada'],
-  confirmarPagos: ['Administrador', 'Usuario', 'Directora', 'Abogada'],
-  parametrizar: ['Administrador'],
+  verPagos: BACK_OFFICE,
+  emitirBoletas: GESTION,
+  confirmarPagos: GESTION,
+  retenciones: GESTION,
+  verReportes: BACK_OFFICE,
   valores: ['Tributario', 'Directora', 'Administrador'],
-  auditoria: ['Directora', 'Abogada', 'Administrador'],
-  inspectores: ['Directora', 'Abogada', 'Administrador'],
-  ordenanzas: ['Directora', 'Abogada', 'Administrador'],
+  ordenanzas: SUPERVISION,
+  inspectores: SUPERVISION,
+  seguimientoGps: SUPERVISION,
+  auditoria: SUPERVISION,
+  plantillas: ADMIN,
+  textos: ADMIN,
+  feriados: ADMIN,
+  marcasModelos: ADMIN,
+  correos: ADMIN,
+  sandbox: ADMIN,
+  parametrizar: ADMIN,
 } as const;
 
 export type Permiso = keyof typeof PERMISOS;
@@ -86,19 +109,36 @@ export function tipoVisible(rol: string | undefined | null, tipoId: number | str
 }
 
 /** Descripción de cada permiso para el ABM (qué secciones habilita). */
-export const PERMISO_INFO: Record<Permiso, { t: string; d: string }> = {
-  labrar: { t: 'Labrar actas', d: 'Inicio del inspector, labrado y borradores de actas' },
-  verCausas: { t: 'Ver causas', d: 'Causas, presentaciones, escritos, pagos y reportes' },
-  gestionarCausas: { t: 'Gestionar causas', d: 'Acciones de la causa, boletas, presentaciones en mesa y retenciones' },
-  cambiarEstadoManual: { t: 'Cambiar estado manualmente', d: 'Acción «Cambiar estado» de la causa' },
-  redactarEscritos: { t: 'Redactar escritos', d: 'Generar y editar escritos, adjuntar documentos, memos' },
-  firmar: { t: 'Firmar escritos', d: 'Firma digital de resoluciones, disposiciones y fallos' },
-  confirmarPagos: { t: 'Confirmar pagos', d: 'Acreditar pagos (a verificar → definitivo)' },
-  parametrizar: { t: 'Configuración', d: 'Plantillas, textos, feriados, usuarios y permisos, marcas, registro de correos, sandbox' },
-  valores: { t: 'Valores y tarifas', d: 'Unidad tributaria, acarreos, estadías, derecho de oficina' },
-  auditoria: { t: 'Auditoría', d: 'Registro de auditoría' },
-  inspectores: { t: 'Inspectores', d: 'ABM de inspectores y seguimiento GPS' },
-  ordenanzas: { t: 'Ordenanzas', d: 'Alta y edición de ordenanzas y artículos' },
+export const PERMISO_INFO: Record<Permiso, { g: string; t: string; d: string }> = {
+  labrar: { g: 'Actas', t: 'Labrar actas', d: 'Inicio del inspector, labrado y borradores (según los tipos de acta asignados)' },
+  verCausas: { g: 'Causas', t: 'Ver causas', d: 'Bandeja de causas y detalle de la causa' },
+  gestionarCausas: { g: 'Causas', t: 'Gestionar causas', d: 'Acciones generales de la causa: notificar, derivar, ajustar valorización, presentación en mesa' },
+  cambiarEstadoManual: { g: 'Causas', t: 'Cambiar estado manualmente', d: 'Acción «Cambiar estado»' },
+  subsanar: { g: 'Causas', t: 'Subsanar datos', d: 'Corrección de datos del acta con motivo' },
+  archivar: { g: 'Causas', t: 'Archivar, reingresar y desestimar', d: 'Cierre y reapertura de causas' },
+  memos: { g: 'Causas', t: 'Memos internos', d: 'Escribir memos internos en la causa' },
+  verPresentaciones: { g: 'Presentaciones', t: 'Ver presentaciones', d: 'Bandeja «Presentaciones»' },
+  resolverPresentaciones: { g: 'Presentaciones', t: 'Resolver presentaciones', d: 'Aceptar, observar o rechazar descargos, pagos, cuotas y apelaciones' },
+  verEscritos: { g: 'Escritos', t: 'Ver escritos', d: 'Bandeja «Escritos y firma»' },
+  redactarEscritos: { g: 'Escritos', t: 'Redactar escritos', d: 'Generar y editar escritos, adjuntar documentos' },
+  firmar: { g: 'Escritos', t: 'Firmar escritos', d: 'Firma digital de resoluciones, disposiciones y fallos' },
+  verPagos: { g: 'Pagos', t: 'Ver pagos', d: 'Sección «Pagos»' },
+  emitirBoletas: { g: 'Pagos', t: 'Emitir boletas', d: 'Boletas de multa y de estadía' },
+  confirmarPagos: { g: 'Pagos', t: 'Confirmar pagos', d: 'Acreditar pagos (a verificar → definitivo)' },
+  retenciones: { g: 'Pagos', t: 'Retenciones', d: 'Sección «Retenciones» y liberación de vehículos' },
+  verReportes: { g: 'Gestión', t: 'Reportes', d: 'Sección «Reportes»' },
+  valores: { g: 'Gestión', t: 'Valores y tarifas', d: 'Unidad tributaria, acarreos, estadías, derecho de oficina' },
+  ordenanzas: { g: 'Gestión', t: 'Ordenanzas', d: 'Alta y edición de ordenanzas y artículos' },
+  inspectores: { g: 'Gestión', t: 'Inspectores', d: 'ABM de inspectores' },
+  seguimientoGps: { g: 'Gestión', t: 'Seguimiento GPS', d: 'Mapa de seguimiento de inspectores' },
+  auditoria: { g: 'Gestión', t: 'Auditoría', d: 'Registro de auditoría' },
+  plantillas: { g: 'Configuración', t: 'Plantillas de escritos', d: 'Alta y edición de plantillas' },
+  textos: { g: 'Configuración', t: 'Textos del portal', d: 'Textos que ve el infractor' },
+  feriados: { g: 'Configuración', t: 'Feriados', d: 'Días no hábiles para los plazos' },
+  marcasModelos: { g: 'Configuración', t: 'Marcas y modelos', d: 'Catálogo de vehículos del labrado' },
+  correos: { g: 'Configuración', t: 'Registro de correos', d: 'Correos enviados por el sistema' },
+  sandbox: { g: 'Configuración', t: 'Opciones sandbox', d: 'Borrar, guardar y cargar datos de prueba' },
+  parametrizar: { g: 'Configuración', t: 'Usuarios y permisos', d: 'ABM de usuarios, tipos de usuario y permisos' },
 };
 
 export type Overrides = Partial<Record<Permiso, boolean>>;

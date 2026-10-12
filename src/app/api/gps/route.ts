@@ -44,5 +44,5 @@ export async function GET(req: NextRequest) {
       }),
       actas: actas ?? [],
     };
-  }, 'inspectores');
+  }, 'seguimientoGps');
 }

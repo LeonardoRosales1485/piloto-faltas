@@ -31,5 +31,5 @@ export async function GET(req: NextRequest) {
       recaudado: pagos.reduce((a, b) => a + Number(b.monto), 0),
       pagosPorMes,
     };
-  }, 'verCausas');
+  }, 'verReportes');
 }

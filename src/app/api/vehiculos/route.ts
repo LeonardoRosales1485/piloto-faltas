@@ -58,5 +58,5 @@ export async function POST(req: NextRequest) {
       if (error) throw new Error(error.message.includes('duplicate') ? 'Esa marca ya tiene un modelo con ese nombre' : error.message);
     }
     return { ok: true };
-  }, 'parametrizar');
+  }, 'marcasModelos');
 }

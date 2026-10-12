@@ -19,5 +19,5 @@ export async function GET(req: NextRequest) {
       for (const d of (docs ?? []) as { uuid: string; titulo: string; presentacion_id: number }[]) (adj[d.presentacion_id] ??= []).push({ uuid: d.uuid, titulo: d.titulo });
     }
     return filas.map((p) => ({ ...p, adjuntos: adj[p.id] ?? [] }));
-  }, 'verCausas');
+  }, 'verPresentaciones');
 }

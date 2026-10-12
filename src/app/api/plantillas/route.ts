@@ -35,5 +35,5 @@ export async function POST(req: NextRequest) {
     const { data, error } = await db.from('plantilla').insert({ ...fila, uuid: uuid(), codigo, date_created: Date.now() }).select('id').single();
     if (error) throw new Error(error.message);
     return data;
-  }, 'parametrizar');
+  }, 'plantillas');
 }

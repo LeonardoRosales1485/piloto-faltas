@@ -175,6 +175,6 @@ Para cualquier opción debe adjuntar el **DNI de frente y de dorso**, y el **est
 En **Configuración → Usuarios** hay dos pestañas:
 
 - **Tipos de usuario y permisos:** una tabla con cada permiso (Labrar actas, Ver causas, Gestionar causas, Valores y tarifas, Ordenanzas, Configuración, etc.) y una casilla por tipo de usuario. Lo que se marque define qué secciones ve ese tipo. Las casillas resaltadas difieren del valor por defecto y se pueden **restablecer**.
-- **Usuarios → Permisos:** para un usuario puntual, cada permiso puede quedar **Según su tipo**, **Permitir** o **Denegar**. Lo elegido para el usuario tiene prioridad sobre su tipo.
+- **Usuarios → Editar:** abre la **vista del usuario**, con sus datos (tipo de usuario, tipos de acta si es inspector, contraseña) y todos sus permisos agrupados (Actas, Causas, Presentaciones, Escritos, Pagos, Gestión, Configuración). Cada permiso puede quedar **Según su tipo**, **Permitir** o **Denegar**, con buscador y «Restablecer todo». Lo elegido para el usuario tiene prioridad sobre su tipo.
 
 El Administrador conserva siempre «Configuración» para no quedarse sin acceso. Los usuarios ven los cambios al volver a entrar o al recargar la página.

@@ -8,7 +8,8 @@ import { fechaCorta, MODULOS_ACTA, modulosDe, ROL_ETIQUETA } from '@/lib/dominio
 import { useAuthUser } from '@/lib/use-auth-user';
 import { ModalForm, type CampoModal } from './ModalForm';
 import { useNotify } from './NotifyProvider';
-import { PermisosDeUsuario, PermisosPorTipo } from './AdminPermisos';
+import Link from 'next/link';
+import { PermisosPorTipo } from './AdminPermisos';
 
 type U = { uuid: string; username: string; nombre: string; apellido: string; email: string | null; sector: string | null; legajo?: string | null; modulos_acta?: string | null; rol: string; activo: boolean; date_created: number };
 
@@ -24,7 +25,6 @@ export function AdminUsuarios() {
   const [verBajas, setVerBajas] = useState(false);
   const [modal, setModal] = useState<{ u?: U } | null>(null);
   const [pestana, setPestana] = useState<'usuarios' | 'tipos'>('usuarios');
-  const [permisosDe, setPermisosDe] = useState<U | null>(null);
 
   const [cargando, seguir] = useCarga();
   const cargar = useCallback(() => { void seguir(http.get<U[]>('/api/admin/usuarios').then(setItems)).catch((e: Error) => notify.error('Error', e.message)); }, [notify, seguir]);
@@ -71,7 +71,7 @@ export function AdminUsuarios() {
           <tbody>
             {cargando ? <tr><td colSpan={9}><LoaderLogo tam={56} texto="Cargando…" /></td></tr> : lista.map((u) => (
               <tr key={u.uuid} className={u.activo === false ? 'text-muted' : ''}>
-                <td><strong>{u.username}</strong>{u.username === yo?.username ? <span className="texto-ayuda"> (vos)</span> : null}</td>
+                <td><Link href={`/private/usuarios/${u.uuid}`}><strong>{u.username}</strong></Link>{u.username === yo?.username ? <span className="texto-ayuda"> (vos)</span> : null}</td>
                 <td>{u.nombre} {u.apellido}</td>
                 <td>{ROL_ETIQUETA[u.rol] ?? u.rol}{u.rol === 'Inspector' ? <div className="texto-ayuda">{modulosDe(u).map((m) => MODULOS_ACTA.find((x) => x.v === m)?.t).join(', ')}</div> : null}</td>
                 <td>{u.sector ?? '-'}</td><td>{u.legajo ?? '-'}</td>
@@ -79,8 +79,7 @@ export function AdminUsuarios() {
                 <td>{fechaCorta(u.date_created)}</td>
                 <td>{u.activo === false ? <span className="badge bg-secondary">Baja</span> : <span className="badge bg-success">Activo</span>}</td>
                 <td className="text-end text-nowrap">
-                  <button type="button" className="btn btn-sm btn-outline-primary me-1" onClick={() => setModal({ u })}><i className="fa-solid fa-pen" aria-hidden="true" /> Editar</button>
-                  <button type="button" className="btn btn-sm btn-outline-secondary me-1" onClick={() => setPermisosDe(u)}><i className="fa-solid fa-user-lock" aria-hidden="true" /> Permisos</button>
+                  <Link className="btn btn-sm btn-outline-primary me-1" href={`/private/usuarios/${u.uuid}`}><i className="fa-solid fa-pen" aria-hidden="true" /> Editar</Link>
                   {u.username !== yo?.username ? (
                     u.activo === false
                       ? <button type="button" className="btn btn-sm btn-outline-success" onClick={() => void guardar({ ...u, activo: true }, 'Usuario reactivado')}>Reactivar</button>
@@ -95,7 +94,6 @@ export function AdminUsuarios() {
       </div></div>
       <p className="texto-ayuda mt-2">Las bajas no borran al usuario: queda inactivo, no puede ingresar y su historial se conserva.</p>
       </>)}
-      {permisosDe ? <PermisosDeUsuario username={permisosDe.username} rol={permisosDe.rol} onCerrar={() => setPermisosDe(null)} /> : null}
 
       {modal ? (
         <ModalForm

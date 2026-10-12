@@ -32,14 +32,14 @@ export async function POST(req: NextRequest) {
         return { ok: true };
       }
       case 'desestimar': {
-        check(gestion, 'Sin permiso', 403);
+        check(puede(user.rol, 'archivar'), 'Sin permiso', 403);
         check(txt('motivo'), 'Indique el motivo');
         check(!estadoFinal(c.estado_faltas), 'La causa ya está cerrada');
         await cambiarEstado(db, c, 'Desestimada', quien, 'Causa desestimada', txt('motivo'));
         return { ok: true };
       }
       case 'subsanar': {
-        check(gestion, 'Sin permiso', 403);
+        check(puede(user.rol, 'subsanar'), 'Sin permiso', 403);
         check(!(await subsanacionDe(db, c.id)), 'La causa ya tiene una subsanación: no se puede hacer otra.', 409);
         const motivo = txt('motivo');
         check(motivo, 'Indique el motivo de la subsanación');
@@ -74,14 +74,14 @@ export async function POST(req: NextRequest) {
         return { ok: true };
       }
       case 'archivar': {
-        check(gestion, 'Sin permiso', 403);
+        check(puede(user.rol, 'archivar'), 'Sin permiso', 403);
         const motivo = txt('motivo');
         check(motivo.startsWith('Archiv'), 'Seleccione el tipo de archivo');
         await cambiarEstado(db, c, motivo, quien, 'Causa archivada', txt('detalle') || null);
         return { ok: true };
       }
       case 'reingresar': {
-        check(gestion, 'Sin permiso', 403);
+        check(puede(user.rol, 'archivar'), 'Sin permiso', 403);
         check(estadoFinal(c.estado_faltas), 'Solo se reingresan causas archivadas');
         check(txt('motivo'), 'Indique el motivo');
         await cambiarEstado(db, c, c.notificada_at ? 'Notificado' : 'Iniciado', quien, 'Reingreso de causa archivada', txt('motivo'), { visible_portal: 1 });
@@ -118,13 +118,13 @@ export async function POST(req: NextRequest) {
         return notificarDocumento(db, (data as { id: number }).id, quien);
       }
       case 'emitir_boleta': {
-        check(gestion, 'Sin permiso', 403);
+        check(puede(user.rol, 'emitirBoletas'), 'Sin permiso', 403);
         const modo = txt('modo') as 'voluntario' | 'total' | 'cuotas';
         check(['voluntario', 'total', 'cuotas'].includes(modo), 'Modo inválido');
         return emitirBoletas(db, c, modo, Number(d.cuotas ?? 1), txt('aNombre') || String(c.infractor_razon_social || c.infractor_nombre || ''), quien);
       }
       case 'emitir_estadia': {
-        check(gestion, 'Sin permiso', 403);
+        check(puede(user.rol, 'emitirBoletas'), 'Sin permiso', 403);
         const ingreso = Number(d.ingresoAt);
         check(ingreso > 0, 'Indique la fecha de ingreso al depósito');
         const dias = diasEnDeposito(ingreso);
@@ -194,7 +194,7 @@ export async function POST(req: NextRequest) {
         return { ok: true };
       }
       case 'memo': {
-        check(gestion || puede(user.rol, 'redactarEscritos'), 'Sin permiso', 403);
+        check(puede(user.rol, 'memos'), 'Sin permiso', 403);
         const texto = txt('texto');
         check(texto, 'Escriba el memo');
         await db.from('memo').insert({ uuid: uuid(), infraccion_id: c.id, texto, usuario: quien, fecha: Date.now() });
@@ -203,7 +203,7 @@ export async function POST(req: NextRequest) {
         return { ok: true };
       }
       case 'liberar_vehiculo': {
-        check(gestion, 'Sin permiso', 403);
+        check(puede(user.rol, 'retenciones'), 'Sin permiso', 403);
         check(Number(c.retencion_de_vehiculo) === 1, 'El acta no tiene retención de vehículo');
         check(!c.vehiculo_liberado_at, 'El vehículo ya fue liberado', 409);
         const ingreso = Number(d.ingresoAt) || Number(c.estadia_ingreso_at) || Number(c.firmada_at);

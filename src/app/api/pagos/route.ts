@@ -13,5 +13,5 @@ export async function GET(req: NextRequest) {
     if (error) throw new Error(error.message);
     const vis = (r: { infraccion?: { infraccion_tipo_id?: number } | null }) => tipoVisible(user.rol, r.infraccion?.infraccion_tipo_id);
     return ((data ?? []) as { infraccion?: { infraccion_tipo_id?: number } | null }[]).filter(vis);
-  }, 'verCausas');
+  }, 'verPagos');
 }

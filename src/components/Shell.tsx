@@ -13,6 +13,8 @@ import { useAuthUser } from '@/lib/use-auth-user';
 interface MenuChild {
   titulo: string;
   route: string;
+  /** Si se indica, el ítem solo se ve con ese permiso. */
+  permiso?: Permiso;
 }
 
 interface MenuGroup {
@@ -27,10 +29,10 @@ type MenuItem = MenuGroup & { permiso: Permiso };
 
 const GRUPOS: MenuItem[] = [
   { id: 'causas', titulo: 'Causas', icono: 'fa-solid fa-folder-tree', route: '/private/causas', permiso: 'verCausas' },
-  { id: 'presentaciones', titulo: 'Presentaciones', icono: 'fa-solid fa-inbox', route: '/private/presentaciones', permiso: 'verCausas' },
-  { id: 'escritos', titulo: 'Escritos y firma', icono: 'fa-solid fa-file-signature', route: '/private/escritos', permiso: 'verCausas' },
-  { id: 'pagos', titulo: 'Pagos', icono: 'fa-solid fa-money-check-dollar', route: '/private/pagos', permiso: 'verCausas' },
-  { id: 'retenciones', titulo: 'Retenciones', icono: 'fa-solid fa-warehouse', route: '/private/retenciones', permiso: 'gestionarCausas' },
+  { id: 'presentaciones', titulo: 'Presentaciones', icono: 'fa-solid fa-inbox', route: '/private/presentaciones', permiso: 'verPresentaciones' },
+  { id: 'escritos', titulo: 'Escritos y firma', icono: 'fa-solid fa-file-signature', route: '/private/escritos', permiso: 'verEscritos' },
+  { id: 'pagos', titulo: 'Pagos', icono: 'fa-solid fa-money-check-dollar', route: '/private/pagos', permiso: 'verPagos' },
+  { id: 'retenciones', titulo: 'Retenciones', icono: 'fa-solid fa-warehouse', route: '/private/retenciones', permiso: 'retenciones' },
   {
     id: 'multas',
     titulo: 'Actas de tránsito',
@@ -73,8 +75,8 @@ const GRUPOS: MenuItem[] = [
     ],
   },
   { id: 'inspectores', titulo: 'Inspectores', icono: 'fa-solid fa-id-badge', route: '/private/inspectores', permiso: 'inspectores' },
-  { id: 'gps', titulo: 'Seguimiento GPS', icono: 'fa-solid fa-location-crosshairs', route: '/private/seguimiento-gps', permiso: 'inspectores' },
-  { id: 'reportes', titulo: 'Reportes', icono: 'fa-solid fa-chart-column', route: '/private/reportes', permiso: 'verCausas' },
+  { id: 'gps', titulo: 'Seguimiento GPS', icono: 'fa-solid fa-location-crosshairs', route: '/private/seguimiento-gps', permiso: 'seguimientoGps' },
+  { id: 'reportes', titulo: 'Reportes', icono: 'fa-solid fa-chart-column', route: '/private/reportes', permiso: 'verReportes' },
   { id: 'finanzas', titulo: 'Valores y tarifas', icono: 'fa-solid fa-coins', route: '/private/finanzas', permiso: 'valores' },
   {
     id: 'config',
@@ -82,13 +84,13 @@ const GRUPOS: MenuItem[] = [
     icono: 'fa-solid fa-sliders',
     permiso: 'parametrizar',
     children: [
-      { titulo: 'Plantillas de escritos', route: '/private/plantillas' },
-      { titulo: 'Textos del portal', route: '/private/textos' },
-      { titulo: 'Feriados', route: '/private/feriados' },
-      { titulo: 'Usuarios', route: '/private/usuarios' },
-      { titulo: 'Marcas y modelos', route: '/private/marcas-modelos' },
-      { titulo: 'Registro de correos', route: '/private/correos' },
-      { titulo: 'Opciones sandbox', route: '/private/sandbox' },
+      { titulo: 'Plantillas de escritos', route: '/private/plantillas', permiso: 'plantillas' },
+      { titulo: 'Textos del portal', route: '/private/textos', permiso: 'textos' },
+      { titulo: 'Feriados', route: '/private/feriados', permiso: 'feriados' },
+      { titulo: 'Usuarios y permisos', route: '/private/usuarios', permiso: 'parametrizar' },
+      { titulo: 'Marcas y modelos', route: '/private/marcas-modelos', permiso: 'marcasModelos' },
+      { titulo: 'Registro de correos', route: '/private/correos', permiso: 'correos' },
+      { titulo: 'Opciones sandbox', route: '/private/sandbox', permiso: 'sandbox' },
     ],
   },
   { id: 'auditoria', titulo: 'Auditoría', icono: 'fa-solid fa-user-shield', route: '/private/auditoria', permiso: 'auditoria' },
@@ -178,7 +180,9 @@ function ShellInner({ children }: { children: ReactNode }) {
   const gruposVisibles = useMemo(() => {
     const modulos = modulosDe(user) as string[];
     const alcance = tiposPermitidos(user?.rol);
-    return GRUPOS.filter((g) => puede(user?.rol, g.permiso) && (g.permiso !== 'labrar' || modulos.includes(g.id))).map((g) =>
+    // Configuración: el grupo aparece si el usuario tiene al menos uno de sus ítems.
+    const conHijos = GRUPOS.map((g) => (g.id === 'config' ? { ...g, children: g.children?.filter((c) => !c.permiso || puede(user?.rol, c.permiso)) } : g));
+    return conHijos.filter((g) => (g.id === 'config' ? Boolean(g.children?.length) : puede(user?.rol, g.permiso)) && (g.permiso !== 'labrar' || modulos.includes(g.id))).map((g) =>
       g.id === 'ordenanzas' && alcance
         ? { ...g, children: g.children?.filter((c) => alcance.includes(tipoIdDe(c.route!.split('/').pop()))) }
         : g,

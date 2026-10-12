@@ -13,5 +13,5 @@ export async function POST(req: NextRequest) {
     if (b.borrar) await db.from('feriado').delete().eq('fecha', b.fecha);
     else await db.from('feriado').upsert({ fecha: b.fecha, descripcion: b.descripcion ?? '' });
     return { ok: true };
-  }, 'parametrizar');
+  }, 'feriados');
 }
