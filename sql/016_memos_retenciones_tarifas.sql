@@ -29,9 +29,12 @@ INSERT INTO configuracion (llave, valor, publico) VALUES
 ON CONFLICT (llave) DO NOTHING;
 
 -- Memos en las opciones sandbox.
-CREATE OR REPLACE FUNCTION sandbox_tablas() RETURNS TEXT[] LANGUAGE sql IMMUTABLE AS $$
-  SELECT ARRAY['ciudadano','lote','infraccion','infraccion_ley','infraccion_dependencia','infraccion_imagen',
-               'causa_historial','presentacion','documento','boleta','notificacion','correo_saliente','subsanacion','memo'];
+CREATE OR REPLACE FUNCTION sandbox_tablas() RETURNS TEXT[] LANGUAGE sql STABLE AS $$
+  SELECT coalesce(array_agg(t ORDER BY o), ARRAY[]::TEXT[])
+  FROM unnest(ARRAY['ciudadano','lote','infraccion','infraccion_ley','infraccion_dependencia','infraccion_imagen',
+                    'causa_historial','presentacion','documento','boleta','notificacion','correo_saliente','subsanacion','memo'])
+       WITH ORDINALITY AS x(t, o)
+  WHERE to_regclass('public.' || t) IS NOT NULL;
 $$;
 
 NOTIFY pgrst, 'reload schema';
