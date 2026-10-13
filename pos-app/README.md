@@ -13,9 +13,19 @@ App Android mínima (Flutter) que abre el Sistema de Faltas a pantalla completa 
    y el **QR nativo** (nítido). Sin diálogo de impresión.
 4. Fuera de la app (navegador común) o si la impresora falla, la web usa el ticket HTML de 80 mm.
 
-## Compilar
+## Compilar sin instalar nada (recomendado): GitHub Actions
 
-Requiere Flutter 3.24+ y Android SDK.
+1. Hacer `git push` (o en GitHub: **Actions → APK del POS → Run workflow**, donde se puede cambiar la URL).
+2. Cuando termine (unos 5–8 minutos), entrar a la ejecución y descargar el artifact **faltas-pos-apk** (un .zip con `app-release.apk`).
+3. Pasar el APK al H10S (cable, Drive o WhatsApp) e instalarlo (habilitar «Instalar apps desconocidas»).
+
+El workflow genera la carpeta `android/`, agrega los permisos y compila. Está en `.github/workflows/pos-apk.yml`.
+
+## Compilar en la PC (opcional)
+
+Requiere Flutter 3.24+ y Android SDK. En Windows: instalar [Android Studio](https://developer.android.com/studio) y
+[Flutter](https://docs.flutter.dev/get-started/install/windows/mobile) (descomprimir, agregar `flutter\bin` al PATH y
+correr `flutter doctor --android-licenses`). Verificar con `flutter doctor`.
 
 ```bash
 cd pos-app
