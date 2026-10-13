@@ -1,6 +1,7 @@
 'use client';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+import { ArticulosValorizacion } from './ArticulosValorizacion';
 import Link from 'next/link';
 import { LoaderLogo } from './LoaderLogo';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
@@ -22,7 +23,7 @@ import { caminoInfractor, descargoPendiente } from '@/lib/camino';
 type R = Record<string, any>;
 type Detalle = {
   acta: Infraccion; actaVigente: Infraccion | null; subsanacion: R | null; subsanables: { k: string; t: string; grupo: string; valor: string }[]; memos: R[]; historial: R[]; documentos: R[]; presentaciones: R[]; boletas: R[]; notificaciones: R[]; imagenes: R[];
-  valorizacion: { uf: number; unidades: number; multa: number; leyes: R[]; ajustado: number | null; motivoAjuste: string | null };
+  valorizacion: { uf: number; unidades: number; subtotal?: number; multa: number; leyes: R[]; ajustado: number | null; motivoAjuste: string | null };
 };
 type Modal = { titulo: string; icono?: string; campos: CampoModal[]; accion: string; textoOk?: string; peligro?: boolean; aviso?: string; extra?: R } | null;
 
@@ -262,15 +263,16 @@ export function CausaDetalle() {
                   </>
                 ) : (<>
                 <h3 className="subtitulo-paso mt-3">Artículos y valorización{subCampos.leyes && verSubsanada ? <span className="dato-subsanado ms-2" title={`Antes: ${subCampos.leyes.antes}`}>subsanados</span> : null}</h3>
-                <div className="table-responsive">
-                  <table className="table custom-table align-middle">
-                    <thead><tr><th>Norma</th><th>Artículo</th><th>Descripción</th><th className="text-end">Unidades</th></tr></thead>
-                    <tbody>
-                      {d.valorizacion.leyes.map((l) => <tr key={`${l.nombre}-${l.articulo}`}><td>{l.nombre}</td><td>{l.articulo}</td><td>{l.descripcion}</td><td className="text-end">{l.multiplicador}</td></tr>)}
-                      <tr><td colSpan={3} className="text-end fw-semibold">{d.valorizacion.unidades} UF × {pesos(d.valorizacion.uf)}{d.valorizacion.ajustado != null ? ` · ajustado: ${d.valorizacion.motivoAjuste}` : ''}</td><td className="text-end fw-bold">{pesos(d.valorizacion.multa)}</td></tr>
-                    </tbody>
-                  </table>
-                </div>
+                <ArticulosValorizacion
+                  leyes={d.valorizacion.leyes as never}
+                  uf={d.valorizacion.uf}
+                  subtotal={d.valorizacion.subtotal}
+                  multa={d.valorizacion.multa}
+                  ajustado={d.valorizacion.ajustado}
+                  motivoAjuste={d.valorizacion.motivoAjuste}
+                  editable={gestion && !final}
+                  onGuardar={async (items, motivo) => Boolean(await accion('ajustar_articulos', { items, motivo }, 'Montos por artículo guardados'))}
+                />
                 </>)}
                 {d.imagenes.length ? <div className="mt-2"><GaleriaFotos imagenes={d.imagenes.map((x) => x.preview_raw)} /></div> : null}
                 {c.firmaInfractor ? (
@@ -308,6 +310,11 @@ export function CausaDetalle() {
                       {doc.tipo === 'escrito' ? <Link className="btn btn-sm btn-outline-primary" href={`/private/escrito/${doc.uuid}`}>{['borrador', 'devuelto'].includes(doc.estado) ? 'Editar' : 'Ver'}</Link> : <a className="btn btn-sm btn-outline-primary" href={`/private/escrito/${doc.uuid}`}>Ver</a>}
                       {doc.tipo === 'escrito' && ['firmado', 'definitivo'].includes(doc.estado) && ['Fallo', 'Resolución', 'Disposición'].includes(doc.plantilla?.categoria) && gestion && !d.notificaciones.some((n) => n.documento_id === doc.id) ? (
                         <button type="button" className="btn btn-sm btn-success" onClick={() => void accion('notificar_documento', { documentoUuid: doc.uuid }, 'Notificación iniciada')}>Notificar</button>
+                      ) : null}
+                      {puede(user?.rol, 'redactarEscritos') && !doc.presentacion_id && (doc.tipo === 'adjunto' || ['borrador', 'devuelto', 'en_revision'].includes(doc.estado)) && !d.notificaciones.some((n) => n.documento_id === doc.id) ? (
+                        <button type="button" className="btn btn-sm btn-outline-danger" title="Quitar de la causa" aria-label="Quitar de la causa" onClick={() => setModal({ titulo: `Quitar «${doc.titulo}»`, icono: 'fa-solid fa-trash', accion: 'quitar_documento', textoOk: 'Quitar', peligro: true, aviso: 'Se elimina de la causa y queda constancia en el historial. No se puede deshacer.', campos: [{ k: 'motivo', t: 'Motivo (opcional)', tipo: 'texto' }], extra: { documentoUuid: doc.uuid } })}>
+                          <i className="fa-solid fa-trash" aria-hidden="true" />
+                        </button>
                       ) : null}
                     </div>
                   </li>

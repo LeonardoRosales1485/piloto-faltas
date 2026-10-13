@@ -162,8 +162,32 @@ function svgQr(url: string): string {
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${-quiet} ${-quiet} ${side} ${side}" width="40mm" height="40mm"><rect x="${-quiet}" y="${-quiet}" width="${side}" height="${side}" fill="#ffffff"/><g fill="#000000">${celdas.join('')}</g></svg>`;
 }
 
-export async function printTicket(infraccion: Infraccion): Promise<void> {
+/** Modal «¿Imprimir el ticket?» para evitar impresiones por un toque accidental. Resuelve true si confirma. */
+function confirmarImpresion(numero: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    const ov = document.createElement('div');
+    ov.className = 'modal-fake-overlay';
+    ov.innerHTML = `<div class="modal-fake modal-fake-sm" role="dialog" aria-modal="true" aria-label="Imprimir ticket">
+      <div class="modal-fake-header"><i class="fa-solid fa-print" aria-hidden="true"></i><h2>Imprimir ticket</h2><button type="button" aria-label="Cerrar" data-r="0">&times;</button></div>
+      <div class="modal-fake-body"><p class="mb-0">¿Imprimir el ticket del acta <strong>${escapeHtml(numero || '')}</strong>?</p></div>
+      <div class="modal-fake-footer"><button type="button" class="btn btn-secondary" data-r="0">Cancelar</button><button type="button" class="btn btn-primary" data-r="1"><i class="fa-solid fa-print" aria-hidden="true"></i> Imprimir</button></div>
+    </div>`;
+    const cerrar = (ok: boolean) => { ov.remove(); document.removeEventListener('keydown', tecla); resolve(ok); };
+    const tecla = (e: KeyboardEvent) => { if (e.key === 'Escape') cerrar(false); };
+    ov.addEventListener('click', (e) => {
+      if (e.target === ov) return cerrar(false);
+      const r = (e.target as HTMLElement).closest('[data-r]')?.getAttribute('data-r');
+      if (r != null) cerrar(r === '1');
+    });
+    document.addEventListener('keydown', tecla);
+    document.body.appendChild(ov);
+    (ov.querySelector('.btn-primary') as HTMLButtonElement | null)?.focus();
+  });
+}
+
+export async function printTicket(infraccion: Infraccion, confirmar = true): Promise<void> {
   const t = datosTicket(infraccion);
+  if (confirmar && !(await confirmarImpresion(t.numero))) return;
   // En el POS Senraise (app del inspector) imprime directo con la impresora térmica, sin diálogo.
   const pos = puentePos();
   if (pos) {

@@ -52,6 +52,11 @@ Avance: **20 / 20**
 | Ticket del POS: logo de la municipalidad, cortes por palabra, separadores cortos; dominio siempre en mayúsculas (`sql/021`) | — |
 | Depuración: 7 toques en la lista de borradores muestran todas las actas (hasta cerrar la pestaña o «Salir»); los select ya no desplazan la pantalla al enfocarse (ej.: alcoholemia «Positivo») | — |
 | App del POS: actualización automática al iniciar desde Supabase Storage (versión actual y anterior), con pantalla de progreso; publicación desde compilar-apk.bat o GitHub Actions | — |
+| Imprimir ticket: modal de confirmación antes de imprimir (labrado, lista y causa) | — |
+| Causa: quitar escritos en borrador/revisión y adjuntos cargados por error (no firmados, notificados ni de presentaciones), con historial | — |
+| Escritos desde plantilla: precargan los [Completar:…] que la causa ya conoce (N° de acta, titular, legajo, licencia, vehículo, montos, vencimiento, N° de fallo/resolución/disposición, cuotas) | — |
+| Montos por artículo en la causa (como stg): múltiplo propio o subtotal manual por artículo; requiere `sql/022_ajuste_articulos.sql` | — |
+| `instalar-apk.bat`: instala en el POS un APK ya compilado | — |
 
 ## Fuera del alcance del prototipo
 

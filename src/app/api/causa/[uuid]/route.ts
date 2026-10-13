@@ -37,7 +37,7 @@ export async function GET(req: NextRequest, ctx: Ctx) {
       boletas: bol.data ?? [],
       notificaciones: notif.data ?? [],
       imagenes: imgs.data ?? [],
-      valorizacion: { uf: v.uf, unidades: v.unidades, multa: v.multa, leyes: v.leyes, ajustado: c.monto_ajustado, motivoAjuste: c.monto_ajuste_motivo },
+      valorizacion: { uf: v.uf, unidades: v.unidades, subtotal: v.subtotal, multa: v.multa, leyes: v.leyes, ajustado: c.monto_ajustado, motivoAjuste: c.monto_ajuste_motivo },
     };
   }, 'verCausas');
 }

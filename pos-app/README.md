@@ -82,3 +82,9 @@ más nueva muestra una pantalla dedicada: descarga con barra de progreso, luego 
   `node pos-app/publicar.mjs <apk> <build>`.
 - Número de versión: minutos desde el 1/1/2026 (UTC), igual en la PC y en GitHub, así siempre crece.
 - La primera vez Android pide permitir «Instalar apps desconocidas» para Faltas.
+
+## Instalar sin compilar: `instalar-apk.bat`
+
+Instala en el POS por USB (adb) el último APK compilado (`pos-app\faltas-pos.apk` o el de `build\`), o el que se
+indique: `instalar-apk.bat "C:\ruta\app-release.apk"`. Útil si la compilación terminó pero falló la instalación,
+o para instalar un APK descargado de GitHub.

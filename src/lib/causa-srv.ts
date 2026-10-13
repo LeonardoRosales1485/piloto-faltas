@@ -2,7 +2,7 @@
  * Operaciones de la causa: notificación, escritos, presentaciones, boletas, fallo y archivo.
  * Todo cambio de estado pasa por cambiarEstado() y deja historial.
  */
-import { esContravencional, fechaCorta, pesos, resolverLeyes, TIPOS_ACTA, tipoActa } from './dominio';
+import { claveLey, esContravencional, fechaCorta, pesos, resolverLeyes, TIPOS_ACTA, tipoActa } from './dominio';
 import { claseVehiculo, tarifaAcarreo } from './tarifas';
 import { causaVigente, leyesVigentes, subsanacionDe } from './subsanacion';
 import {
@@ -41,12 +41,39 @@ export function medidasDe(c: CausaRow): string[] {
   return out;
 }
 
+export type LeyValorizada = { clave: string; nombre: string; articulo: string; descripcion: string; multiplicador: number;
+  /** Múltiplo del catálogo (sin ajuste). */ multiploCatalogo: number; subtotal: number; manual: boolean; ajustada: boolean };
+
+/** Ajustes por artículo de la causa (sql/022). Si la tabla no existe todavía, no hay ajustes. */
+export async function ajustesLeyes(d: Db, id: number) {
+  const { data, error } = await d.from('causa_ley_ajuste').select('ley_clave, multiplo, monto_manual').eq('infraccion_id', id);
+  const m = new Map<string, { multiplo: number | null; monto_manual: number | null }>();
+  if (error) return m;
+  for (const r of (data ?? []) as { ley_clave: string; multiplo: number | null; monto_manual: number | null }[]) m.set(r.ley_clave, r);
+  return m;
+}
+
+/**
+ * Valorización: por artículo, múltiplo (del catálogo o ajustado en la causa) × UF, o un subtotal manual.
+ * La multa es la suma de subtotales, salvo un ajuste global del monto («Ajustar valorización»).
+ */
 export async function valorizacion(d: Db, c: CausaRow) {
   const uf = await configNum(d, 'finanza_unidad_fija', 2000);
-  const leyes = await leyesDeCausa(d, c.id);
-  const unidades = leyes.reduce((a, l) => a + Number(l.multiplicador || 0), 0);
+  const base = await leyesDeCausa(d, c.id);
+  const aj = await ajustesLeyes(d, c.id);
+  const leyes: LeyValorizada[] = base.map((l) => {
+    const clave = claveLey(l);
+    const a = aj.get(clave);
+    const multiploCatalogo = Number(l.multiplicador || 0);
+    const multiplo = a?.multiplo != null ? Number(a.multiplo) : multiploCatalogo;
+    const manual = a?.monto_manual != null;
+    return { clave, nombre: l.nombre, articulo: l.articulo, descripcion: l.descripcion, multiplicador: multiplo, multiploCatalogo,
+      subtotal: manual ? Number(a!.monto_manual) : multiplo * uf, manual, ajustada: Boolean(a && (a.multiplo != null || manual)) };
+  });
+  const unidades = leyes.reduce((s, l) => s + l.multiplicador, 0);
+  const subtotal = leyes.reduce((s, l) => s + l.subtotal, 0);
   const ajuste = c.monto_ajustado != null ? Number(c.monto_ajustado) : null;
-  return { uf, unidades, multa: ajuste ?? unidades * uf, leyes };
+  return { uf, unidades, subtotal, multa: ajuste ?? subtotal, leyes };
 }
 
 // ---------------------------------------------------------------------------
@@ -218,11 +245,54 @@ export async function notificarPendientesAlVer(d: Db, c: CausaRow, documentoId: 
 // ---------------------------------------------------------------------------
 // Escritos
 // ---------------------------------------------------------------------------
+/**
+ * Precarga los campos [Completar:…] que la causa ya conoce (N° de acta, titular, dominio, montos, números de
+ * fallo/resolución…). Quedan como texto común del escrito, editable como siempre; los que no se conocen siguen
+ * como campos a completar.
+ */
+export async function precargarCompletar(d: Db, c0: CausaRow, html: string) {
+  const c = await causaVigente(d, c0);
+  const v = await valorizacion(d, c);
+  const descuento = await configNum(d, 'descuento_pago_voluntario', 50);
+  let meta: Record<string, string> = {};
+  try { meta = JSON.parse(String(c.metadata_json ?? '{}')) as Record<string, string>; } catch { /* sin metadata */ }
+  const moneda = (n: number) => n.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const { data: docs } = await d.from('documento').select('numero, date_created, plantilla(categoria)').eq('infraccion_id', c.id).not('numero', 'is', null).order('date_created', { ascending: false });
+  const numeroDe = (cat: string) => ((docs ?? []) as { numero: string; plantilla: { categoria?: string } | null }[]).find((x) => x.plantilla?.categoria === cat)?.numero ?? '';
+  const { data: cuotas } = await d.from('presentacion').select('cuotas_otorgadas').eq('infraccion_id', c.id).eq('tipo', 'cuotas').eq('estado', 'aceptada').maybeSingle();
+  const acarreo = Number(c.acarreo) === 1 ? await tarifaAcarreo(d, claseVehiculo(c.vehiculo_tipo_nombre as string | null)) : 0;
+  const norm = (x: string) => x.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/nº/g, 'n°').replace(/\s+/g, ' ').trim();
+  const valores: Record<string, string> = {
+    'n° de acta': String(c.legajo_numero_acta ?? ''),
+    'nombre y apellido': String(c.infractor_razon_social || c.infractor_nombre || ''),
+    'n° de legajo': `${c.legajo_number ?? ''}/${c.legajo_anio ?? ''}`,
+    'n° de expediente': `${c.legajo_number ?? ''}/${c.legajo_anio ?? ''}`,
+    'n° de licencia': String(c.vehiculo_numero_licencia ?? ''),
+    'tipo marca modelo': [c.vehiculo_tipo_nombre, meta.marca, meta.modelo].filter(Boolean).join(' '),
+    monto: moneda(v.multa),
+    'monto pago voluntario': moneda(v.multa * (1 - descuento / 100)),
+    'monto acarreo': acarreo ? moneda(acarreo) : '',
+    'fecha de vencimiento': c.vence_plazo_at ? fechaCorta(Number(c.vence_plazo_at)) : '',
+    municipalidad: 'Malvinas Argentinas',
+    'n° de fallo': numeroDe('Fallo'),
+    'n° de resolucion': numeroDe('Resolución'),
+    'n° de disposicion': numeroDe('Disposición'),
+    'cantidad de cuotas': cuotas ? String((cuotas as { cuotas_otorgadas: number | null }).cuotas_otorgadas ?? '') : '',
+  };
+  return html.replace(/\[Completar:([^\]:]+)(?::(?:texto|numero|fecha|moneda))?\]/g, (m, label: string, off: number, todo: string) => {
+    const k = norm(label);
+    // «Técnico / Ingeniero [Nombre y apellido]» es quien hizo la medición, no el infractor.
+    if (k === 'nombre y apellido' && /(ingenier|tecnic|técnic|perito)[^<\[]{0,15}$/i.test(todo.slice(Math.max(0, off - 40), off).replace(/<[^>]*>/g, ''))) return m;
+    const val = valores[k];
+    return val ? esc(val) : m;
+  });
+}
+
 export async function generarEscrito(d: Db, user: UsuarioRow, c: CausaRow, plantillaId: number) {
   const { data: p } = await d.from('plantilla').select('*').eq('id', plantillaId).maybeSingle();
   check(p, 'Plantilla inexistente', 404);
   const pl = p as Record<string, unknown>;
-  const html = aplicarCampos(normalizarHtml(String(pl.contenido_html)), await camposDeCausa(d, c, user));
+  const html = await precargarCompletar(d, c, aplicarCampos(normalizarHtml(String(pl.contenido_html)), await camposDeCausa(d, c, user)));
   const row = {
     uuid: uuid(), infraccion_id: c.id, tipo: 'escrito', plantilla_id: plantillaId, titulo: String(pl.titulo),
     contenido_html: html, estado: 'borrador', creado_por: nombreUsuario(user), date_created: Date.now(), date_updated: Date.now(),

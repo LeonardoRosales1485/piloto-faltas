@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { emitirBoletas, evaluarArchivoPorPago, generarEscrito, notificarDocumento } from '@/lib/causa-srv';
+import { emitirBoletas, evaluarArchivoPorPago, generarEscrito, notificarDocumento, valorizacion } from '@/lib/causa-srv';
 import { ESTADOS, estadoFinal, puede, pesos } from '@/lib/dominio';
 import { descargoPendiente } from '@/lib/camino';
 import { calculoLiberacion, claseVehiculo, diasEnDeposito, tarifaEstadia } from '@/lib/tarifas';
@@ -73,6 +73,23 @@ export async function POST(req: NextRequest) {
         await historial(db, c.id, quien, 'Documento adjuntado', txt('titulo') || txt('archivoNombre'));
         return { ok: true };
       }
+      case 'quitar_documento': {
+        // Quitar un escrito o adjunto cargado por error. No se quitan los firmados/definitivos ni los ya notificados,
+        // ni los adjuntos que llegaron con una presentación del infractor (forman parte de su presentación).
+        check(puede(user.rol, 'redactarEscritos'), 'Sin permiso', 403);
+        const { data: doc } = await db.from('documento').select('id, tipo, estado, titulo, presentacion_id').eq('uuid', txt('documentoUuid')).eq('infraccion_id', c.id).maybeSingle();
+        check(doc, 'Documento no encontrado', 404);
+        const dd = doc as { id: number; tipo: string; estado: string; titulo: string; presentacion_id: number | null };
+        check(!dd.presentacion_id, 'Es parte de una presentación del infractor: no se puede quitar');
+        check(dd.tipo === 'adjunto' || ['borrador', 'devuelto', 'en_revision'].includes(dd.estado), 'Los escritos firmados o definitivos no se pueden quitar');
+        const { count: notif } = await db.from('notificacion').select('id', { count: 'exact', head: true }).eq('documento_id', dd.id);
+        check(!notif, 'El documento ya fue notificado: no se puede quitar');
+        const { data: sub } = await db.from('subsanacion').select('id').eq('documento_id', dd.id).maybeSingle();
+        check(!sub, 'Es la constancia de una subsanación: no se puede quitar');
+        await db.from('documento').delete().eq('id', dd.id);
+        await historial(db, c.id, quien, dd.tipo === 'adjunto' ? 'Adjunto quitado' : 'Escrito quitado', `${dd.titulo}${txt('motivo') ? ` · ${txt('motivo')}` : ''}`);
+        return { ok: true };
+      }
       case 'archivar': {
         check(puede(user.rol, 'archivar'), 'Sin permiso', 403);
         const motivo = txt('motivo');
@@ -99,6 +116,34 @@ export async function POST(req: NextRequest) {
         check(txt('motivo'), 'Indique el motivo del ajuste');
         await db.from('infraccion').update({ monto_ajustado: monto, monto_ajuste_motivo: txt('motivo') }).eq('id', c.id);
         await historial(db, c.id, quien, 'Valorización ajustada', `${pesos(monto)} · ${txt('motivo')}`);
+        return { ok: true };
+      }
+      case 'ajustar_articulos': {
+        // Montos por artículo de esta causa: múltiplo propio y/o subtotal manual (vacío = valor del catálogo).
+        check(gestion, 'Sin permiso', 403);
+        check(!estadoFinal(c.estado_faltas), 'La causa está cerrada');
+        const items = (Array.isArray(d.items) ? d.items : []) as { clave: string; multiplo?: string | number | null; montoManual?: string | number | null }[];
+        const v = await valorizacion(db, c);
+        const validas = new Set(v.leyes.map((l) => l.clave));
+        const num = (x: unknown) => (x === null || x === undefined || String(x).trim() === '' ? null : Number(String(x).replace(',', '.')));
+        const cambios: string[] = [];
+        for (const it of items) {
+          check(validas.has(it.clave), 'Artículo que no pertenece a la causa');
+          const multiplo = num(it.multiplo);
+          const monto = num(it.montoManual);
+          check(multiplo === null || (Number.isFinite(multiplo) && multiplo >= 0), 'Múltiplo inválido');
+          check(monto === null || (Number.isFinite(monto) && monto >= 0), 'Monto inválido');
+          const l = v.leyes.find((x) => x.clave === it.clave)!;
+          const mult = multiplo !== null && multiplo === l.multiploCatalogo ? null : multiplo;
+          if (mult === null && monto === null) {
+            if (l.ajustada) { await db.from('causa_ley_ajuste').delete().eq('infraccion_id', c.id).eq('ley_clave', it.clave); cambios.push(`${l.nombre} ${l.articulo}: valor del catálogo`); }
+            continue;
+          }
+          const { error } = await db.from('causa_ley_ajuste').upsert({ infraccion_id: c.id, ley_clave: it.clave, multiplo: mult, monto_manual: monto, usuario: quien, date_updated: Date.now() }, { onConflict: 'infraccion_id,ley_clave' });
+          if (error) throw new HttpError(500, /causa_ley_ajuste/.test(error.message) ? 'Falta correr sql/022_ajuste_articulos.sql en Supabase' : error.message);
+          cambios.push(`${l.nombre} ${l.articulo}: ${monto !== null ? `monto manual ${pesos(monto)}` : `múltiplo ${mult}`}`);
+        }
+        if (cambios.length) await historial(db, c.id, quien, 'Montos por artículo ajustados', `${cambios.join('; ')}${txt('motivo') ? ` · ${txt('motivo')}` : ''}`);
         return { ok: true };
       }
       case 'generar_escrito': {
