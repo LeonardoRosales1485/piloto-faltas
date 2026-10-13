@@ -160,6 +160,22 @@ function ShellInner({ children }: { children: ReactNode }) {
     }, 200);
   }, []);
   useEffect(() => cerrarSidebar(), [pathname, cerrarSidebar]);
+
+  // Apertura por hover: 2 s con el mouse sobre la barra lateral. Si se abrió así, se cierra al salir del menú.
+  const timerHover = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const porHover = useRef(false);
+  const cancelarHover = () => { if (timerHover.current) { clearTimeout(timerHover.current); timerHover.current = null; } };
+  const hoverEntra = () => {
+    cancelarHover();
+    timerHover.current = setTimeout(() => { timerHover.current = null; porHover.current = true; setSidebarAbierta(true); }, 2000);
+  };
+  const salirMenu = () => {
+    cancelarHover();
+    if (!porHover.current) return;
+    timerHover.current = setTimeout(() => { timerHover.current = null; porHover.current = false; cerrarSidebar(); }, 400);
+  };
+  useEffect(() => { if (!sidebarAbierta) porHover.current = false; }, [sidebarAbierta]);
+  useEffect(() => cancelarHover, []);
   useEffect(() => {
     if (!sidebarAbierta) return;
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && cerrarSidebar();
@@ -439,7 +455,7 @@ function ShellInner({ children }: { children: ReactNode }) {
         </>
       ) : (
         <>
-          <nav className="sidebar-rail" aria-label="Menú lateral">
+          <nav className="sidebar-rail" aria-label="Menú lateral" onMouseEnter={hoverEntra} onMouseLeave={cancelarHover}>
             <button type="button" className="rail-logo" title="Abrir menú" aria-label="Abrir menú" onClick={() => setSidebarAbierta(true)}>
               <img src="/images/Municipio_malvinas_argentinas_logo.png" alt="" />
             </button>
@@ -473,7 +489,7 @@ function ShellInner({ children }: { children: ReactNode }) {
               <button type="button" className={`sidebar-velo ${cerrando ? 'cerrando' : ''}`} aria-label="Cerrar menú" onClick={cerrarSidebar}>
                 <span className="sidebar-velo-x"><i className="fa-solid fa-xmark" aria-hidden="true" /></span>
               </button>
-              <aside className={`sidebar sidebar-desktop sidebar-flotante sidebar-abierta ${cerrando ? 'cerrando' : ''}`} aria-label="Menú lateral desplegado">
+              <aside className={`sidebar sidebar-desktop sidebar-flotante sidebar-abierta ${cerrando ? 'cerrando' : ''}`} aria-label="Menú lateral desplegado" onMouseEnter={cancelarHover} onMouseLeave={salirMenu}>
                 {menu}
               </aside>
             </>
