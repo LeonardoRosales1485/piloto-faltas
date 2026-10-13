@@ -161,13 +161,13 @@ function ShellInner({ children }: { children: ReactNode }) {
   }, []);
   useEffect(() => cerrarSidebar(), [pathname, cerrarSidebar]);
 
-  // Apertura por hover: 2 s con el mouse sobre la barra lateral. Si se abrió así, se cierra al salir del menú.
+  // Apertura por hover: 1 s con el mouse sobre la barra lateral. Si se abrió así, se cierra al salir del menú.
   const timerHover = useRef<ReturnType<typeof setTimeout> | null>(null);
   const porHover = useRef(false);
   const cancelarHover = () => { if (timerHover.current) { clearTimeout(timerHover.current); timerHover.current = null; } };
   const hoverEntra = () => {
     cancelarHover();
-    timerHover.current = setTimeout(() => { timerHover.current = null; porHover.current = true; setSidebarAbierta(true); }, 2000);
+    timerHover.current = setTimeout(() => { timerHover.current = null; porHover.current = true; setSidebarAbierta(true); }, 1000);
   };
   const salirMenu = () => {
     cancelarHover();
