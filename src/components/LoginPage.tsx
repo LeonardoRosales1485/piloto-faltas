@@ -2,7 +2,7 @@
 import { inicioPara } from '@/lib/role-guard';
 
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { login } from '@/lib/auth-client';
 
 const ACCESOS = [
@@ -20,6 +20,9 @@ export function LoginPage() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [verPass, setVerPass] = useState(false);
+  // En la app del POS (WebView) el user agent trae «FaltasPOS/<versión>».
+  const [versionPos, setVersionPos] = useState('');
+  useEffect(() => { setVersionPos(navigator.userAgent.match(/FaltasPOS\/(\d+)/)?.[1] ?? ''); }, []);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const year = new Date().getFullYear();
@@ -123,6 +126,7 @@ export function LoginPage() {
           <span>Municipalidad de Malvinas Argentinas</span>
           <span>© {year} Blue Open Data</span>
           <span>V:1.0.0</span>
+          {versionPos ? <span>App POS v{versionPos}</span> : null}
         </div>
       </div>
     </div>

@@ -58,6 +58,8 @@ Avance: **20 / 20**
 | Montos por artículo en la causa (como stg): múltiplo propio o subtotal manual por artículo; requiere `sql/022_ajuste_articulos.sql` | — |
 | `instalar-apk.bat`: instala en el POS un APK ya compilado | — |
 | Valores del labrado: la causa guarda la UF y los múltiplos al firmar; si cambian las tarifas no se recalcula sola, sino con «Actualizar a valores vigentes» (`sql/023`) | — |
+| Causa: acciones divididas en «Acciones recomendadas» (según el estado) y «Más acciones» (desplegable, siempre disponibles) | — |
+| Login en la app del POS: versión de la app al pie (se lee del user agent FaltasPOS/&lt;versión&gt;) | — |
 
 ## Fuera del alcance del prototipo
 

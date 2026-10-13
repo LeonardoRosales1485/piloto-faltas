@@ -670,3 +670,13 @@ span.dato-subsanado { font-size: .75rem; padding: .1rem .45rem; font-weight: 600
     &:hover, &:focus-visible { background: rgba(148, 163, 184, .15); color: var(--bo-azul); }
   }
 }
+
+// Causa: acciones recomendadas (según el estado) y «Más acciones» (siempre disponibles)
+.acciones-titulo { font-size: .75rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--bo-texto-secundario); margin-top: .25rem; }
+.acciones-mas { border-top: 1px solid rgba(148, 163, 184, .35); padding-top: .55rem; margin-top: .35rem;
+  > summary { cursor: pointer; list-style: none; display: flex; align-items: center; gap: .35rem;
+    &::-webkit-details-marker { display: none; }
+    &::before { content: '\f078'; font-family: 'Font Awesome 6 Free'; font-weight: 900; font-size: .7rem; transition: transform .15s; transform: rotate(-90deg); }
+  }
+  &[open] > summary::before { transform: rotate(0); }
+}

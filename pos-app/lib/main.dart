@@ -4,6 +4,7 @@ import 'dart:convert';
 
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import 'actualizador.dart';
@@ -36,6 +37,7 @@ class _InicioState extends State<Inicio> {
   InAppWebViewController? _web;
   bool _buscando = true; // consultando si hay versión nueva
   Actualizacion? _actualizacion;
+  String _version = ''; // número de versión de la app, la web lo muestra al pie del login
 
   @override
   void initState() {
@@ -43,8 +45,11 @@ class _InicioState extends State<Inicio> {
     // GPS (lugar de infracción) y cámara (fotos del acta)
     [Permission.location, Permission.camera].request();
     // Al iniciar: si hay una versión nueva publicada, se muestra la pantalla de actualización antes del sistema.
-    buscarActualizacion().then((a) {
-      if (mounted) setState(() { _actualizacion = a; _buscando = false; });
+    Future.wait([
+      PackageInfo.fromPlatform().then((p) => _version = p.buildNumber).catchError((_) => ''),
+      buscarActualizacion().then((a) => _actualizacion = a),
+    ]).whenComplete(() {
+      if (mounted) setState(() => _buscando = false);
     });
   }
 
@@ -110,6 +115,8 @@ class _InicioState extends State<Inicio> {
               allowFileAccess: true,
               supportMultipleWindows: false,
               useHybridComposition: true,
+              // La web lee «FaltasPOS/<versión>» del user agent y la muestra al pie del login.
+              applicationNameForUserAgent: 'FaltasPOS/$_version',
             ),
             onWebViewCreated: (c) {
               _web = c;
