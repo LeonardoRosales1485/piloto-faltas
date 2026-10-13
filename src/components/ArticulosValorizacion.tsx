@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { useEffect, useState } from 'react';
-import { pesos } from '@/lib/dominio';
+import { fechaCorta, pesos } from '@/lib/dominio';
 
 type Ley = { clave: string; nombre: string; articulo: string; descripcion: string; multiplicador: number; multiploCatalogo?: number; subtotal?: number; manual?: boolean; ajustada?: boolean };
 type Fila = { multiplo: string; manual: boolean; monto: string };
@@ -11,10 +11,13 @@ type Fila = { multiplo: string; manual: boolean; monto: string };
  * Artículos de la causa con su valorización (como «Artículos» de stg): múltiplo editable y, con «Manual»,
  * un subtotal fijo para casos puntuales. Los cambios valen solo para esta causa; el catálogo no cambia.
  */
-export function ArticulosValorizacion({ leyes, uf, subtotal, multa, ajustado, motivoAjuste, editable, onGuardar }: {
+export function ArticulosValorizacion({ leyes, uf, subtotal, multa, ajustado, motivoAjuste, editable, onGuardar, valores, onActualizarValores }: {
   leyes: Ley[]; uf: number; subtotal?: number; multa: number; ajustado: number | null; motivoAjuste: string | null;
   editable: boolean;
   onGuardar: (items: { clave: string; multiplo: string; montoManual: string | null }[], motivo: string) => Promise<boolean>;
+  /** Valores del labrado vs. vigentes (UF y múltiplos del catálogo). */
+  valores?: { fijados: boolean; fecha: number | null; ufVigente: number; difiere: boolean };
+  onActualizarValores?: () => void;
 }) {
   const inicial = () => Object.fromEntries(leyes.map((l) => [l.clave, { multiplo: String(l.multiplicador ?? 0), manual: Boolean(l.manual), monto: l.manual ? String(l.subtotal ?? '') : '' }])) as Record<string, Fila>;
   const [editando, setEditando] = useState(false);
@@ -43,6 +46,15 @@ export function ArticulosValorizacion({ leyes, uf, subtotal, multa, ajustado, mo
 
   return (
     <>
+      {valores?.fijados ? (
+        <div className={`aviso ${valores.difiere ? 'aviso-alerta' : 'aviso-info'} d-flex justify-content-between align-items-center gap-2 flex-wrap`}>
+          <span>
+            <i className="fa-solid fa-lock" aria-hidden="true" /> Valores del labrado{valores.fecha ? ` (${fechaCorta(valores.fecha)})` : ''}: UF {pesos(uf)}.
+            {valores.difiere ? <> Los valores vigentes cambiaron (UF {pesos(valores.ufVigente)}{valores.ufVigente === uf ? ', múltiplos del catálogo' : ''}).</> : ' Coinciden con los vigentes.'}
+          </span>
+          {valores.difiere && editable && onActualizarValores ? <button type="button" className="btn btn-sm btn-warning" onClick={onActualizarValores}><i className="fa-solid fa-rotate" aria-hidden="true" /> Actualizar a valores vigentes</button> : null}
+        </div>
+      ) : null}
       <div className="table-responsive">
         <table className="table custom-table align-middle">
           <thead><tr><th>Norma</th><th>Artículo</th><th>Descripción</th><th className="text-end" style={{ minWidth: 110 }}>Múltiplo (UF)</th><th className="text-end" style={{ minWidth: 150 }}>Subtotal</th>{editando ? <th className="text-center">Manual</th> : null}</tr></thead>

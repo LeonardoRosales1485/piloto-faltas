@@ -186,3 +186,5 @@ El Administrador conserva siempre «Configuración» para no quedarse sin acceso
 - Al generar un escrito desde plantilla, los datos que la causa ya tiene (N° de acta, titular, legajo, montos, vencimiento, números de fallo/resolución) se completan solos; el resto queda para completar y todo se puede editar.
 - En «Escritos y documentos», el botón de papelera quita un escrito en borrador o un adjunto cargado por error. Los firmados, los notificados y los que llegaron con una presentación del infractor no se pueden quitar.
 - Imprimir el ticket pide confirmación antes de imprimir.
+
+- Al firmarse el acta quedan fijos la UF y el múltiplo de cada artículo de ese momento. Si después cambian en «Valores y tarifas» u «Ordenanzas», la causa muestra un aviso y el botón **Actualizar a valores vigentes**; sin tocarlo, mantiene los valores del labrado.

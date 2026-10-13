@@ -53,18 +53,42 @@ export async function ajustesLeyes(d: Db, id: number) {
   return m;
 }
 
+/** Valores del labrado guardados en la causa (sql/023): UF y múltiplo de cada artículo. */
+export type ValoresLabrado = { uf: number; fecha: number; leyes: Record<string, number> };
+export function leerValoresLabrado(c: CausaRow): ValoresLabrado | null {
+  try {
+    const v = JSON.parse(String((c as unknown as { valores_labrado_json?: string | null }).valores_labrado_json ?? 'null')) as ValoresLabrado | null;
+    return v && Number.isFinite(Number(v.uf)) ? { uf: Number(v.uf), fecha: Number(v.fecha) || 0, leyes: v.leyes ?? {} } : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Valores vigentes hoy (configuración y catálogo) para los artículos de la causa. */
+export async function valoresVigentes(d: Db, c: CausaRow): Promise<ValoresLabrado> {
+  const uf = await configNum(d, 'finanza_unidad_fija', 2000);
+  const leyes = await leyesDeCausa(d, c.id);
+  return { uf, fecha: Date.now(), leyes: Object.fromEntries(leyes.map((l) => [claveLey(l), Number(l.multiplicador || 0)])) };
+}
+
 /**
  * Valorización: por artículo, múltiplo (del catálogo o ajustado en la causa) × UF, o un subtotal manual.
  * La multa es la suma de subtotales, salvo un ajuste global del monto («Ajustar valorización»).
  */
 export async function valorizacion(d: Db, c: CausaRow) {
-  const uf = await configNum(d, 'finanza_unidad_fija', 2000);
+  // Se usan los valores del momento del labrado; los vigentes solo si la causa no los tiene (borradores, datos viejos).
+  const ufVigente = await configNum(d, 'finanza_unidad_fija', 2000);
+  const lab = leerValoresLabrado(c);
+  const uf = lab?.uf ?? ufVigente;
   const base = await leyesDeCausa(d, c.id);
   const aj = await ajustesLeyes(d, c.id);
+  let difiere = Boolean(lab && lab.uf !== ufVigente);
   const leyes: LeyValorizada[] = base.map((l) => {
     const clave = claveLey(l);
     const a = aj.get(clave);
-    const multiploCatalogo = Number(l.multiplicador || 0);
+    const actual = Number(l.multiplicador || 0);
+    const multiploCatalogo = lab && clave in lab.leyes ? Number(lab.leyes[clave]) : actual;
+    if (lab && multiploCatalogo !== actual) difiere = true;
     const multiplo = a?.multiplo != null ? Number(a.multiplo) : multiploCatalogo;
     const manual = a?.monto_manual != null;
     return { clave, nombre: l.nombre, articulo: l.articulo, descripcion: l.descripcion, multiplicador: multiplo, multiploCatalogo,
@@ -73,7 +97,8 @@ export async function valorizacion(d: Db, c: CausaRow) {
   const unidades = leyes.reduce((s, l) => s + l.multiplicador, 0);
   const subtotal = leyes.reduce((s, l) => s + l.subtotal, 0);
   const ajuste = c.monto_ajustado != null ? Number(c.monto_ajustado) : null;
-  return { uf, unidades, subtotal, multa: ajuste ?? subtotal, leyes };
+  return { uf, unidades, subtotal, multa: ajuste ?? subtotal, leyes,
+    valores: { fijados: Boolean(lab), fecha: lab?.fecha ?? null, ufVigente, difiere } };
 }
 
 // ---------------------------------------------------------------------------

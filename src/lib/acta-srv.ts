@@ -1,4 +1,5 @@
 import { modulosDe, type ModuloActa } from './dominio';
+import { valoresVigentes } from './causa-srv';
 import { causaPorUuid, check, configNum, historial, HttpError, nombreUsuario, sha, type Db } from './srv';
 import { formatearNumeroActa, resolverLeyes, TIPOS_ACTA, tipoActa } from './dominio';
 import type { UsuarioRow } from './types';
@@ -101,6 +102,9 @@ export async function firmarActa(d: Db, user: UsuarioRow, uuidActa: string, firm
     })
     .eq('id', c.id);
   if (error) throw new HttpError(500, error.message);
+  // Valores del momento del labrado (UF y múltiplos): la causa no cambia si después se actualizan las tarifas.
+  // Si falta sql/023 la columna no existe y la causa usa los valores vigentes, como antes.
+  await d.from('infraccion').update({ valores_labrado_json: JSON.stringify(await valoresVigentes(d, c)) }).eq('id', c.id);
   const firmante = nombreUsuario(user);
   await historial(d, c.id, firmante, 'Acta firmada', `Firma del inspector registrada (código ${hash.slice(0, 12)}). Situación del infractor: ${sit}.`, { anterior: 'Borrador', nuevo: 'Iniciado' });
   await historial(d, c.id, 'Sistema', 'Ingreso como causa', conMedida ? 'El acta trae medida preventiva: queda pendiente de resolución.' : null);

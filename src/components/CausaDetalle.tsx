@@ -23,7 +23,7 @@ import { caminoInfractor, descargoPendiente } from '@/lib/camino';
 type R = Record<string, any>;
 type Detalle = {
   acta: Infraccion; actaVigente: Infraccion | null; subsanacion: R | null; subsanables: { k: string; t: string; grupo: string; valor: string }[]; memos: R[]; historial: R[]; documentos: R[]; presentaciones: R[]; boletas: R[]; notificaciones: R[]; imagenes: R[];
-  valorizacion: { uf: number; unidades: number; subtotal?: number; multa: number; leyes: R[]; ajustado: number | null; motivoAjuste: string | null };
+  valorizacion: { uf: number; unidades: number; subtotal?: number; multa: number; valores?: { fijados: boolean; fecha: number | null; ufVigente: number; difiere: boolean }; leyes: R[]; ajustado: number | null; motivoAjuste: string | null };
 };
 type Modal = { titulo: string; icono?: string; campos: CampoModal[]; accion: string; textoOk?: string; peligro?: boolean; aviso?: string; extra?: R } | null;
 
@@ -272,6 +272,8 @@ export function CausaDetalle() {
                   motivoAjuste={d.valorizacion.motivoAjuste}
                   editable={gestion && !final}
                   onGuardar={async (items, motivo) => Boolean(await accion('ajustar_articulos', { items, motivo }, 'Montos por artículo guardados'))}
+                  valores={d.valorizacion.valores}
+                  onActualizarValores={() => setModal({ titulo: 'Actualizar a valores vigentes', icono: 'fa-solid fa-rotate', accion: 'actualizar_valores', textoOk: 'Actualizar', aviso: `La causa pasa de los valores del labrado (UF ${pesos(d.valorizacion.uf)}) a los vigentes (UF ${pesos(d.valorizacion.valores?.ufVigente ?? 0)}) y a los múltiplos actuales del catálogo. Los montos manuales y los múltiplos ajustados en la causa se mantienen. Queda en el historial.`, campos: [] })}
                 />
                 </>)}
                 {d.imagenes.length ? <div className="mt-2"><GaleriaFotos imagenes={d.imagenes.map((x) => x.preview_raw)} /></div> : null}

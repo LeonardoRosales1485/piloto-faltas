@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { emitirBoletas, evaluarArchivoPorPago, generarEscrito, notificarDocumento, valorizacion } from '@/lib/causa-srv';
+import { emitirBoletas, evaluarArchivoPorPago, generarEscrito, notificarDocumento, valorizacion, valoresVigentes } from '@/lib/causa-srv';
 import { ESTADOS, estadoFinal, puede, pesos } from '@/lib/dominio';
 import { descargoPendiente } from '@/lib/camino';
 import { calculoLiberacion, claseVehiculo, diasEnDeposito, tarifaEstadia } from '@/lib/tarifas';
@@ -144,6 +144,18 @@ export async function POST(req: NextRequest) {
           cambios.push(`${l.nombre} ${l.articulo}: ${monto !== null ? `monto manual ${pesos(monto)}` : `múltiplo ${mult}`}`);
         }
         if (cambios.length) await historial(db, c.id, quien, 'Montos por artículo ajustados', `${cambios.join('; ')}${txt('motivo') ? ` · ${txt('motivo')}` : ''}`);
+        return { ok: true };
+      }
+      case 'actualizar_valores': {
+        // Pasa la causa de los valores del labrado a los vigentes (UF y múltiplos del catálogo).
+        check(gestion, 'Sin permiso', 403);
+        check(!estadoFinal(c.estado_faltas), 'La causa está cerrada');
+        const antes = await valorizacion(db, c);
+        const nuevos = await valoresVigentes(db, c);
+        const { error } = await db.from('infraccion').update({ valores_labrado_json: JSON.stringify(nuevos) }).eq('id', c.id);
+        if (error) throw new HttpError(500, /valores_labrado_json/.test(error.message) ? 'Falta correr sql/023_valores_labrado.sql en Supabase' : error.message);
+        const despues = await valorizacion(db, { ...c, valores_labrado_json: JSON.stringify(nuevos) } as typeof c);
+        await historial(db, c.id, quien, 'Valores actualizados a los vigentes', `UF ${pesos(antes.uf)} → ${pesos(nuevos.uf)} · subtotal artículos ${pesos(antes.subtotal)} → ${pesos(despues.subtotal)}`);
         return { ok: true };
       }
       case 'generar_escrito': {
