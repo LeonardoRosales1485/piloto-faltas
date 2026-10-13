@@ -196,3 +196,9 @@ El Administrador conserva siempre «Configuración» para no quedarse sin acceso
 3. Se abre el informe y el diálogo de impresión: elija **Guardar como PDF** y envíelo por correo a Apremios.
 
 El PDF trae el remito del lote (número APR-AAAA-NNNN, listado y total con espacio para la firma de la Directora) y, por cada causa, una carátula con los datos del deudor, el acta, el fallo y su notificación, los artículos y el **saldo adeudado al momento de exportar** (multa menos pagos acreditados), seguida del legajo completo sin los memos internos. Cada exportación queda en el historial de la causa con el lote y el monto.
+
+## Al iniciar la causa: esperar al infractor o considerarlo notificado
+
+- En «Iniciado», la acción recomendada es **Esperar al infractor**. **Sí** pasa la causa a «En notificación» (se espera que el infractor vea el acta en el portal); **No** la deja en «Iniciado» y la acción pasa a ser **Considerar notificado**.
+- **Considerar notificado** (en «Iniciado» tras elegir No, o en «En notificación»): **Sí** pasa la causa a «Notificado» desde ese momento, con su plazo y la constancia en el historial; **No** la deja como está.
+- Si el infractor abre el acta en el portal, la causa se notifica sola como hasta ahora.

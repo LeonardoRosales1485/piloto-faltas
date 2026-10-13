@@ -13,9 +13,11 @@ export type CampoModal =
 
 /** Formulario modal genérico para las acciones de la causa. */
 export function ModalForm({
-  titulo, icono = 'fa-solid fa-pen', campos, textoOk = 'Confirmar', peligro, aviso, onCancel, onOk,
+  titulo, icono = 'fa-solid fa-pen', campos, textoOk = 'Confirmar', textoCancelar = 'Cancelar', onNo, peligro, aviso, onCancel, onOk,
 }: {
-  titulo: string; icono?: string; campos: CampoModal[]; textoOk?: string; peligro?: boolean; aviso?: string;
+  titulo: string; icono?: string; campos: CampoModal[]; textoOk?: string; textoCancelar?: string;
+  /** Si se indica, el botón de cancelar ejecuta esta respuesta «No» (además de cerrar). */
+  onNo?: () => Promise<void> | void; peligro?: boolean; aviso?: string;
   onCancel: () => void; onOk: (valores: Record<string, string>) => Promise<void> | void;
 }) {
   const [v, setV] = useState<Record<string, string>>(() => Object.fromEntries(campos.map((c) => [c.k, c.valor ?? (c.tipo === 'select' ? c.opciones[0]?.v ?? '' : '')])));
@@ -71,7 +73,7 @@ export function ModalForm({
           ))}
         </div>
         <div className="modal-fake-footer">
-          <button type="button" className="btn btn-outline-secondary" onClick={onCancel}>Cancelar</button>
+          <button type="button" className="btn btn-outline-secondary" disabled={enviando} onClick={async () => { if (!onNo) return onCancel(); setEnviando(true); try { await onNo(); } finally { setEnviando(false); } }}>{textoCancelar}</button>
           <button type="button" className={`btn ${peligro ? 'btn-danger' : 'btn-primary'}`} disabled={faltan || enviando} onClick={async () => { setEnviando(true); try { await onOk(v); } finally { setEnviando(false); } }}>
             {enviando ? <i className="fa-solid fa-spinner fa-spin" aria-hidden="true" /> : null} {textoOk}
           </button>

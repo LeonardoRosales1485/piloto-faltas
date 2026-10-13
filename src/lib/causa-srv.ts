@@ -186,7 +186,9 @@ export async function plazoActa(d: Db, c: CausaRow, desde: number) {
 }
 
 /** Notifica el acta: al abrirla en el portal o por domicilio electrónico (DD.JJ.). */
-export async function notificarActa(d: Db, c: CausaRow, via: 'portal' | 'electronica', quien: string) {
+const VIA_NOTIF = { portal: 'Acceso del infractor al portal', electronica: 'Domicilio electrónico (DD.JJ.)', considerada: 'Considerado notificado por la Dirección de Faltas: tuvo tiempo suficiente para ver el acta digital en el portal' } as const;
+
+export async function notificarActa(d: Db, c: CausaRow, via: 'portal' | 'electronica' | 'considerada', quien: string) {
   if (c.notificada_at) return false;
   if (!['Iniciado', 'En notificación', 'Con Resolución', 'Resolución (medidas preventivas)', 'Reso notificada', 'En notificación de resolución'].includes(c.estado_faltas)) return false;
   const ahora = Date.now();
@@ -195,10 +197,10 @@ export async function notificarActa(d: Db, c: CausaRow, via: 'portal' | 'electro
   const enMedida = c.estado_faltas !== 'Iniciado' && c.estado_faltas !== 'En notificación';
   if (enMedida) {
     await d.from('infraccion').update({ notificada_at: ahora, vence_plazo_at: vence }).eq('id', c.id);
-    await historial(d, c.id, quien, 'Acta notificada', `${via === 'portal' ? 'Acceso del infractor al portal' : 'Domicilio electrónico (DD.JJ.)'}. Vence el plazo el ${fechaCorta(vence)}.`);
+    await historial(d, c.id, quien, 'Acta notificada', `${VIA_NOTIF[via]}. Vence el plazo el ${fechaCorta(vence)}.`);
     c.notificada_at = ahora;
   } else {
-    await cambiarEstado(d, c, 'Notificado', quien, 'Acta notificada', `${via === 'portal' ? 'Acceso del infractor al portal' : 'Domicilio electrónico (DD.JJ.)'}. Vence el plazo el ${fechaCorta(vence)}.`, { notificada_at: ahora, vence_plazo_at: vence });
+    await cambiarEstado(d, c, 'Notificado', quien, 'Acta notificada', `${VIA_NOTIF[via]}. Vence el plazo el ${fechaCorta(vence)}.`, { notificada_at: ahora, vence_plazo_at: vence });
   }
   return true;
 }

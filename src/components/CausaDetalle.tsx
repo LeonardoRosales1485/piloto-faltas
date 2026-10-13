@@ -26,7 +26,7 @@ type Detalle = {
   acta: Infraccion; actaVigente: Infraccion | null; subsanacion: R | null; subsanables: { k: string; t: string; grupo: string; valor: string }[]; memos: R[]; historial: R[]; documentos: R[]; presentaciones: R[]; boletas: R[]; notificaciones: R[]; imagenes: R[];
   valorizacion: { uf: number; unidades: number; subtotal?: number; multa: number; valores?: { fijados: boolean; fecha: number | null; ufVigente: number; difiere: boolean }; leyes: R[]; ajustado: number | null; motivoAjuste: string | null };
 };
-type Modal = { titulo: string; icono?: string; campos: CampoModal[]; accion: string; textoOk?: string; peligro?: boolean; aviso?: string; extra?: R } | null;
+type Modal = { titulo: string; icono?: string; campos: CampoModal[]; accion: string; textoOk?: string; textoCancelar?: string; onNo?: () => Promise<void> | void; peligro?: boolean; aviso?: string; extra?: R } | null;
 
 const TABS = [
   { id: 'resumen', t: 'Acta' },
@@ -124,7 +124,17 @@ export function CausaDetalle() {
   const causaTarjeta = { uuid, legajo_numero_acta: c.legajoNumeroActa, infraccion_tipo_nombre: c.infraccionTipoNombre, estado_faltas: estado, vence_plazo_at: c.vencePlazoAt, infractor_nombre: c.infractorNombre, infractor_razon_social: c.infractorRazonSocial };
 
   // rec: acción que corresponde al estado actual de la causa → «Acciones recomendadas». El resto, «Más acciones».
+  const noEspera = d.historial.some((h) => h.accion === 'No se espera al infractor');
   const botones: { t: string; i: string; on: () => void; ver: boolean; peligro?: boolean; destacado?: boolean; deshabilitado?: string; rec?: boolean }[] = [
+    { t: 'Esperar al infractor', i: 'fa-solid fa-hourglass-half', rec: true, ver: gestion && estado === 'Iniciado' && !noEspera && !c.notificadaAt, on: () => setModal({
+      titulo: 'Esperar al infractor', icono: 'fa-solid fa-hourglass-half', accion: 'esperar_infractor', textoOk: 'Sí', textoCancelar: 'No', campos: [], extra: { esperar: 'si' },
+      aviso: 'Esta causa acaba de abrirse, y el infractor aún no visualizó el acta digital, ¿desea pasar la causa al siguiente estado para esperar al infractor?',
+      onNo: async () => { await accion('esperar_infractor', { esperar: 'no' }, 'Listo: puede considerarlo notificado cuando corresponda'); },
+    }) },
+    { t: 'Considerar notificado', i: 'fa-solid fa-envelope-circle-check', rec: true, ver: gestion && !c.notificadaAt && ((estado === 'Iniciado' && noEspera) || estado === 'En notificación'), on: () => setModal({
+      titulo: 'Considerar notificado', icono: 'fa-solid fa-envelope-circle-check', accion: 'considerar_notificado', textoOk: 'Sí', textoCancelar: 'No', campos: [],
+      aviso: 'Considera usted que el infractor tuvo el tiempo suficiente de acceder al sitio web de infractores para visualizar su acta digital, por lo tanto, se lo considera notificado y procederá a trabajar en la causa, ¿decide proceder?',
+    }) },
     { t: 'Resolución de medida preventiva', rec: true, i: 'fa-solid fa-gavel', ver: gestion && c.medidaVigente === 1 && !tieneEscrito('RESOLUCION_MEDIDA_PREVENTIVA') && !final, destacado: true, on: () => void generarDesde('RESOLUCION_MEDIDA_PREVENTIVA') },
     { t: 'Disposición de levantamiento', rec: true, i: 'fa-solid fa-lock-open', ver: gestion && c.medidaVigente === 1 && !tieneEscrito('DISPOSICION_LEVANTAMIENTO'), on: () => void generarDesde('DISPOSICION_LEVANTAMIENTO') },
     { t: 'Dictar fallo', rec: true, i: 'fa-solid fa-scale-balanced', ver: puedeFallo, deshabilitado: descPend ? 'Hay un descargo sin resolver: resuélvalo primero (aceptar, observar o rechazar).' : undefined, on: abrirFallo },
@@ -440,7 +450,7 @@ export function CausaDetalle() {
         </aside>
       </div>
 
-      {modal ? <ModalForm titulo={modal.titulo} icono={modal.icono} campos={modal.campos} textoOk={modal.textoOk} peligro={modal.peligro} aviso={modal.aviso} onCancel={() => setModal(null)} onOk={confirmarModal} /> : null}
+      {modal ? <ModalForm titulo={modal.titulo} icono={modal.icono} campos={modal.campos} textoOk={modal.textoOk} textoCancelar={modal.textoCancelar} onNo={modal.onNo} peligro={modal.peligro} aviso={modal.aviso} onCancel={() => setModal(null)} onOk={confirmarModal} /> : null}
     </div>
   );
 }

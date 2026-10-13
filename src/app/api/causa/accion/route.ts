@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { emitirBoletas, evaluarArchivoPorPago, generarEscrito, notificarDocumento, valorizacion, valoresVigentes } from '@/lib/causa-srv';
+import { emitirBoletas, evaluarArchivoPorPago, generarEscrito, notificarActa, notificarDocumento, valorizacion, valoresVigentes } from '@/lib/causa-srv';
 import { ESTADOS, estadoFinal, puede, pesos } from '@/lib/dominio';
 import { descargoPendiente } from '@/lib/camino';
 import { calculoLiberacion, claseVehiculo, diasEnDeposito, tarifaEstadia } from '@/lib/tarifas';
@@ -156,6 +156,21 @@ export async function POST(req: NextRequest) {
         if (error) throw new HttpError(500, /valores_labrado_json/.test(error.message) ? 'Falta correr sql/023_valores_labrado.sql en Supabase' : error.message);
         const despues = await valorizacion(db, { ...c, valores_labrado_json: JSON.stringify(nuevos) } as typeof c);
         await historial(db, c.id, quien, 'Valores actualizados a los vigentes', `UF ${pesos(antes.uf)} → ${pesos(nuevos.uf)} · subtotal artículos ${pesos(antes.subtotal)} → ${pesos(despues.subtotal)}`);
+        return { ok: true };
+      }
+      case 'esperar_infractor': {
+        // Causa recién labrada: pasa a «En notificación» para esperar que el infractor vea el acta digital,
+        // o se deja constancia de que no se espera (la acción siguiente es «Considerar notificado»).
+        check(gestion, 'Sin permiso', 403);
+        check(c.estado_faltas === 'Iniciado', 'La causa ya no está en «Iniciado»');
+        if (txt('esperar') === 'si') await cambiarEstado(db, c, 'En notificación', quien, 'En espera del infractor', 'El infractor todavía no visualizó el acta digital.');
+        else await historial(db, c.id, quien, 'No se espera al infractor', 'Se decidió no pasar a «En notificación».');
+        return { ok: true };
+      }
+      case 'considerar_notificado': {
+        check(gestion, 'Sin permiso', 403);
+        check(['Iniciado', 'En notificación'].includes(c.estado_faltas) && !c.notificada_at, 'La causa ya está notificada o no está en notificación');
+        check(await notificarActa(db, c, 'considerada', quien), 'No se pudo considerar notificada la causa');
         return { ok: true };
       }
       case 'generar_escrito': {
