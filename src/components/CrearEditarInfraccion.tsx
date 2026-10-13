@@ -1077,7 +1077,7 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
                 <label htmlFor="busquedaLey">
                   <i className="fa-solid fa-magnifying-glass" aria-hidden="true" /> Buscar por artículo o nombre
                 </label>
-                <input id="busquedaLey" className="form-control" placeholder="Ej.: 45, estacionar, licencia" autoFocus value={busquedaLey} onChange={(e) => setBusquedaLey(e.target.value)} />
+                <input id="busquedaLey" className="form-control" placeholder="Ej.: 45, estacionar, licencia" autoFocus={typeof window !== 'undefined' && !window.matchMedia('(pointer: coarse)').matches} value={busquedaLey} onChange={(e) => setBusquedaLey(e.target.value)} />
               </div>
               {/* Como en stg (BOD): cada artículo con su botón «Agregar»; una vez agregado queda «Agregado» (no se repite). */}
               <ul className="lista-agregar-articulos">

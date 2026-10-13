@@ -60,6 +60,7 @@ Avance: **20 / 20**
 | Valores del labrado: la causa guarda la UF y los múltiplos al firmar; si cambian las tarifas no se recalcula sola, sino con «Actualizar a valores vigentes» (`sql/023`) | — |
 | Causa: acciones divididas en «Acciones recomendadas» (según el estado) y «Más acciones» (desplegable, siempre disponibles) | — |
 | Login en la app del POS: versión de la app al pie (se lee del user agent FaltasPOS/&lt;versión&gt;) | — |
+| «Seleccionar artículos»: en pantallas táctiles el buscador no toma el foco solo (el teclado aparece al tocarlo); en escritorio sigue enfocado | — |
 
 ## Fuera del alcance del prototipo
 
