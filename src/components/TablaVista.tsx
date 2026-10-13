@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 
 const CLAVE = 'faltas:vista-listas';
 type Modo = 'lista' | 'cards';
@@ -51,6 +52,28 @@ export function SelectorVista({ modo, onCambiar }: { modo: Modo; onCambiar: (m: 
 export function TablaVista({ children, selector = true, className = '' }: { children: ReactNode; selector?: boolean; className?: string }) {
   const [modo, setModo] = useVistaListas();
   const ref = useRef<HTMLDivElement>(null);
+  // El selector va a la derecha del encabezado de la tarjeta que contiene la lista (si hay uno).
+  const [slot, setSlot] = useState<HTMLElement | null>(null);
+  useEffect(() => {
+    if (!selector) return;
+    const header = ref.current?.closest('.card-step')?.querySelector(':scope > .card-step-header') as HTMLElement | null;
+    if (!header) return;
+    const el = document.createElement('div');
+    el.className = 'selector-vista-slot';
+    header.appendChild(el);
+    header.classList.add('con-selector-vista');
+    setSlot(el);
+    return () => { el.remove(); header.classList.remove('con-selector-vista'); };
+  }, [selector]);
+
+  // En tarjetas, tocar la tarjeta abre el detalle (el primer enlace de la fila).
+  const alTocar = (e: React.MouseEvent) => {
+    if (modo !== 'cards') return;
+    const t = e.target as HTMLElement;
+    if (t.closest('a, button, input, select, textarea, label')) return;
+    const link = t.closest('tr')?.querySelector('a[href]') as HTMLAnchorElement | null;
+    link?.click();
+  };
 
   useEffect(() => {
     const el = ref.current;
@@ -77,8 +100,10 @@ export function TablaVista({ children, selector = true, className = '' }: { chil
 
   return (
     <div className={`tabla-vista-cont ${className}`}>
-      {selector ? <div className="tabla-vista-barra"><SelectorVista modo={modo} onCambiar={setModo} /></div> : null}
-      <div ref={ref} className={modo === 'cards' ? 'tabla-cards' : 'table-responsive'}>{children}</div>
+      {selector && slot ? createPortal(<SelectorVista modo={modo} onCambiar={setModo} />, slot) : null}
+      {selector && !slot ? <div className="tabla-vista-barra"><SelectorVista modo={modo} onCambiar={setModo} /></div> : null}
+      {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
+      <div ref={ref} className={modo === 'cards' ? 'tabla-cards' : 'table-responsive'} onClick={alTocar}>{children}</div>
     </div>
   );
 }

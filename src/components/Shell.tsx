@@ -161,13 +161,35 @@ function ShellInner({ children }: { children: ReactNode }) {
   }, []);
   useEffect(() => cerrarSidebar(), [pathname, cerrarSidebar]);
 
-  // Apertura por hover: 0,5 s con el mouse sobre la barra lateral. Si se abrió así, se cierra al salir del menú.
+  // Apertura por hover: 1 s con el mouse sobre la barra lateral. Si se abrió así, se cierra al salir del menú.
   const timerHover = useRef<ReturnType<typeof setTimeout> | null>(null);
   const porHover = useRef(false);
+  const punteroRail = useRef<{ y: number; grupo: string | null }>({ y: 0, grupo: null });
   const cancelarHover = () => { if (timerHover.current) { clearTimeout(timerHover.current); timerHover.current = null; } };
+  const moverEnRail = (e: React.MouseEvent) => {
+    punteroRail.current = { y: e.clientY, grupo: (e.target as HTMLElement).closest('[data-grupo]')?.getAttribute('data-grupo') ?? null };
+  };
+  /** Al abrir por hover, deja bajo el puntero el mismo ítem que estaba señalando en la barra (no otro). */
+  const alinearConPuntero = () => {
+    const { y, grupo } = punteroRail.current;
+    const aside = document.querySelector('.sidebar-flotante') as HTMLElement | null;
+    if (!aside || !grupo) return;
+    const item = () => aside.querySelector(`[data-grupo="${grupo}"]`) as HTMLElement | null;
+    const centro = () => { const r = item()?.getBoundingClientRect(); return r ? r.top + r.height / 2 : y; };
+    if (centro() > y) aside.classList.add('sidebar-hover-compacto'); // oculta el bloque del usuario para subir el ítem
+    const delta = y - centro();
+    const cuerpo = aside.querySelector('.sidebar-cuerpo-v2') as HTMLElement | null;
+    if (cuerpo && delta > 0) cuerpo.style.paddingTop = `${delta}px`;
+    item()?.classList.add('sidebar-objetivo');
+  };
   const hoverEntra = () => {
     cancelarHover();
-    timerHover.current = setTimeout(() => { timerHover.current = null; porHover.current = true; setSidebarAbierta(true); }, 500);
+    timerHover.current = setTimeout(() => {
+      timerHover.current = null;
+      porHover.current = true;
+      setSidebarAbierta(true);
+      requestAnimationFrame(() => requestAnimationFrame(alinearConPuntero));
+    }, 1000);
   };
   const salirMenu = () => {
     cancelarHover();
@@ -299,7 +321,7 @@ function ShellInner({ children }: { children: ReactNode }) {
               key={grupo.id}
               className={`sidebar-grupo ${abiertos[grupo.id] ? 'abierto' : ''} ${grupoActivo(grupo) ? 'activo' : ''}`}
             >
-              <button type="button" className="sidebar-grupo-header" onClick={() => toggle(grupo.id)}>
+              <button type="button" className="sidebar-grupo-header" data-grupo={grupo.id} onClick={() => toggle(grupo.id)}>
                 <span className="sidebar-grupo-titulo">
                   <i className={grupo.icono} aria-hidden="true" />
                   <span>{grupo.titulo}</span>
@@ -326,6 +348,7 @@ function ShellInner({ children }: { children: ReactNode }) {
               key={grupo.id}
               href={grupo.route!}
               className={`sidebar-grupo-header sidebar-grupo-simple ${pathname.startsWith(grupo.route!) ? 'active' : ''}`}
+              data-grupo={grupo.id}
               onClick={() => layout.isMobile && setDrawerAbierto(false)}
             >
               <span className="sidebar-grupo-titulo">
@@ -455,7 +478,7 @@ function ShellInner({ children }: { children: ReactNode }) {
         </>
       ) : (
         <>
-          <nav className="sidebar-rail" aria-label="Menú lateral" onMouseEnter={hoverEntra} onMouseLeave={cancelarHover}>
+          <nav className="sidebar-rail" aria-label="Menú lateral" onMouseEnter={(e) => { moverEnRail(e); hoverEntra(); }} onMouseMove={moverEnRail} onMouseLeave={cancelarHover}>
             <button type="button" className="rail-logo" title="Abrir menú" aria-label="Abrir menú" onClick={() => setSidebarAbierta(true)}>
               <img src="/images/Municipio_malvinas_argentinas_logo.png" alt="" />
             </button>
@@ -465,11 +488,11 @@ function ShellInner({ children }: { children: ReactNode }) {
             <div className="rail-items">
               {gruposVisibles.map((g) =>
                 g.route ? (
-                  <Link key={g.id} href={g.route} className={`rail-btn ${grupoActivo(g) ? 'active' : ''}`} title={g.titulo} aria-label={g.titulo}>
+                  <Link key={g.id} href={g.route} data-grupo={g.id} className={`rail-btn ${grupoActivo(g) ? 'active' : ''}`} title={g.titulo} aria-label={g.titulo}>
                     <i className={g.icono} aria-hidden="true" />
                   </Link>
                 ) : (
-                  <button key={g.id} type="button" className={`rail-btn ${grupoActivo(g) ? 'active' : ''}`} title={g.titulo} aria-label={g.titulo} onClick={() => { setAbiertos((p) => ({ ...p, [g.id]: true })); setSidebarAbierta(true); }}>
+                  <button key={g.id} type="button" data-grupo={g.id} className={`rail-btn ${grupoActivo(g) ? 'active' : ''}`} title={g.titulo} aria-label={g.titulo} onClick={() => { setAbiertos((p) => ({ ...p, [g.id]: true })); setSidebarAbierta(true); }}>
                     <i className={g.icono} aria-hidden="true" />
                   </button>
                 ),

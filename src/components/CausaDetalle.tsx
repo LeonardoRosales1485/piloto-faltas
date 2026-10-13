@@ -428,7 +428,7 @@ export function CausaDetalle() {
                     {recomendadas.length ? recomendadas.map((b) => boton(b, true)) : <p className="texto-ayuda small mb-1">No hay acciones pendientes para el estado «{estado}».</p>}
                     {mas.length ? (
                       <details className="acciones-mas" open={!recomendadas.length}>
-                        <summary className="acciones-titulo">Más acciones <span className="texto-ayuda">({mas.length})</span></summary>
+                        <summary className="acciones-mas-boton"><span><i className="fa-solid fa-ellipsis" aria-hidden="true" /> Más acciones <span className="acciones-mas-n">{mas.length}</span></span><i className="fa-solid fa-chevron-down chev" aria-hidden="true" /></summary>
                         <div className="acciones-lista mt-1">{mas.map((b) => boton(b, false))}</div>
                       </details>
                     ) : null}
