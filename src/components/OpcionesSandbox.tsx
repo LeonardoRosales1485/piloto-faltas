@@ -77,8 +77,8 @@ export function OpcionesSandbox() {
             <div className="card-step-body">
               <p>Las fechas se corren al día de hoy, para que los plazos y vencimientos sigan teniendo sentido.</p>
               <div className="sandbox-opcion">
-                <div><strong>Datos de BOD</strong><span className="texto-ayuda d-block">{def ? `${def.actas} actas en todas las bandejas, con fotos, firmas, escritos y pagos` : 'No cargados: corra sql/010_sandbox_default.sql'}</span></div>
-                <button type="button" className="btn btn-primary" disabled={!def} onClick={() => pedir({ accion: 'cargar', origen: 'default', palabra: 'CARGAR', titulo: 'Datos de BOD cargados', aviso: 'Se borrarán los datos actuales y se cargarán los datos de prueba de BOD.' })}>Cargar</button>
+                <div><strong>Datos de sistema</strong><span className="texto-ayuda d-block">{def ? `${def.actas} actas en todas las bandejas, con fotos, firmas, escritos y pagos` : 'No cargados: corra sql/010_sandbox_default.sql'}</span></div>
+                <button type="button" className="btn btn-primary" disabled={!def} onClick={() => pedir({ accion: 'cargar', origen: 'default', palabra: 'CARGAR', titulo: 'Datos de sistema cargados', aviso: 'Se borrarán los datos actuales y se cargarán los datos de prueba del sistema.' })}>Cargar</button>
               </div>
               <div className="sandbox-opcion">
                 <div><strong>Foto guardada</strong><span className="texto-ayuda d-block">{foto ? `${foto.actas} actas · guardada el ${fechaHora(foto.creado_at)} por ${foto.creado_por}` : 'Todavía no se guardó ninguna'}</span></div>
