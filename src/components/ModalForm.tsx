@@ -1,5 +1,6 @@
 'use client';
 
+import { InputClave } from './InputClave';
 import { useState } from 'react';
 import { BuscadorOpciones, type OpcionBuscable } from './BuscadorOpciones';
 
@@ -63,7 +64,7 @@ export function ModalForm({
               ) : c.tipo === 'archivo' ? (
                 <input id={`m-${c.k}`} type="file" className="form-control" accept="image/*,application/pdf" onChange={(e) => void archivo(c.k, e.target.files?.[0])} />
               ) : (
-                <input id={`m-${c.k}`} className="form-control" type={c.tipo === 'numero' ? 'number' : c.tipo === 'fecha' ? 'date' : c.tipo === 'clave' ? 'password' : 'text'} autoComplete={c.tipo === 'clave' ? 'new-password' : undefined} value={v[c.k]} onChange={(e) => setV({ ...v, [c.k]: e.target.value })} />
+                c.tipo === 'clave' ? <InputClave id={`m-${c.k}`} autoComplete="new-password" value={v[c.k]} onChange={(e) => setV({ ...v, [c.k]: e.target.value })} /> : <input id={`m-${c.k}`} className="form-control" type={c.tipo === 'numero' ? 'number' : c.tipo === 'fecha' ? 'date' : 'text'} value={v[c.k]} onChange={(e) => setV({ ...v, [c.k]: e.target.value })} />
               )}
               {c.ayuda ? <p className="texto-ayuda">{c.ayuda}</p> : null}
             </div>

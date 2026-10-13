@@ -5,7 +5,8 @@ import { BotonVerActa, GaleriaFotos } from './ActaEvidencia';
 import Link from 'next/link';
 import { LoaderLogo } from './LoaderLogo';
 import { useParams } from 'next/navigation';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { crearDocx } from '@/lib/docx-simple';
 import { fechaCorta, fechaHora, pesos } from '@/lib/dominio';
 import { portal, portalPerfil } from '@/lib/portal-client';
 
@@ -41,6 +42,11 @@ export function PortalCausa() {
   const [msg, setMsg] = useState<{ ok: boolean; t: string } | null>(null);
   const [enviando, setEnviando] = useState(false);
   const juridica = portalPerfil()?.tipoPersona === 'juridica';
+  const refForm = useRef<HTMLDivElement>(null);
+  const refMsg = useRef<HTMLDivElement>(null);
+  // Lleva la vista a lo que acaba de aparecer por el click (formulario o mensaje de resultado).
+  useEffect(() => { if (form) setTimeout(() => refForm.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50); }, [form]);
+  useEffect(() => { if (msg) setTimeout(() => refMsg.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50); }, [msg]);
 
   const cargar = useCallback((abrir = false) => {
     portal.get<R>(`/api/portal/causa/${uuid}${abrir ? '?abrir=1' : ''}`).then(setD).catch((e: Error) => setMsg({ ok: false, t: e.message }));
@@ -63,6 +69,9 @@ export function PortalCausa() {
 
   async function presentar() {
     if (!form) return;
+    const faltan = [!adj.some((a) => a.titulo === 'DNI frente') && 'DNI frente', !adj.some((a) => a.titulo === 'DNI dorso') && 'DNI dorso', juridica && !adj.some((a) => a.titulo === 'Estatuto') && 'Estatuto',
+      (form === 'descargo' || form === 'reenviar_descargo' || form === 'apelacion') && texto.trim().length < 20 && !adj.some((a) => a.titulo === 'Escrito') && 'su presentación escrita (o el escrito firmado adjunto)'].filter(Boolean);
+    if (faltan.length) { setMsg({ ok: false, t: `Falta completar: ${faltan.join(', ')}.` }); return; }
     setEnviando(true);
     setMsg(null);
     try {
@@ -86,11 +95,20 @@ export function PortalCausa() {
   }
 
   function descargarModelo() {
-    const html = `<html><head><meta charset="utf-8"></head><body style="font-family:'Times New Roman';font-size:12pt"><p>${(textos.formulario_descargo ?? '').replace(/\n/g, '<br/>')}</p></body></html>`;
+    const r = d?.resumen ?? {};
+    const base = (textos.formulario_descargo || 'Sr./Sra. Director/a de Faltas: Quien suscribe, [nombre y apellido], DNI [número], con domicilio en [domicilio], en relación al Acta N.° [número], vengo a presentar descargo en los siguientes términos: [exponga los hechos]. Ofrezco como prueba: [detalle]. Sin otro particular, saludo atentamente.')
+      .replace('Acta N.° [número]', `Acta N.° ${r.numero ?? '[número]'}`);
+    const blob = crearDocx([
+      { texto: 'FORMULARIO DE DESCARGO', negrita: true, centrado: true, tamano: 14 },
+      { texto: `${r.tipoTitulo ?? 'Acta'} N.° ${r.numero ?? ''} · Legajo ${r.legajo ?? ''}${r.dominio ? ` · Dominio ${r.dominio}` : ''}`, centrado: true },
+      ...base.split(/\n+/).map((t: string) => ({ texto: t.trim() })).filter((x: { texto: string }) => x.texto),
+      { texto: '' }, { texto: 'Firma: ______________________________' }, { texto: 'Aclaración: __________________________' }, { texto: 'DNI: ________________   Fecha: ____/____/________' },
+    ]);
     const a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob([html], { type: 'application/msword' }));
-    a.download = 'Formulario modelo de descargo.doc';
-    a.click();
+    a.href = URL.createObjectURL(blob);
+    a.download = `Formulario de descargo - Acta ${r.numero ?? ''}.docx`.replace(/\s+\.docx$/, '.docx');
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
   }
 
   if (!d) return <div className="portal-card">{msg ? <div className="aviso aviso-peligro mb-0">{msg.t}</div> : <LoaderLogo texto="Cargando acta…" />}</div>;
@@ -102,7 +120,7 @@ export function PortalCausa() {
         <h1>{r.tipoTitulo} {r.numero}</h1>
         <p className="texto-ayuda">Legajo {r.legajo} · {String(r.fecha ?? '').replace('T', ' ')} · {r.lugar}</p>
         <div className="aviso aviso-alerta"><i className="fa-solid fa-circle-exclamation" aria-hidden="true" /> {textos.aviso_notificacion}</div>
-        <button type="button" className="btn btn-primary btn-lg w-100" onClick={() => cargar(true)}>Abrir el acta y quedar notificado/a</button>
+        <button type="button" className="btn btn-primary btn-lg w-100" onClick={() => { cargar(true); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>Abrir el acta y quedar notificado/a</button>
         <Link href="/portal" className="btn btn-link w-100 mt-2">Ahora no</Link>
       </div>
     );
@@ -112,11 +130,13 @@ export function PortalCausa() {
   const disponibles = ACCIONES.filter((a) => acciones[a.k]?.ok);
   const noDisponibles = ACCIONES.filter((a) => !acciones[a.k]?.ok && a.k !== 'reenviar_descargo');
   const conTexto = form === 'descargo' || form === 'reenviar_descargo' || form === 'apelacion';
+  const textoCorto = texto.trim().length < 20;
+  const sinEscrito = !adj.some((a) => a.titulo === 'Escrito');
   const observada = (d.presentaciones as R[]).find((p) => p.tipo === 'descargo' && p.estado === 'observada');
 
   return (
     <>
-      {msg ? <div className={`aviso ${msg.ok ? 'aviso-ok' : 'aviso-peligro'}`}>{msg.t}</div> : null}
+      {msg && !form ? <div ref={refMsg} className={`aviso ${msg.ok ? 'aviso-ok' : 'aviso-peligro'}`}>{msg.t}</div> : null}
       <div className="portal-card">
         <div className="d-flex justify-content-between flex-wrap gap-2 align-items-start">
           <div>
@@ -164,23 +184,25 @@ export function PortalCausa() {
       ) : null}
 
       {form ? (
-        <div className="portal-card">
+        <div className="portal-card" ref={refForm} style={{ scrollMarginTop: 16 }}>
           <h2>{ACCIONES.find((a) => a.k === form)?.t}</h2>
           {ACCIONES.find((a) => a.k === form)?.aviso && (form !== 'descargo' || d.resumen.tipo === 'multas') ? <div className="aviso aviso-alerta">{textos[ACCIONES.find((a) => a.k === form)!.aviso!]}</div> : null}
           {form === 'cuotas' ? <div className="form-group mb-3"><label htmlFor="pc-c">Cantidad de cuotas que solicita</label><input id="pc-c" type="number" min={2} max={12} className="form-control" style={{ maxWidth: 140 }} value={cuotas} onChange={(e) => setCuotas(Number(e.target.value))} /></div> : null}
           <div className="form-group mb-3">
-            <label htmlFor="pc-t">{conTexto ? 'Su presentación' : 'Comentario (opcional)'}</label>
+            <label htmlFor="pc-t">{conTexto ? <>Su presentación {sinEscrito ? <span className="requerido">*</span> : null}</> : 'Comentario (opcional)'}</label>
             <textarea id="pc-t" className="form-control" rows={conTexto ? 7 : 3} value={texto} onChange={(e) => setTexto(e.target.value)} placeholder={conTexto ? 'Exponga los hechos y lo que solicita...' : ''} />
+            {conTexto ? <small className="texto-ayuda">Escriba su presentación aquí (mínimo 20 caracteres) <strong>o</strong> adjunte el escrito firmado. Una de las dos es obligatoria.</small> : null}
           </div>
           <div className="row g-2">
-            {[['DNI frente', true], ['DNI dorso', true], ...(juridica ? [['Estatuto', true]] : []), ...(conTexto ? [['Escrito', false], ['Prueba', false]] : [])].map(([t, req]) => (
+            {[['DNI frente', true], ['DNI dorso', true], ...(juridica ? [['Estatuto', true]] : []), ...(conTexto ? [['Escrito', textoCorto], ['Prueba', false]] : [])].map(([t, req]) => (
               <div key={String(t)} className="col-12 col-md-6">
-                <label htmlFor={`pa-${t}`}>{String(t)} {req ? <span className="requerido">*</span> : '(opcional)'}</label>
+                <label htmlFor={`pa-${t}`}>{String(t)} {req ? <span className="requerido">*</span> : t === 'Escrito' ? '(opcional: ya escribió su presentación)' : '(opcional)'}</label>
                 <input id={`pa-${t}`} type="file" accept="image/*,application/pdf" className="form-control" onChange={(e) => void adjuntar(String(t), e.target.files?.[0])} />
                 {adj.filter((a) => a.titulo === t).map((a) => <span key={a.nombre} className="texto-ayuda d-block">✓ {a.nombre}</span>)}
               </div>
             ))}
           </div>
+          {msg ? <div ref={refMsg} className={`aviso ${msg.ok ? 'aviso-ok' : 'aviso-peligro'} mt-3 mb-0`}>{msg.t}</div> : null}
           <div className="d-flex gap-2 mt-3 flex-wrap">
             <button type="button" className="btn btn-primary btn-lg" disabled={enviando} onClick={() => void presentar()}>{enviando ? 'Enviando...' : 'Enviar'}</button>
             <button type="button" className="btn btn-outline-secondary btn-lg" onClick={() => { setForm(null); setAdj([]); }}>Cancelar</button>

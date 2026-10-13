@@ -67,7 +67,7 @@ Al firmar, el acta aparece sola en el sistema de Faltas como causa en estado **�
 En su acta del portal ve **«¿Qué puede hacer?»**, con las opciones que le corresponden:
 
 - **Pagar con descuento (pago voluntario):** en tránsito, si lo elige ya no puede presentar descargo, y el portal se lo advierte.
-- **Presentar descargo**, con su escrito y pruebas.
+- **Presentar descargo**: escribe su presentación en el portal (mínimo 20 caracteres) **o** adjunta el escrito firmado; una de las dos es obligatoria, junto con el DNI de ambos lados. El «formulario modelo de descargo» se descarga en Word (.docx) con el número de acta precargado. Al elegir una opción, la pantalla baja sola hasta el formulario.
 - **Pedir plan de cuotas.**
 
 Para cualquier opción debe adjuntar el **DNI de frente y de dorso**, y el **estatuto** si es una empresa.

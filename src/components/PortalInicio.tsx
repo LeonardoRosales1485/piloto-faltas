@@ -2,6 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import Link from 'next/link';
+import { InputClave } from './InputClave';
 import { LoaderLogo } from './LoaderLogo';
 import { useCarga } from '@/lib/use-carga';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -47,7 +48,7 @@ function Login({ volver }: { volver: string | null }) {
       <p className="texto-ayuda">Para consultar y gestionar sus actas necesita una cuenta. Si llegó escaneando el QR del ticket, ingrese y lo llevamos a su acta.</p>
       <form onSubmit={entrar}>
         <div className="form-group mb-2"><label htmlFor="p-email">Correo electrónico</label><input id="p-email" type="email" className="form-control" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" /></div>
-        <div className="form-group mb-3"><label htmlFor="p-pass">Contraseña</label><input id="p-pass" type="password" className="form-control" value={password} onChange={(e) => setPassword(e.target.value)} required autoComplete="current-password" /></div>
+        <div className="form-group mb-3"><label htmlFor="p-pass">Contraseña</label><InputClave id="p-pass" value={password} onChange={(e) => setPassword(e.target.value)} required autoComplete="current-password" /></div>
         {error ? <div className="aviso aviso-peligro">{error}</div> : null}
         <button type="submit" className="btn btn-primary btn-lg w-100">Ingresar</button>
       </form>

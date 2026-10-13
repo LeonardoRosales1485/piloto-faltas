@@ -1,6 +1,7 @@
 'use client';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+import { InputClave } from './InputClave';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -19,7 +20,7 @@ export function PortalRegistro() {
   const set = (k: string, v: string) => setF((p) => ({ ...p, [k]: v }));
   const juridica = f.tipoPersona === 'juridica';
   const campo = (k: string, t: string, props: React.InputHTMLAttributes<HTMLInputElement> = {}, col = 'col-12 col-md-6') => (
-    <div className={col}><label htmlFor={`r-${k}`}>{t}</label><input id={`r-${k}`} className="form-control" value={f[k] ?? ''} onChange={(e) => set(k, e.target.value)} {...props} /></div>
+    <div className={col}><label htmlFor={`r-${k}`}>{t}</label>{props.type === 'password' ? <InputClave id={`r-${k}`} value={f[k] ?? ''} onChange={(e) => set(k, e.target.value)} required={props.required} autoComplete={props.autoComplete} minLength={props.minLength} /> : <input id={`r-${k}`} className="form-control" value={f[k] ?? ''} onChange={(e) => set(k, e.target.value)} {...props} />}</div>
   );
 
   async function registrar(e: React.FormEvent) {
@@ -114,7 +115,7 @@ export function PortalRecuperar() {
         <>
           {piloto ? <div className="codigo-piloto mb-2">Piloto: su código es <strong>{piloto}</strong>.</div> : null}
           <label htmlFor="rc-c">Código</label><input id="rc-c" className="form-control mb-2" value={codigo} onChange={(e) => setCodigo(e.target.value)} />
-          <label htmlFor="rc-p">Nueva contraseña</label><input id="rc-p" type="password" className="form-control mb-2" value={password} onChange={(e) => setPassword(e.target.value)} />
+          <label htmlFor="rc-p">Nueva contraseña</label><div className="mb-2"><InputClave id="rc-p" autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} /></div>
           <button type="button" className="btn btn-primary w-100" onClick={() => portal.post('/api/portal/restablecer', { email, codigo, password }).then(() => setMsg('Listo. Ya puede ingresar con su nueva contraseña.')).catch((e: Error) => setMsg(e.message))}>Cambiar contraseña</button>
         </>
       )}

@@ -44,6 +44,8 @@ Avance: **20 / 20**
 | Pantalla final del labrado: resumen completo, ver acta / ticket y «Listo, volver al inicio»; quita el texto de ayuda del ejido | 7b98517 |
 | Móvil: barra «Acta de tránsito» con el estado y número de acta al pie de cada paso | 931f535 |
 | Obligatorios: situación del infractor sin preselección, vehículo (dominio, tipo, marca, modelo) y al menos una foto; N.° de licencia pasa al paso Infractor | 718758a |
+| Portal ciudadano: la vista baja al formulario o al mensaje tras cada botón; formulario modelo de descargo en .docx real; escrito obligatorio salvo que se escriba la presentación; ojo de contraseña en portal y altas de usuarios | — |
+| APK del POS: Flutter fijado en 3.32.8 (AGP 8) y parche de ProGuard en flutter_inappwebview | — |
 
 ## Fuera del alcance del prototipo
 
