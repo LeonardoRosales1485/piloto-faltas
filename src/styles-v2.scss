@@ -655,3 +655,10 @@ span.dato-subsanado { font-size: .75rem; padding: .1rem .45rem; font-weight: 600
 [data-theme='dark'] .permiso-estado { &.si { background: rgba(22,163,74,.25); color: #86efac; } &.no { background: rgba(220,38,38,.22); color: #fca5a5; } }
 .permiso-texto { flex: 1; min-width: 200px; display: flex; flex-direction: column; span { font-size: .8rem; opacity: .7; } }
 .permiso-control { flex-shrink: 0; }
+
+// Login: botón para mostrar u ocultar la contraseña
+.input-icono .input-con-ojo { padding-right: 2.8rem; }
+.input-icono .btn-ojo { position: absolute; right: .35rem; top: 50%; transform: translateY(-50%); width: 2.3rem; height: 2.3rem; border: 0; background: transparent; border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--bo-texto-secundario);
+  i { position: static; transform: none; left: auto; top: auto; }
+  &:hover, &:focus-visible { background: rgba(148, 163, 184, .15); color: var(--bo-azul); }
+}

@@ -20,6 +20,7 @@ export function LoginPage() {
   const router = useRouter();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [verPass, setVerPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const year = new Date().getFullYear();
@@ -78,13 +79,17 @@ export function LoginPage() {
               <input
                 id="password"
                 name="password"
-                type="password"
-                className="form-control"
+                type={verPass ? 'text' : 'password'}
+                className="form-control input-con-ojo"
                 placeholder="Ingresa tu contraseña"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                autoComplete="current-password"
                 required
               />
+              <button type="button" className="btn-ojo" onClick={() => setVerPass((v) => !v)} aria-label={verPass ? 'Ocultar contraseña' : 'Mostrar contraseña'} title={verPass ? 'Ocultar contraseña' : 'Mostrar contraseña'} aria-pressed={verPass}>
+                <i className={`fa-solid ${verPass ? 'fa-eye-slash' : 'fa-eye'}`} aria-hidden="true" />
+              </button>
             </div>
           </div>
           <button type="submit" className="btn btn-primary btn-login" disabled={loading}>
