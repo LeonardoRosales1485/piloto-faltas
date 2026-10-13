@@ -59,3 +59,11 @@ y en `android/app/build.gradle` usar `minSdkVersion 21` o mayor.
 Todos los APK se firman con `firma/debug.keystore` (alias `androiddebugkey`, clave `android`), así cada versión nueva
 actualiza la instalada. Si Android muestra «Cancelando...» al instalar, la app instalada tiene otra firma
 (versiones anteriores a este cambio): desinstalarla una vez y volver a instalar. Para producción conviene una clave propia guardada como secreto de GitHub.
+
+## Compilar en la PC con `compilar-apk.bat`
+
+Doble click en `pos-app\compilar-apk.bat` (opcional: `compilar-apk.bat https://otra-url`). Verifica Flutter
+(si falta, ofrece descargar la 3.32.8 en `C:\flutter`; requiere Git), el Android SDK (instalar Android Studio y
+abrirlo una vez) y Java (usa el de Android Studio). Hace los mismos pasos que GitHub Actions, firma con
+`firma\debug.keystore` (respalda y restaura la clave debug propia de la PC) y deja `pos-app\faltas-pos.apk`.
+La primera compilación tarda; las siguientes, 1–2 minutos.

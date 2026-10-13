@@ -1,0 +1,6 @@
+# Generados al compilar localmente
+android/
+build/
+.dart_tool/
+.flutter-plugins*
+faltas-pos.apk
