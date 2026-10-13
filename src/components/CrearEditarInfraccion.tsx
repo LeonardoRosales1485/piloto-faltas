@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { apiClient, http } from '@/lib/api-client';
 import { useLayout } from '@/lib/layout-context';
-import { printTicket } from '@/lib/print';
+import { hayImpresoraPos, printTicket, tomarFotosPos } from '@/lib/print';
 import { puede, SITUACIONES, TIPOS_ACTA, claveLey, fechaHora, tipoActa } from '@/lib/dominio';
 import type { ImgModel, Infraccion, Ley, OpcionCatalogo } from '@/lib/types';
 import { type Paso, MAX_IMAGENES, ejidoPorGps, faltantesPorPaso, pasosPara, readImageFile, toDateTimeLocal, vacia } from './crear-editar-utils';
@@ -274,8 +274,24 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
   }
 
   async function onImagenes(event: React.ChangeEvent<HTMLInputElement>) {
-    const files = event.target.files;
-    if (!files) return;
+    if (event.target.files) await agregarImagenes(Array.from(event.target.files));
+    event.target.value = '';
+  }
+
+  /** En la app del POS la cámara la abre la app (el input file del WebView no devuelve la foto). */
+  async function onClickSubirImagen(e: React.MouseEvent) {
+    if (!hayImpresoraPos()) return;
+    e.preventDefault();
+    try {
+      const files = await tomarFotosPos(MAX_IMAGENES - imagenes.length);
+      if (files?.length) await agregarImagenes(files);
+    } catch (err) {
+      notify.error('No se pudo tomar la foto', (err as Error).message);
+    }
+  }
+
+  async function agregarImagenes(files: File[]) {
+    if (!files.length) return;
     const disponibles = MAX_IMAGENES - imagenes.length;
     if (files.length > disponibles) notify.warning('Límite de imágenes', `Solo se pueden cargar hasta ${MAX_IMAGENES} imágenes.`);
     const nuevas = [...imagenes];
@@ -284,7 +300,6 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
       nuevas.push({ uuid: '', status: 1, dateCreated: Date.now(), infraccionUuid: form.uuid, previewRaw: dataUrl, fullRaw: dataUrl });
     }
     setImagenes(nuevas);
-    event.target.value = '';
   }
 
   if (cargando) {
@@ -925,7 +940,7 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
               </div>
               {imagenes.length < MAX_IMAGENES ? (
                 <div className="col-12">
-                  <label className="btn btn-outline-primary btn-subir-imagen">
+                  <label className="btn btn-outline-primary btn-subir-imagen" onClick={(e) => void onClickSubirImagen(e)}>
                     <i className="fa-solid fa-camera" aria-hidden="true" /> Tomar o subir imágenes
                     <input type="file" accept="image/*" capture="environment" multiple hidden onChange={onImagenes} />
                   </label>

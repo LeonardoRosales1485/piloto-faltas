@@ -126,6 +126,23 @@ export function hayImpresoraPos(): boolean {
   return Boolean(puentePos());
 }
 
+/**
+ * En la app del POS el <input type="file" capture> del WebView no devuelve la foto, así que la cámara/galería la abre
+ * la app (handler «tomarFoto», image_picker) y devuelve las imágenes como data URL. Devuelve null si no hay app.
+ */
+export async function tomarFotosPos(max: number): Promise<File[] | null> {
+  const pos = puentePos();
+  if (!pos) return null;
+  const r = (await pos.callHandler('tomarFoto', { max })) as { ok?: boolean; fotos?: string[]; error?: string } | null;
+  if (!r?.ok) { if (r?.error) throw new Error(r.error); return []; }
+  const files: File[] = [];
+  for (const [i, url] of (r.fotos ?? []).entries()) {
+    const blob = await (await fetch(url)).blob();
+    files.push(new File([blob], `foto-${Date.now()}-${i}.jpg`, { type: blob.type || 'image/jpeg' }));
+  }
+  return files;
+}
+
 export function printActa(infraccion: Infraccion, extras: ActaExtras = {}): void {
   const { html, css } = actaHtmlPorTipo(infraccion, extras);
   abrirVentana('Acta de Infracción', html, css);

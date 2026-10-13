@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'dart:convert';
+
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import 'impresora_ticket.dart';
@@ -38,6 +41,33 @@ class _InicioState extends State<Inicio> {
     [Permission.location, Permission.camera].request();
   }
 
+  /// Pregunta cámara o galería y devuelve las fotos como data URL (JPEG reducido a 1600 px).
+  Future<List<String>> _tomarFotos(int max) async {
+    final origen = await showModalBottomSheet<ImageSource>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Wrap(children: [
+          ListTile(leading: const Icon(Icons.photo_camera), title: const Text('Tomar foto'), onTap: () => Navigator.pop(ctx, ImageSource.camera)),
+          ListTile(leading: const Icon(Icons.photo_library), title: const Text('Elegir de la galería'), onTap: () => Navigator.pop(ctx, ImageSource.gallery)),
+        ]),
+      ),
+    );
+    if (origen == null) return [];
+    final picker = ImagePicker();
+    final List<XFile> archivos;
+    if (origen == ImageSource.camera) {
+      final f = await picker.pickImage(source: ImageSource.camera, maxWidth: 1600, maxHeight: 1600, imageQuality: 80);
+      archivos = f == null ? [] : [f];
+    } else {
+      archivos = (await picker.pickMultiImage(maxWidth: 1600, maxHeight: 1600, imageQuality: 80)).take(max).toList();
+    }
+    final out = <String>[];
+    for (final f in archivos) {
+      out.add('data:image/jpeg;base64,${base64Encode(await f.readAsBytes())}');
+    }
+    return out;
+  }
+
   @override
   Widget build(BuildContext context) {
     return PopScope(
@@ -60,6 +90,16 @@ class _InicioState extends State<Inicio> {
             onWebViewCreated: (c) {
               _web = c;
               // La web llama: window.flutter_inappwebview.callHandler('imprimirTicket', datos)
+              // Fotos del acta: el <input type=file capture> del WebView no devuelve la imagen en el POS,
+              // así que la web llama callHandler('tomarFoto', {max}) y la app abre cámara o galería.
+              c.addJavaScriptHandler(handlerName: 'tomarFoto', callback: (args) async {
+                try {
+                  final max = (args.isNotEmpty && args.first is Map) ? ((args.first as Map)['max'] as num?)?.toInt() ?? 10 : 10;
+                  return {'ok': true, 'fotos': await _tomarFotos(max)};
+                } catch (e) {
+                  return {'ok': false, 'error': '$e'};
+                }
+              });
               c.addJavaScriptHandler(
                 handlerName: 'imprimirTicket',
                 callback: (args) async {

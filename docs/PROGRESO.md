@@ -46,6 +46,7 @@ Avance: **20 / 20**
 | Obligatorios: situación del infractor sin preselección, vehículo (dominio, tipo, marca, modelo) y al menos una foto; N.° de licencia pasa al paso Infractor | 718758a |
 | Portal ciudadano: la vista baja al formulario o al mensaje tras cada botón; formulario modelo de descargo en .docx real; escrito obligatorio salvo que se escriba la presentación; ojo de contraseña en portal y altas de usuarios | — |
 | APK del POS: Flutter fijado en 3.32.8 (AGP 8) y parche de ProGuard en flutter_inappwebview | — |
+| App del POS: fotos del acta con cámara/galería nativas (image_picker), porque el input de archivo del WebView no devolvía la imagen | — |
 
 ## Fuera del alcance del prototipo
 
