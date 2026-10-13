@@ -46,10 +46,13 @@ jobs:
 
       - name: Compilar APK
         run: |
+          # Firma fija: el APK release se firma con la clave debug del runner, que cambia en cada ejecución.
+          # Con una clave distinta Android no deja actualizar la app instalada («Cancelando...»). Usamos siempre la del repo.
+          mkdir -p $HOME/.android && cp firma/debug.keystore $HOME/.android/debug.keystore
           flutter pub get
           # AGP nuevos rechazan getDefaultProguardFile('proguard-android.txt') usado por flutter_inappwebview_android
           find $HOME/.pub-cache/hosted -path '*flutter_inappwebview*' -name build.gradle -exec sed -i "s/proguard-android.txt/proguard-android-optimize.txt/g" {} +
-          flutter build apk --release --dart-define=APP_URL=${{ github.event.inputs.app_url || 'https://piloto-faltas.vercel.app' }}
+          flutter build apk --release --build-number=${{ github.run_number }} --dart-define=APP_URL=${{ github.event.inputs.app_url || 'https://piloto-faltas.vercel.app' }}
 
       - uses: actions/upload-artifact@v4
         with:

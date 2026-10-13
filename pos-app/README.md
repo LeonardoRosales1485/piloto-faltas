@@ -53,3 +53,9 @@ y en `android/app/build.gradle` usar `minSdkVersion 21` o mayor.
 - **Separador:** 48 guiones = ancho de 80 mm con la letra de 24; ajustar si queda corto o largo.
 
 > Probado solo a nivel de código: los valores de tamaño de letra, oscuridad y QR deben afinarse con el equipo en mano.
+
+## Firma del APK
+
+Todos los APK se firman con `firma/debug.keystore` (alias `androiddebugkey`, clave `android`), así cada versión nueva
+actualiza la instalada. Si Android muestra «Cancelando...» al instalar, la app instalada tiene otra firma
+(versiones anteriores a este cambio): desinstalarla una vez y volver a instalar. Para producción conviene una clave propia guardada como secreto de GitHub.
