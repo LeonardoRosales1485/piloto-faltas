@@ -249,7 +249,7 @@ export function ListaInfracciones() {
   function alTocarLista(e: React.MouseEvent) {
     if ((e.target as HTMLElement).closest('button, a, input, select, textarea, label')) return;
     const ahora = Date.now();
-    toques.current = ahora - toques.current.t < 600 ? { n: toques.current.n + 1, t: ahora } : { n: 1, t: ahora };
+    toques.current = ahora - toques.current.t < 1000 ? { n: toques.current.n + 1, t: ahora } : { n: 1, t: ahora };
     if (toques.current.n >= 7) {
       toques.current = { n: 0, t: 0 };
       const nuevo = !debugTodas;
