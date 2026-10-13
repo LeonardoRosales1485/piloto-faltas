@@ -65,5 +65,5 @@ actualiza la instalada. Si Android muestra «Cancelando...» al instalar, la app
 Doble click en `pos-app\compilar-apk.bat` (opcional: `compilar-apk.bat https://otra-url`). Verifica Flutter
 (si falta, ofrece descargar la 3.32.8 en `C:\flutter`; requiere Git), el Android SDK (instalar Android Studio y
 abrirlo una vez) y Java (usa el de Android Studio). Hace los mismos pasos que GitHub Actions, firma con
-`firma\debug.keystore` (respalda y restaura la clave debug propia de la PC) y deja `pos-app\faltas-pos.apk`.
+`firma\debug.keystore` (respalda y restaura la clave debug propia de la PC) y deja `pos-app\faltas-pos.apk`; si hay un POS conectado por USB con depuración activada, lo instala con adb (lo descarga si falta) y abre la app.
 La primera compilación tarda; las siguientes, 1–2 minutos.

@@ -18,6 +18,11 @@ elseif ($Paso -eq 'gradlejava') {
   $l += 'org.gradle.java.home=' + ($Valor -replace '\\', '/')
   Set-Content $g $l
 }
+elseif ($Paso -eq 'adb') {
+  $zip = Join-Path $env:TEMP 'platform-tools.zip'
+  Invoke-WebRequest 'https://dl.google.com/android/repository/platform-tools-latest-windows.zip' -OutFile $zip
+  Expand-Archive $zip -DestinationPath 'C:\' -Force
+}
 elseif ($Paso -eq 'jdk') {
   $zip = Join-Path $env:TEMP 'jdk17.zip'
   $tmp = Join-Path $env:TEMP 'jdk17-extraido'
