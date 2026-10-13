@@ -175,18 +175,26 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
       (p) => {
         const lat = Number(p.coords.latitude.toFixed(6));
         const lng = Number(p.coords.longitude.toFixed(6));
-        patch({ gpsLat: lat, gpsLng: lng, ejido: ejidoPorGps(lat, lng) });
+        setForm((prev) => { const next = { ...prev, gpsLat: lat, gpsLng: lng, ejido: ejidoPorGps(lat, lng) }; guardarUltimoLugar(next); return next; });
         setGpsEstado('ok');
         fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=es`)
           .then((r) => r.json())
           .then((j) => {
             const a = j?.address ?? {};
-            setForm((prev) => ({
-              ...prev,
-              domicilioInfraccionCalle: prev.domicilioInfraccionCalle || a.road || '',
-              domicilioInfraccionNumero: prev.domicilioInfraccionNumero || a.house_number || '',
-              domicilioInfraccionLocalidadNombre: prev.domicilioInfraccionLocalidadNombre || a.suburb || a.town || a.city || '',
-            }));
+            // El GPS manda: reemplaza el lugar precargado de la acta anterior (y las entre calles, que ya no corresponden)
+            // y pasa a ser el lugar que se precarga en la próxima acta.
+            setForm((prev) => {
+              const next = {
+                ...prev,
+                domicilioInfraccionCalle: a.road || '',
+                domicilioInfraccionNumero: a.house_number || '',
+                domicilioInfraccionLocalidadNombre: a.suburb || a.town || a.city || '',
+                entreCalle1: '',
+                entreCalle2: '',
+              };
+              guardarUltimoLugar(next);
+              return next;
+            });
           })
           .catch(() => undefined);
       },
