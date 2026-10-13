@@ -50,6 +50,8 @@ jobs:
           # ota_update: provider para instalar versiones nuevas
           grep -q OtaUpdateFileProvider $M || python3 -c "import sys;m=sys.argv[1];x=open(m).read();open(m,'w').write(x.replace('</application>', open('android-extra/provider.xml').read()+'    </application>',1))" $M
           mkdir -p android/app/src/main/res/xml && cp android-extra/filepaths.xml android/app/src/main/res/xml/filepaths.xml
+          grep -q 'faltas-pos:' android/build.gradle.kts || { cat android-extra/root-prepend.gradle.kts android/build.gradle.kts > /tmp/r.kts && mv /tmp/r.kts android/build.gradle.kts; }
+          sed -i 's/ndkVersion = flutter.ndkVersion/ndkVersion = "27.0.12077973"/' android/app/build.gradle.kts
           cat $M
 
       - name: Compilar APK

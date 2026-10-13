@@ -15,6 +15,12 @@ if ($Paso -eq 'manifest') {
     $x = $x -replace '</application>', ($prov + "    </application>")
   }
   [IO.File]::WriteAllText($m, $x)
+  $root = Join-Path $PSScriptRoot 'android\build.gradle.kts'
+  $rx = [IO.File]::ReadAllText($root)
+  if ($rx -notmatch 'faltas-pos:') { [IO.File]::WriteAllText($root, [IO.File]::ReadAllText((Join-Path $PSScriptRoot 'android-extra\root-prepend.gradle.kts')) + $rx) }
+  $app = Join-Path $PSScriptRoot 'android\app\build.gradle.kts'
+  $ax = [IO.File]::ReadAllText($app)
+  if ($ax -match 'ndkVersion = flutter.ndkVersion') { [IO.File]::WriteAllText($app, ($ax -replace 'ndkVersion = flutter.ndkVersion', 'ndkVersion = "27.0.12077973"')) }
   $xml = Join-Path $PSScriptRoot 'android\app\src\main\res\xml'
   New-Item -ItemType Directory -Force $xml | Out-Null
   Copy-Item (Join-Path $PSScriptRoot 'android-extra\filepaths.xml') (Join-Path $xml 'filepaths.xml') -Force
