@@ -98,7 +98,9 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
   const opcMarcas = useMemo(() => [...marcas.map((m) => ({ v: m.nombre, t: m.nombre, sub: `${m.modelos.length} modelos` })), { v: NO_DESCRIBE, t: NO_DESCRIBE, sub: 'Marca y modelo no identificables' }], [marcas]);
   const opcModelos = useMemo(() => {
     const m = marcas.find((x) => x.nombre === form.metadata?.marca);
-    const lista = (m?.modelos ?? []).filter((x) => !x.tipo_vehiculo || !form.vehiculoTipoNombre || x.tipo_vehiculo === form.vehiculoTipoNombre);
+    // Se muestran todos los modelos de la marca (coincide con «N modelos»); los del tipo de vehículo elegido van primero.
+    const tipo = form.vehiculoTipoNombre;
+    const lista = [...(m?.modelos ?? [])].sort((x, y) => Number(Boolean(tipo) && y.tipo_vehiculo === tipo) - Number(Boolean(tipo) && x.tipo_vehiculo === tipo) || x.nombre.localeCompare(y.nombre, 'es'));
     return [...lista.map((x) => ({ v: x.nombre, t: x.nombre, sub: x.tipo_vehiculo ?? undefined })), { v: NO_DESCRIBE, t: NO_DESCRIBE }];
   }, [marcas, form.metadata?.marca, form.vehiculoTipoNombre]);
   const opcLocalidades = useMemo(() => LOCALIDADES.map((l) => ({ v: l.nombre, t: l.nombre, sub: l.partidos.join(' · ') })), []);

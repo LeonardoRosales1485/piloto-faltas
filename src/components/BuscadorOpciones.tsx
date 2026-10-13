@@ -40,7 +40,8 @@ export function BuscadorOpciones({ id, opciones, valor, onChange, placeholder = 
   const lista = useRef<HTMLUListElement>(null);
 
   const resultados = useMemo(
-    () => opciones.map((o) => ({ o, p: puntaje(q, o) })).filter((x) => x.p > 0).sort((a, b) => b.p - a.p || a.o.t.localeCompare(b.o.t)).slice(0, q ? max : opciones.length).map((x) => x.o),
+    // Sin texto se respeta el orden recibido (y se muestran todas); con texto, las mejores coincidencias.
+    () => (!q.trim() ? opciones : opciones.map((o) => ({ o, p: puntaje(q, o) })).filter((x) => x.p > 0).sort((a, b) => b.p - a.p || a.o.t.localeCompare(b.o.t)).slice(0, max).map((x) => x.o)),
     [opciones, q, max],
   );
   const texto = q.trim();
