@@ -680,3 +680,28 @@ span.dato-subsanado { font-size: .75rem; padding: .1rem .45rem; font-weight: 600
   }
   &[open] > summary::before { transform: rotate(0); }
 }
+
+// Listas: selector Lista / Tarjetas y modo tarjetas para tablas (monitores chicos)
+.tabla-vista-barra { display: flex; justify-content: flex-end; margin-bottom: .5rem; }
+.selector-vista { display: inline-flex; border: 1px solid rgba(148, 163, 184, .5); border-radius: 999px; overflow: hidden;
+  button { border: 0; background: transparent; padding: .3rem .8rem; font-size: .85rem; color: var(--bo-texto-secundario); display: inline-flex; align-items: center; gap: .35rem; cursor: pointer;
+    &.activo { background: var(--bo-azul); color: #fff; }
+    &:not(.activo):hover { background: rgba(148, 163, 184, .15); }
+  }
+}
+.tabla-cards {
+  table, tbody { display: block; width: 100%; }
+  thead { display: none; }
+  table { margin: 0; }
+  tbody { display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: .75rem; }
+  tr { display: flex; flex-direction: column; border: 1px solid rgba(148, 163, 184, .4); border-radius: 12px; padding: .65rem .8rem; background: var(--bs-body-bg, #fff); box-shadow: 0 1px 3px rgba(15, 23, 42, .06); }
+  td { display: flex; justify-content: space-between; align-items: center; gap: .75rem; border: 0 !important; padding: .25rem 0 !important; text-align: right !important; min-width: 0; word-break: break-word;
+    &::before { content: attr(data-label); font-size: .75rem; font-weight: 600; text-transform: uppercase; letter-spacing: .03em; color: var(--bo-texto-secundario); text-align: left; flex-shrink: 0; }
+    &[data-label='']::before { display: none; }
+    &[data-label=''] { justify-content: flex-end; }
+    &:first-child { font-weight: 600; }
+  }
+  td:last-child:has(.btn, button, a) { border-top: 1px solid rgba(148, 163, 184, .3) !important; margin-top: .3rem; padding-top: .5rem !important; flex-wrap: wrap; justify-content: flex-end; }
+  td[colspan] { justify-content: center; text-align: center !important; }
+}
+[data-theme='dark'] .tabla-cards tr { background: rgba(30, 41, 59, .6); }

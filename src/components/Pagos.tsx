@@ -1,6 +1,7 @@
 'use client';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+import { TablaVista } from './TablaVista';
 import Link from 'next/link';
 import { LoaderLogo } from './LoaderLogo';
 import { useCarga } from '@/lib/use-carga';
@@ -38,7 +39,7 @@ export function Pagos() {
       <div className="bandeja-tabs">{FILTROS.map((f) => <button key={f.v} type="button" className={`bandeja-tab ${estado === f.v ? 'activa' : ''}`} onClick={() => setEstado(f.v)}>{f.t}</button>)}</div>
       <div className="card-step">
         <div className="card-step-header"><h2>Boletas</h2><p>{items.length} boleta(s) · {pesos(total)}</p></div>
-        <div className="table-responsive">
+        <TablaVista>
           <table className="table custom-table align-middle">
             <thead><tr><th>BOLETA</th><th>CAUSA</th><th>CONCEPTO</th><th>A NOMBRE DE</th><th>VENCE</th><th className="text-end">MONTO</th><th>ESTADO</th><th /></tr></thead>
             <tbody>
@@ -57,7 +58,7 @@ export function Pagos() {
               {!cargando && !items.length ? <tr><td colSpan={8}><div className="sin-resultados py-3"><p className="mb-0">No hay boletas.</p></div></td></tr> : null}
             </tbody>
           </table>
-        </div>
+        </TablaVista>
       </div>
     </div>
   );

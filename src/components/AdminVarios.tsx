@@ -1,6 +1,7 @@
 'use client';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+import { TablaVista } from './TablaVista';
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import { http } from '@/lib/api-client';
@@ -96,10 +97,10 @@ export function Auditoria() {
         <div className="col-6 col-md-3"><label className="form-label-v2" htmlFor="a-d">Desde</label><input id="a-d" type="date" className="form-control form-control-sm" value={desde} onChange={(e) => setDesde(e.target.value)} /></div>
         <div className="col-6 col-md-3"><label className="form-label-v2" htmlFor="a-h">Hasta</label><input id="a-h" type="date" className="form-control form-control-sm" value={hasta} onChange={(e) => setHasta(e.target.value)} /></div>
       </div></div>
-      <div className="card-step"><div className="table-responsive"><table className="table custom-table align-middle">
+      <div className="card-step"><div className="card-step-body"><TablaVista><table className="table custom-table align-middle">
         <thead><tr><th>FECHA</th><th>USUARIO</th><th>CAUSA</th><th>ACCIÓN</th><th>DETALLE</th></tr></thead>
         <tbody>{cargando ? <tr><td colSpan={5}><LoaderLogo tam={56} texto="Cargando…" /></td></tr> : null}{!cargando && items.map((h) => <tr key={h.id}><td>{fechaHora(h.fecha)}</td><td>{h.usuario}</td><td><Link href={`/private/causa/${h.infraccion?.uuid}`}>{h.infraccion?.legajo_numero_acta}</Link></td><td>{h.accion}{h.estado_nuevo ? <div className="texto-ayuda">{h.estado_anterior} → {h.estado_nuevo}</div> : null}</td><td className="texto-ayuda">{h.detalle}</td></tr>)}</tbody>
-      </table></div></div>
+      </table></TablaVista></div></div>
     </div>
   );
 }

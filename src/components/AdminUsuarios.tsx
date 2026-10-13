@@ -1,5 +1,6 @@
 'use client';
 
+import { TablaVista } from './TablaVista';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { LoaderLogo } from './LoaderLogo';
 import { useCarga } from '@/lib/use-carga';
@@ -65,7 +66,7 @@ export function AdminUsuarios() {
         </div>
       </div></div>
 
-      <div className="card-step"><div className="card-step-body table-responsive">
+      <div className="card-step"><div className="card-step-body"><TablaVista>
         <table className="table align-middle mb-0">
           <thead><tr><th>Usuario</th><th>Nombre</th><th>Rol</th><th>Sector</th><th>Legajo</th><th>Correo</th><th>Alta</th><th>Estado</th><th aria-label="Acciones" /></tr></thead>
           <tbody>
@@ -91,7 +92,7 @@ export function AdminUsuarios() {
             {!cargando && !lista.length ? <tr><td colSpan={9} className="text-center texto-ayuda py-4">No hay usuarios con ese filtro.</td></tr> : null}
           </tbody>
         </table>
-      </div></div>
+      </TablaVista></div></div>
       <p className="texto-ayuda mt-2">Las bajas no borran al usuario: queda inactivo, no puede ingresar y su historial se conserva.</p>
       </>)}
 

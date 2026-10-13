@@ -1,5 +1,6 @@
 'use client';
 
+import { TablaVista } from './TablaVista';
 import Link from 'next/link';
 import { LoaderLogo } from './LoaderLogo';
 import { useParams, useRouter } from 'next/navigation';
@@ -290,7 +291,7 @@ export function OrdenanzasView({ uuidProp }: { uuidProp?: string }) {
             </div>
           </>
         ) : (
-          <div className="table-responsive">
+          <TablaVista>
             <table className="table custom-table">
               <thead className="table-dark">
                 <tr>
@@ -324,7 +325,7 @@ export function OrdenanzasView({ uuidProp }: { uuidProp?: string }) {
                 ) : null}
               </tbody>
             </table>
-          </div>
+          </TablaVista>
         )}
         {paginado ? (
           <div className="paginado-footer">

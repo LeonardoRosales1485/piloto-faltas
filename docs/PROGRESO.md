@@ -62,6 +62,7 @@ Avance: **20 / 20**
 | Login en la app del POS: versión de la app al pie (se lee del user agent FaltasPOS/&lt;versión&gt;) | — |
 | «Seleccionar artículos»: en pantallas táctiles el buscador no toma el foco solo (el teclado aparece al tocarlo); en escritorio sigue enfocado | — |
 | «Ver acta» en el POS y en pantallas táctiles: modal con el acta y botón Cerrar, en lugar de la ventana de impresión (dejaba al usuario atrapado en el visor) | — |
+| Listas: selector «Lista / Tarjetas» en causas, actas, ordenanzas, pagos, retenciones, usuarios y registro de correos; la elección se recuerda en el navegador (por defecto tarjetas en pantallas &lt; 1280 px) | — |
 
 ## Fuera del alcance del prototipo
 

@@ -1,5 +1,6 @@
 'use client';
 
+import { TablaVista } from './TablaVista';
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { http } from '@/lib/api-client';
@@ -119,7 +120,7 @@ export function CausasBandeja() {
           <h2>{info.titulo}</h2>
           <p>{info.ayuda}</p>
         </div>
-        <div className="table-responsive">
+        <TablaVista>
           <table className="table custom-table align-middle">
             <thead>
               <tr>
@@ -157,7 +158,7 @@ export function CausasBandeja() {
               ) : null}
             </tbody>
           </table>
-        </div>
+        </TablaVista>
         {r && r.totalPages > 1 ? (
           <div className="paginado-footer">
             <span>Total: {r.totalElements}</span>

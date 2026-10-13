@@ -1,5 +1,6 @@
 'use client';
 
+import { TablaVista } from './TablaVista';
 import Link from 'next/link';
 import { LoaderLogo } from './LoaderLogo';
 import { useParams } from 'next/navigation';
@@ -602,7 +603,7 @@ export function ListaInfracciones() {
           </>
         ) : (
           <>
-            <div className="table-responsive">
+            <TablaVista>
               <table className="table custom-table tabla-objetivo">
                 <thead>
                   <tr>
@@ -662,7 +663,7 @@ export function ListaInfracciones() {
                   ) : null}
                 </tbody>
               </table>
-            </div>
+            </TablaVista>
             {paginado ? (
               <div className="paginado-footer">
                 <span>Total: {paginado.totalElements} resultados</span>

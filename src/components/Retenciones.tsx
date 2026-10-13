@@ -1,6 +1,7 @@
 'use client';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+import { TablaVista } from './TablaVista';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
@@ -99,7 +100,7 @@ export function Retenciones() {
         <div className="card-step-header"><h2>Listado de retenciones</h2><p>Actas con retención de vehículo. Al liberar se cobra el acarreo según el tipo de vehículo y la estadía según los días en depósito.</p></div>
         <div className="card-step-body">
           {cargando && !d ? <LoaderLogo tam={56} texto="Cargando…" /> : (
-            <div className="table-responsive">
+            <TablaVista>
               <table className="table custom-table align-middle">
                 <thead><tr><th>Acta</th><th>Dominio</th><th>Vehículo</th><th>Ingreso</th><th className="text-end">Días</th><th>Estado</th><th className="text-end">A pagar</th><th /></tr></thead>
                 <tbody>
@@ -124,7 +125,7 @@ export function Retenciones() {
                   {d && !d.lista.length ? <tr><td colSpan={8}><div className="sin-resultados py-3"><p className="mb-0">Sin retenciones en el período.</p></div></td></tr> : null}
                 </tbody>
               </table>
-            </div>
+            </TablaVista>
           )}
         </div>
       </div>
