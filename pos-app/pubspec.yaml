@@ -1,0 +1,20 @@
+name: faltas_pos
+description: App del inspector para el POS Senraise H10S. Abre el Sistema de Faltas e imprime el ticket con la impresora térmica.
+publish_to: none
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.3.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_inappwebview: ^6.1.5
+  permission_handler: ^11.3.1
+  senraise_printer: ^0.0.6
+
+dev_dependencies:
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true

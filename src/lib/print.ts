@@ -61,91 +61,69 @@ function formatearFechaTicket(value?: string): string {
 
 function logoTicket(): string {
   const src = `${window.location.origin}/images/Municipio_malvinas_argentinas_logo.png`;
-  return `<img class="ticket-logo" src="${src}" alt="Municipio de Malvinas Argentinas" />`;
+  return `<img class="t-logo" src="${src}" alt="" />`;
 }
 
+/**
+ * Ticket para impresora térmica de 80 mm (Senraise H10S: 576 puntos a 203 dpi, ~72 mm imprimibles).
+ * Solo negro puro (sin grises que la térmica convierte en tramado), letra grande y en negrita, sin cursiva, y alto
+ * libre para que nunca se corte el contenido ni pase al ticket siguiente.
+ */
 function ticketCss(): string {
   return `
-    @page { size: 52mm 137.15mm; margin: 0; }
-    html, body {
-      width: 52mm;
-      height: 137.15mm;
-      margin: 0;
-      padding: 0;
-      background: #fff;
-      color: #000;
-      font-family: Arial, Helvetica, sans-serif;
-      -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
-    }
-    .ticket {
-      width: 52mm;
-      height: 137.15mm;
-      margin: 0;
-      padding: 5mm 2.8mm 3mm;
-      box-sizing: border-box;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-      page-break-inside: avoid;
-      break-inside: avoid;
-    }
-    .ticket-logo-wrap {
-      height: 22mm;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin: 0 0 2mm;
-    }
-    .ticket-logo {
-      height: 24mm;
-      width: auto;
-      max-width: 22mm;
-      object-fit: contain;
-    }
-    .ticket-linea {
-      margin: 0;
-      font-size: 9pt;
-      line-height: 14.5pt;
-      font-weight: 400;
-    }
-    .ticket-disp {
-      margin: 4pt 0 0;
-      font-size: 9pt;
-      line-height: 11.5pt;
-      font-weight: 500;
-    }
-    .ticket-disposiciones {
-      margin: 2pt 0 3pt;
-      padding: 0 0 0 13pt;
-      list-style: disc;
-    }
-    .ticket-disposiciones li {
-      margin: 0;
-      font-size: 8pt;
-      line-height: 9.4pt;
-    }
-    .ticket-aviso {
-      margin: 8pt 0 0;
-      font-size: 7pt;
-      line-height: 8.2pt;
-      font-style: italic;
-      font-weight: 400;
-    }
-    .ticket-pie { margin-top: auto; text-align: center; }
-    .ticket-qr svg {
-      width: 40mm;
-      height: 40mm;
-      display: block;
-      margin: 0 auto;
-    }
-    .ticket-leyenda {
-      margin: 1.5mm 0 0;
-      font-size: 7pt;
-      line-height: 8.2pt;
-      text-align: center;
-    }
+    @page { size: 80mm auto; margin: 0; }
+    html, body { width: 80mm; margin: 0; padding: 0; background: #fff; color: #000; font-family: Arial, Helvetica, sans-serif; }
+    .ticket { width: 72mm; margin: 0 auto; padding: 3mm 0 8mm; }
+    .t-centro { text-align: center; }
+    .t-logo { display: block; height: 18mm; margin: 0 auto 1.5mm; filter: grayscale(1) contrast(12) brightness(1.1); }
+    .t-muni { margin: 0; font-size: 10pt; font-weight: 700; line-height: 1.2; }
+    .t-dir { margin: 0 0 2mm; font-size: 9pt; font-weight: 700; }
+    .t-tipo { margin: 2mm 0 0; font-size: 12pt; font-weight: 800; letter-spacing: .02em; }
+    .t-numero { margin: 0 0 2mm; font-size: 22pt; font-weight: 900; letter-spacing: .03em; }
+    .t-sep { border: 0; border-top: 2px dashed #000; margin: 2.5mm 0; }
+    .t-campo { margin: 0 0 2mm; }
+    .t-label { display: block; font-size: 8.5pt; font-weight: 800; letter-spacing: .04em; }
+    .t-valor { display: block; font-size: 12pt; font-weight: 700; line-height: 1.25; word-wrap: break-word; }
+    .t-art { margin: 0; padding-left: 0; list-style: none; }
+    .t-art li { font-size: 11pt; font-weight: 700; line-height: 1.3; padding-left: 4mm; text-indent: -4mm; }
+    .t-art li::before { content: '• '; }
+    .t-aviso { margin: 3mm 0; padding: 2mm; border: 2px solid #000; font-size: 10pt; font-weight: 800; line-height: 1.3; text-align: center; }
+    .t-qr svg { width: 46mm; height: 46mm; display: block; margin: 1mm auto; }
+    .t-leyenda { margin: 1mm 0 0; font-size: 10pt; font-weight: 800; text-align: center; }
+    .t-codigo { margin: .5mm 0 0; font-size: 9pt; font-weight: 700; text-align: center; letter-spacing: .08em; }
   `;
+}
+
+/** Datos del ticket (los mismos para la impresión web y para la impresión nativa en el POS). */
+export type DatosTicket = {
+  titulo: string; numero: string; fecha: string; lugar: string; dominio: string; articulos: string[]; reparticion: string; url: string; codigo: string;
+};
+
+export function datosTicket(infraccion: Infraccion): DatosTicket {
+  const lugar = [infraccion.domicilioInfraccionCalle, infraccion.domicilioInfraccionNumero].filter(Boolean).join(' ')
+    + (infraccion.domicilioInfraccionLocalidadNombre ? `, ${infraccion.domicilioInfraccionLocalidadNombre}` : '');
+  const tipo = infraccion.infraccionTipoNombre;
+  return {
+    titulo: tipo === 'contravenciones' ? 'ACTA DE CONTRAVENCIÓN' : tipo === 'sustancias' ? 'ACTA DE SUSTANCIAS ALIMENTICIAS' : 'ACTA DE TRÁNSITO',
+    numero: infraccion.legajoNumeroActa || '-',
+    fecha: formatearFechaTicket(infraccion.legajoFecha),
+    lugar: lugar || '-',
+    dominio: infraccion.vehiculoNumeroDominio || '',
+    articulos: (Array.isArray(infraccion.leyesNombre) ? infraccion.leyesNombre.filter(Boolean) : []),
+    reparticion: tipo === 'contravenciones' ? 'CONTRAVENCIONES' : tipo === 'sustancias' ? 'SUSTANCIAS ALIMENTICIAS' : 'TRÁNSITO',
+    url: infraccion.uuid ? actaPublicaUrl(infraccion.uuid) : window.location.origin,
+    codigo: String(infraccion.firmaInspectorHash ?? '').slice(0, 8).toUpperCase(),
+  };
+}
+
+type PuenteFlutter = { callHandler: (nombre: string, ...args: unknown[]) => Promise<unknown> };
+/** App del POS (Flutter + senraise_printer): expone el handler «imprimirTicket» para imprimir con la impresora térmica nativa. */
+function puentePos(): PuenteFlutter | null {
+  const w = window as unknown as { flutter_inappwebview?: PuenteFlutter };
+  return w.flutter_inappwebview?.callHandler ? w.flutter_inappwebview : null;
+}
+export function hayImpresoraPos(): boolean {
+  return Boolean(puentePos());
 }
 
 export function printActa(infraccion: Infraccion, extras: ActaExtras = {}): void {
@@ -168,35 +146,35 @@ function svgQr(url: string): string {
 }
 
 export async function printTicket(infraccion: Infraccion): Promise<void> {
-  const leyes = Array.isArray(infraccion.leyesNombre) ? infraccion.leyesNombre.filter(Boolean) : [];
-  const lugar =
-    [infraccion.domicilioInfraccionCalle, infraccion.domicilioInfraccionNumero]
-      .filter(Boolean)
-      .join(' ') || '-';
-  const reparticion =
-    infraccion.infraccionTipoNombre === 'contravenciones' ? 'CONTRAVENCIONES' : infraccion.infraccionTipoNombre === 'sustancias' ? 'SUSTANCIAS ALIMENTICIAS' : 'MULTAS';
-  const url = infraccion.uuid ? actaPublicaUrl(infraccion.uuid) : window.location.origin;
-  const qr = svgQr(url);
-  const items =
-    leyes.length > 0
-      ? leyes.map((ley) => `<li>${escapeHtml(ley)}</li>`).join('')
-      : '<li>-</li>';
+  const t = datosTicket(infraccion);
+  // En el POS Senraise (app del inspector) imprime directo con la impresora térmica, sin diálogo.
+  const pos = puentePos();
+  if (pos) {
+    try {
+      const r = (await pos.callHandler('imprimirTicket', t)) as { ok?: boolean; error?: string } | null;
+      if (!r || r.ok !== false) return;
+      console.warn('Impresora del POS:', r.error);
+    } catch (e) {
+      console.warn('Impresora del POS no disponible', e);
+    }
+    // Si la impresora nativa falla, sigue con la impresión web (diálogo de Android).
+  }
+  const campo = (label: string, valor: string) => `<div class="t-campo"><span class="t-label">${label}</span><span class="t-valor">${escapeHtml(valor)}</span></div>`;
   const cuerpo = `<div class="ticket">
-    <div class="ticket-logo-wrap">${logoTicket()}</div>
-    <p class="ticket-linea">ACTA N°: ${escapeHtml(infraccion.legajoNumeroActa || '-')}</p>
-    <p class="ticket-linea">FECHA: ${escapeHtml(formatearFechaTicket(infraccion.legajoFecha))}</p>
-    <p class="ticket-linea">LUGAR: ${escapeHtml(lugar)}</p>
-    <p class="ticket-linea">DOMINIO: ${escapeHtml(infraccion.vehiculoNumeroDominio || '-')}</p>
-    <p class="ticket-disp">DISPOSICIÓN LEGAL<br/>INFRINGIDA:</p>
-    <ul class="ticket-disposiciones">${items}</ul>
-    <p class="ticket-linea">REPARTICIÓN: ${reparticion}</p>
-    <p class="ticket-aviso">IMPORTANTE!: No debe abonar monto de dinero alguno a la autoridad que confeccionó la presente acta</p>
-    <div class="ticket-pie">
-      <div class="ticket-qr">${qr}</div>
-      <p class="ticket-leyenda">Escanee para ver el acta digital</p>
-    </div>
+    <div class="t-centro">${logoTicket()}<p class="t-muni">MUNICIPALIDAD DE MALVINAS ARGENTINAS</p><p class="t-dir">Dirección de Faltas</p></div>
+    <hr class="t-sep" />
+    <div class="t-centro"><p class="t-tipo">${t.titulo}</p><p class="t-numero">${escapeHtml(t.numero)}</p></div>
+    ${campo('FECHA Y HORA', t.fecha)}
+    ${campo('LUGAR', t.lugar)}
+    ${t.dominio ? campo('DOMINIO', t.dominio) : ''}
+    <div class="t-campo"><span class="t-label">DISPOSICIÓN LEGAL INFRINGIDA</span><ul class="t-art">${(t.articulos.length ? t.articulos : ['-']).map((a) => `<li>${escapeHtml(a)}</li>`).join('')}</ul></div>
+    ${campo('REPARTICIÓN', t.reparticion)}
+    <div class="t-aviso">IMPORTANTE: no debe abonar monto de dinero alguno a la autoridad que confeccionó la presente acta.</div>
+    <div class="t-qr">${svgQr(t.url)}</div>
+    <p class="t-leyenda">Escanee para ver el acta digital</p>
+    ${t.codigo ? `<p class="t-codigo">Código: ${t.codigo}</p>` : ''}
   </div>`;
-  abrirVentana('Ticket de infracción', cuerpo, ticketCss(), 260);
+  abrirVentana('Ticket de infracción', cuerpo, ticketCss(), 340);
 }
 
 export { actaPublicaUrl };
