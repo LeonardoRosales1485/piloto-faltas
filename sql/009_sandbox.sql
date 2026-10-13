@@ -25,7 +25,7 @@ BEGIN
     res := res || jsonb_build_object(t, n);
   END LOOP;
   EXECUTE 'TRUNCATE ' || array_to_string(sandbox_tablas(), ', ') || ' RESTART IDENTITY CASCADE';
-  DELETE FROM talonario;
+  DELETE FROM talonario WHERE TRUE;
   INSERT INTO talonario (serie, ultimo) VALUES ('T', 1000), ('C', 2000), ('S', 3000), ('LEG', 2000);
   RETURN res;
 END $$;
@@ -35,7 +35,7 @@ CREATE OR REPLACE FUNCTION sandbox_resetear_usuarios() RETURNS JSONB LANGUAGE pl
 DECLARE antes BIGINT; ahora BIGINT := (extract(epoch from now()) * 1000)::bigint;
 BEGIN
   SELECT count(*) INTO antes FROM usuario;
-  DELETE FROM usuario;
+  DELETE FROM usuario WHERE TRUE;
   INSERT INTO usuario (uuid, username, password_hash, nombre, apellido, email, sector, rol, legajo, activo, date_created) VALUES
     (gen_random_uuid()::text, 'admin', '$2b$10$2qgGci3ApJIExW0hFJQC6e/ZTkspjzCay8ecByy5CcTBhn5KsNNfO', 'Administrador', 'Sistema', 'admin@municipalidad.gob.ar', 'Administración General', 'Administrador', NULL, TRUE, ahora),
     (gen_random_uuid()::text, 'operador', '$2b$10$pyyUQz7vDwyQzwTbGGJf0.wenWWlLSABOsFhVynUVWwyX.9CUQOcW', 'Operador', 'Mesa', 'operador@municipalidad.gob.ar', 'Mesa de Entradas', 'Usuario', NULL, TRUE, ahora),
@@ -48,10 +48,10 @@ BEGIN
     (gen_random_uuid()::text, 'becario', '$2b$10$dmXTRNZ4EYBqhnHZdRk8peM0dZuQVsdxEKsgT/GE8.wG.M1kwkWaK', 'Becario', 'Faltas', 'becario@municipalidad.gob.ar', 'Dirección de Faltas', 'Becario', NULL, TRUE, ahora);
   -- Columnas agregadas por 011_inspectores.sql (si ya corrió).
   IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'usuario' AND column_name = 'terminal') THEN
-    EXECUTE $q$UPDATE usuario SET terminal = CASE username WHEN 'inspector' THEN 'T-01' WHEN 'inspector_contrav' THEN 'T-02' WHEN 'inspector_sustancias' THEN 'T-03' END, firma_activa = TRUE$q$;
+    EXECUTE $q$UPDATE usuario SET terminal = CASE username WHEN 'inspector' THEN 'T-01' WHEN 'inspector_contrav' THEN 'T-02' WHEN 'inspector_sustancias' THEN 'T-03' END, firma_activa = TRUE WHERE TRUE$q$;
   END IF;
   IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'usuario' AND column_name = 'modulos_acta') THEN
-    EXECUTE $q$UPDATE usuario SET modulos_acta = CASE username WHEN 'inspector' THEN 'multas' WHEN 'inspector_contrav' THEN 'contravenciones' WHEN 'inspector_sustancias' THEN 'sustancias' END$q$;
+    EXECUTE $q$UPDATE usuario SET modulos_acta = CASE username WHEN 'inspector' THEN 'multas' WHEN 'inspector_contrav' THEN 'contravenciones' WHEN 'inspector_sustancias' THEN 'sustancias' END WHERE TRUE$q$;
   END IF;
   RETURN jsonb_build_object('borrados', antes, 'creados', 9);
 END $$;
@@ -112,7 +112,7 @@ BEGIN
   END LOOP;
   UPDATE infraccion_imagen SET full_raw = preview_raw WHERE full_raw IS NULL;
   IF jsonb_array_length(coalesce(s.datos -> 'talonario', '[]')) > 0 THEN
-    DELETE FROM talonario;
+    DELETE FROM talonario WHERE TRUE;
     INSERT INTO talonario SELECT * FROM jsonb_populate_recordset(NULL::talonario, s.datos -> 'talonario');
   END IF;
   RETURN res;
