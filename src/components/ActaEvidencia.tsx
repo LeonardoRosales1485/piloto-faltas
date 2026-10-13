@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { printActa } from '@/lib/print';
+import { actaHtmlPorTipo } from '@/lib/acta-oficial';
+import { hayImpresoraPos, printActa } from '@/lib/print';
 import type { Infraccion } from '@/lib/types';
 
 const CLAVE = 'faltas-piloto:mostrar-evidencia';
@@ -17,9 +18,39 @@ export function useMostrarEvidencia(): [boolean, (v: boolean) => void] {
 /** Botón «Ver acta» con el interruptor «Mostrar evidencia» (incluye o no las fotos de los inspectores). */
 export function BotonVerActa({ acta, imagenes, texto = 'Ver acta (PDF)', className = 'btn btn-outline-primary' }: { acta: Infraccion; imagenes: string[]; texto?: string; className?: string }) {
   const [evidencia, setEvidencia] = useMostrarEvidencia();
+  const [modal, setModal] = useState(false);
+  // En la app del POS y en pantallas táctiles el acta se ve en un modal: abrir la ventana de impresión deja al
+  // usuario atrapado en el visor del WebView (y el POS no imprime A4). En escritorio sigue abriendo el PDF.
+  const ver = () => {
+    if (hayImpresoraPos() || window.matchMedia('(pointer: coarse)').matches) setModal(true);
+    else printActa(acta, { imagenes, evidencia });
+  };
+  useEffect(() => {
+    if (!modal) return;
+    const tecla = (e: KeyboardEvent) => e.key === 'Escape' && setModal(false);
+    window.addEventListener('keydown', tecla);
+    return () => window.removeEventListener('keydown', tecla);
+  }, [modal]);
   return (
     <span className="ver-acta-evidencia">
-      <button type="button" className={className} onClick={() => printActa(acta, { imagenes, evidencia })}>
+      {modal ? (
+        <div className="modal-fake-overlay" onClick={(e) => e.target === e.currentTarget && setModal(false)}>
+          <div className="modal-fake modal-fake-xl" role="dialog" aria-modal="true" aria-label="Acta de Infracción">
+            <div className="modal-fake-header">
+              <i className="fa-solid fa-file-lines" aria-hidden="true" />
+              <h2>Acta de Infracción</h2>
+              <button type="button" aria-label="Cerrar" onClick={() => setModal(false)}>&times;</button>
+            </div>
+            <div className="modal-fake-body">
+              <div className="acta-preview-scroll" dangerouslySetInnerHTML={{ __html: (() => { const a = actaHtmlPorTipo(acta, { imagenes, evidencia }); return `<style>${a.css}</style>${a.html}`; })() }} />
+            </div>
+            <div className="modal-fake-footer">
+              <button type="button" className="btn btn-primary" onClick={() => setModal(false)}>Cerrar</button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+      <button type="button" className={className} onClick={ver}>
         <i className="fa-solid fa-file-pdf" aria-hidden="true" /> {texto}
       </button>
       <label className="form-check form-switch mb-0" title="Incluir las fotos de la infracción en el acta">

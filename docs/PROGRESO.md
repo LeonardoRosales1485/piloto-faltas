@@ -61,6 +61,7 @@ Avance: **20 / 20**
 | Causa: acciones divididas en «Acciones recomendadas» (según el estado) y «Más acciones» (desplegable, siempre disponibles) | — |
 | Login en la app del POS: versión de la app al pie (se lee del user agent FaltasPOS/&lt;versión&gt;) | — |
 | «Seleccionar artículos»: en pantallas táctiles el buscador no toma el foco solo (el teclado aparece al tocarlo); en escritorio sigue enfocado | — |
+| «Ver acta» en el POS y en pantallas táctiles: modal con el acta y botón Cerrar, en lugar de la ventana de impresión (dejaba al usuario atrapado en el visor) | — |
 
 ## Fuera del alcance del prototipo
 
