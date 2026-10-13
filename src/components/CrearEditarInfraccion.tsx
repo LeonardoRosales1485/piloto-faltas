@@ -861,7 +861,11 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
                       ].map(([k, t]) => (
                         <div key={k} className="col-6 col-md-4">
                           <Campo id={k} label={t}>
-                            {['alcoholimetroSerie', 'alcoholimetroMedicion'].includes(k)
+                            {k === 'alcoholimetroValor'
+                              // g/l admite decimales (ej.: 0,5): solo dígitos y un separador decimal.
+                              ? <input id={k} className="form-control" inputMode="decimal" placeholder="Ej.: 0,5" disabled={!habilitado} value={form.metadata?.[k] ?? ''}
+                                  onChange={(e) => { const t = e.target.value.replace('.', ',').replace(/[^\d,]/g, ''); const [ent, ...dec] = t.split(','); patchMeta(k, dec.length ? `${ent},${dec.join('').slice(0, 3)}` : ent); }} />
+                              : ['alcoholimetroSerie', 'alcoholimetroMedicion'].includes(k)
                               ? <input id={k} className="form-control" inputMode="numeric" pattern="[0-9]*" disabled={!habilitado} value={form.metadata?.[k] ?? ''} onChange={(e) => patchMeta(k, e.target.value.replace(/\D/g, ''))} />
                               : <input id={k} className="form-control" disabled={!habilitado} value={form.metadata?.[k] ?? ''} onChange={(e) => patchMeta(k, e.target.value)} />}
                           </Campo>
