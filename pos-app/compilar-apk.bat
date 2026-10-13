@@ -46,11 +46,24 @@ if "%ANDROID_HOME%"=="" (
 )
 set "ANDROID_SDK_ROOT=%ANDROID_HOME%"
 
-rem --- Java: se usa el JDK que trae Android Studio si no hay otro
-if "%JAVA_HOME%"=="" if exist "%ProgramFiles%\Android\Android Studio\jbr\bin\java.exe" set "JAVA_HOME=%ProgramFiles%\Android\Android Studio\jbr"
-if not "%JAVA_HOME%"=="" set "PATH=%JAVA_HOME%\bin;!PATH!"
+rem --- Java compatible con Gradle 8 (17 a 21). Java 22+ falla ("25.0.3"), asi que no se usa el del sistema:
+rem     1) el de Android Studio, 2) C:\jdk17 (se descarga solo, unos 190 MB, si no hay otro)
+set "JDK="
+if exist "%ProgramFiles%\Android\Android Studio\jbr\bin\java.exe" set "JDK=%ProgramFiles%\Android\Android Studio\jbr"
+if not defined JDK if exist "C:\jdk17\bin\java.exe" set "JDK=C:\jdk17"
+if not defined JDK (
+  echo Descargando Java 17 en C:\jdk17 ...
+  powershell -NoProfile -ExecutionPolicy Bypass -File preparar.ps1 jdk || goto :error
+  set "JDK=C:\jdk17"
+)
+set "JAVA_HOME=%JDK%"
+set "PATH=%JDK%\bin;!PATH!"
+echo Java: %JDK%
 
 call flutter config --android-sdk "%ANDROID_HOME%" >nul
+call flutter config --jdk-dir "%JDK%" >nul
+rem Detiene daemons de Gradle que hayan arrancado con otro Java
+if exist android\gradlew.bat call android\gradlew.bat -p android --stop >nul 2>nul
 echo Flutter, Android SDK y Java OK.
 echo Si es la primera vez y falla por licencias, ejecute:  flutter doctor --android-licenses
 
