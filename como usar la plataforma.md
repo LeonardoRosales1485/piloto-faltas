@@ -188,3 +188,11 @@ El Administrador conserva siempre «Configuración» para no quedarse sin acceso
 - Imprimir el ticket pide confirmación antes de imprimir.
 
 - Al firmarse el acta quedan fijos la UF y el múltiplo de cada artículo de ese momento. Si después cambian en «Valores y tarifas» u «Ordenanzas», la causa muestra un aviso y el botón **Actualizar a valores vigentes**; sin tocarlo, mantiene los valores del labrado.
+
+## Remitir causas a Apremios
+
+1. En **Causas**, marque las casillas de las causas a remitir (la selección se mantiene al cambiar de página o de filtros) y toque **Exportar para Apremios**. También está en cada causa, en las acciones.
+2. Elija si las causas pasan a «En Apremios» y toque **Generar PDF**.
+3. Se abre el informe y el diálogo de impresión: elija **Guardar como PDF** y envíelo por correo a Apremios.
+
+El PDF trae el remito del lote (número APR-AAAA-NNNN, listado y total con espacio para la firma de la Directora) y, por cada causa, una carátula con los datos del deudor, el acta, el fallo y su notificación, los artículos y el **saldo adeudado al momento de exportar** (multa menos pagos acreditados), seguida del legajo completo sin los memos internos. Cada exportación queda en el historial de la causa con el lote y el monto.

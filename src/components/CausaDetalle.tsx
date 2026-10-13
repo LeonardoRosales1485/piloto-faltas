@@ -1,6 +1,7 @@
 'use client';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+import { exportarApremios } from '@/lib/apremios-client';
 import { ArticulosValorizacion } from './ArticulosValorizacion';
 import Link from 'next/link';
 import { LoaderLogo } from './LoaderLogo';
@@ -141,6 +142,7 @@ export function CausaDetalle() {
     { t: 'Continuar procedimiento', rec: true, i: 'fa-solid fa-forward', ver: gestion && estado === 'Cuotas' && cuotasVencidas, peligro: true, on: () => setModal({ titulo: 'Caducidad del plan de cuotas', accion: 'continuar_procedimiento', campos: [], aviso: 'Hay cuotas vencidas sin pagar. La causa sigue a fallo, o a Apremios si las cuotas eran de un fallo.', textoOk: 'Continuar' }) },
     { t: 'Derivar a Apremios', rec: true, i: 'fa-solid fa-building-columns', ver: gestion && ['Fallo notificado', 'Cuotas'].includes(estado), on: () => setModal({ titulo: 'Derivar a Apremios', accion: 'derivar', extra: { destino: 'apremios' }, campos: [{ k: 'detalle', t: 'Detalle', tipo: 'area', valor: 'Vencido el plazo de 5 días hábiles sin pago ni apelación. Se remite el legajo completo en PDF.' }] }) },
     { t: 'Derivar a Juzgado de Paz', rec: true, i: 'fa-solid fa-landmark', ver: gestion && estado === 'Fallo notificado', on: () => setModal({ titulo: 'Derivar al Juzgado de Paz', accion: 'derivar', extra: { destino: 'juzgado' }, campos: [{ k: 'detalle', t: 'Detalle', tipo: 'area', valor: 'Apelación concedida. Se remite el legajo completo en PDF.' }] }) },
+    { t: 'Exportar para Apremios', i: 'fa-solid fa-file-export', rec: ['Fallo notificado', 'En Apremios'].includes(estado), ver: gestion && !['Borrador', 'Anulada'].includes(estado), on: () => setModal({ titulo: 'Exportar para Apremios', icono: 'fa-solid fa-file-export', accion: 'exportar_apremios', textoOk: 'Generar PDF', aviso: 'Se genera un PDF con el remito, la carátula con el saldo adeudado a hoy y el legajo completo (sin memos internos), para enviarlo a Apremios por correo. Queda constancia en el historial.', campos: estado === 'En Apremios' ? [] : [{ k: 'derivar', t: 'Pasar la causa a «En Apremios»', tipo: 'select', opciones: [{ v: 'si', t: 'Sí, derivarla ahora' }, { v: 'no', t: 'No, solo generar el PDF' }] }] }) },
     { t: 'Registrar resultado externo', rec: true, i: 'fa-solid fa-flag-checkered', ver: gestion && infoEstado(estado).familia === 'externo', on: () => setModal({ titulo: 'Resultado informado por Juzgado de Paz o Apremios', accion: 'resultado_externo', campos: [{ k: 'estado', t: 'Resultado', tipo: 'select', opciones: ['Pago en Apremios', 'Archivo judicial', 'Archivo absolución', 'Archivo nulidad', 'Archivo prescripción'].map((x) => ({ v: x, t: x })) }, { k: 'detalle', t: 'Detalle', tipo: 'area' }] }) },
     { t: 'Presentación en mesa', i: 'fa-solid fa-person-walking', ver: gestion && !final, on: () => setModal({ titulo: 'Registrar presentación en mesa', accion: 'presentacion_mesa', campos: [{ k: 'tipo', t: 'Tipo', tipo: 'select', opciones: Object.entries(TIPO_PRES).map(([v, t]) => ({ v, t })) }, { k: 'texto', t: 'Detalle', tipo: 'area', req: true }, { k: 'cuotas', t: 'Cuotas solicitadas', tipo: 'numero' }] }) },
     { t: 'Adjuntar documento', i: 'fa-solid fa-paperclip', ver: puede(user?.rol, 'redactarEscritos'), on: () => setModal({ titulo: 'Adjuntar documento escaneado', accion: 'adjuntar', icono: 'fa-solid fa-paperclip', campos: [{ k: 'titulo', t: 'Título', tipo: 'texto', req: true }, { k: 'archivo', t: 'Archivo (imagen o PDF)', tipo: 'archivo', req: true }], extra: { conv: 'archivo' } }) },
@@ -176,6 +178,16 @@ export function CausaDetalle() {
     if (modal.extra?.conv === 'subsanar') {
       const { motivo, ...campos } = v;
       await accion('subsanar', { motivo, campos: { ...campos, leyes: (campos.leyes ?? '').split(',').filter(Boolean).join(' | ') } }, 'Subsanación guardada');
+      return;
+    }
+    if (modal.accion === 'exportar_apremios') {
+      try {
+        await exportarApremios([uuid], v.derivar !== 'no');
+        setModal(null);
+        cargar();
+      } catch (e) {
+        notify.error('No se pudo exportar', (e as Error).message);
+      }
       return;
     }
     if (modal.accion === 'generar_escrito') {

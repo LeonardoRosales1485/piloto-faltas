@@ -705,3 +705,6 @@ span.dato-subsanado { font-size: .75rem; padding: .1rem .45rem; font-weight: 600
   td[colspan] { justify-content: center; text-align: center !important; }
 }
 [data-theme='dark'] .tabla-cards tr { background: rgba(30, 41, 59, .6); }
+
+// Bandeja de causas: barra de selección para exportar a Apremios
+.seleccion-barra { display: flex; justify-content: space-between; align-items: center; gap: .5rem; flex-wrap: wrap; padding: .5rem .75rem; margin-bottom: .5rem; border: 1px dashed rgba(148, 163, 184, .6); border-radius: 10px; font-size: .9rem; color: var(--bo-texto-secundario); }

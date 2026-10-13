@@ -5,10 +5,14 @@ import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { http } from '@/lib/api-client';
 import { BANDEJAS, type BandejaId } from '@/lib/bandejas';
-import { ESTADOS_CAUSA, TIPOS_ACTA, fechaCorta, pesos, tipoActa } from '@/lib/dominio';
+import { ESTADOS_CAUSA, TIPOS_ACTA, fechaCorta, pesos, puede, tipoActa } from '@/lib/dominio';
 import { EstadoChip } from './EstadoChip';
 import { Plazo } from './Plazo';
 import { LoaderLogo } from './LoaderLogo';
+import { ModalForm } from './ModalForm';
+import { useNotify } from './NotifyProvider';
+import { exportarApremios } from '@/lib/apremios-client';
+import { getUser } from '@/lib/auth-client';
 
 type Fila = Record<string, string | number | null> & { uuid: string };
 type Resp = { content: Fila[]; totalElements: number; totalPages: number; page: number; conteos: Record<string, number> };
@@ -23,6 +27,13 @@ export function CausasBandeja() {
   const [page, setPage] = useState(0);
   const [r, setR] = useState<Resp | null>(null);
   const [cargando, setCargando] = useState(true);
+  // Selección para «Exportar para Apremios» (se mantiene al cambiar de página o de filtros).
+  const [sel, setSel] = useState<Map<string, string>>(new Map());
+  const [exportar, setExportar] = useState(false);
+  const notify = useNotify();
+  const [gestion, setGestion] = useState(false);
+  useEffect(() => { setGestion(puede(getUser()?.rol, 'gestionarCausas')); }, []);
+  const alternar = (c: Fila) => setSel((m) => { const n = new Map(m); if (n.has(c.uuid)) n.delete(c.uuid); else n.set(c.uuid, String(c.legajo_numero_acta)); return n; });
 
   const cargar = useCallback(() => {
     setCargando(true);
@@ -120,10 +131,22 @@ export function CausasBandeja() {
           <h2>{info.titulo}</h2>
           <p>{info.ayuda}</p>
         </div>
+        {gestion ? (
+          <div className="seleccion-barra">
+            <span><i className="fa-solid fa-file-export" aria-hidden="true" /> {sel.size ? <><strong>{sel.size}</strong> causa(s) seleccionada(s)</> : 'Marque las causas a remitir a Apremios'}</span>
+            {sel.size ? (
+              <span className="d-flex gap-2">
+                <button type="button" className="btn btn-sm btn-outline-secondary" onClick={() => setSel(new Map())}>Limpiar</button>
+                <button type="button" className="btn btn-sm btn-primary" onClick={() => setExportar(true)}><i className="fa-solid fa-file-pdf" aria-hidden="true" /> Exportar para Apremios</button>
+              </span>
+            ) : null}
+          </div>
+        ) : null}
         <TablaVista>
           <table className="table custom-table align-middle">
             <thead>
               <tr>
+                {gestion ? <th style={{ width: 36 }}><input type="checkbox" className="form-check-input" aria-label="Seleccionar todas las de esta página" checked={Boolean(r?.content.length) && (r?.content ?? []).every((c) => sel.has(c.uuid))} onChange={(e) => setSel((m) => { const n = new Map(m); for (const c of r?.content ?? []) { if (e.target.checked) n.set(c.uuid, String(c.legajo_numero_acta)); else n.delete(c.uuid); } return n; })} /></th> : null}
                 <th>ACTA</th>
                 <th>LEGAJO</th>
                 <th>FECHA</th>
@@ -136,10 +159,11 @@ export function CausasBandeja() {
             </thead>
             <tbody>
               {cargando ? (
-                <tr><td colSpan={8}><LoaderLogo tam={56} texto="Cargando causas…" /></td></tr>
+                <tr><td colSpan={gestion ? 9 : 8}><LoaderLogo tam={56} texto="Cargando causas…" /></td></tr>
               ) : null}
               {!cargando && (r?.content ?? []).map((c) => (
                 <tr key={c.uuid}>
+                  {gestion ? <td><input type="checkbox" className="form-check-input" aria-label={`Seleccionar ${c.legajo_numero_acta}`} checked={sel.has(c.uuid)} onChange={() => alternar(c)} /></td> : null}
                   <td>
                     <Link href={`/private/causa/${c.uuid}`} className="fw-semibold">{c.legajo_numero_acta}</Link>
                     <div className="texto-ayuda">{TIPOS_ACTA[tipoActa(String(c.infraccion_tipo_nombre))].corto}</div>
@@ -154,11 +178,30 @@ export function CausasBandeja() {
                 </tr>
               ))}
               {!cargando && r && !r.content.length ? (
-                <tr><td colSpan={8}><div className="sin-resultados py-3"><i className="fa-solid fa-inbox" aria-hidden="true" /><p className="mb-0">No hay causas en esta bandeja.</p></div></td></tr>
+                <tr><td colSpan={gestion ? 9 : 8}><div className="sin-resultados py-3"><i className="fa-solid fa-inbox" aria-hidden="true" /><p className="mb-0">No hay causas en esta bandeja.</p></div></td></tr>
               ) : null}
             </tbody>
           </table>
         </TablaVista>
+        {exportar ? (
+          <ModalForm
+            titulo={`Exportar ${sel.size} causa(s) para Apremios`}
+            icono="fa-solid fa-file-export"
+            textoOk="Generar PDF"
+            aviso={`Se genera un PDF con el remito del lote, y por cada causa la carátula con el saldo adeudado a hoy y el legajo completo (sin memos internos). Causas: ${[...sel.values()].join(', ')}.`}
+            campos={[{ k: 'derivar', t: 'Pasar las causas a «En Apremios»', tipo: 'select', opciones: [{ v: 'si', t: 'Sí, derivarlas ahora' }, { v: 'no', t: 'No, solo generar el PDF' }] }]}
+            onCancel={() => setExportar(false)}
+            onOk={async (v) => {
+              try {
+                const res = await exportarApremios([...sel.keys()], v.derivar !== 'no');
+                notify.success(`Lote ${res.lote}`, 'Guarde el PDF desde el diálogo de impresión y envíelo a Apremios.');
+                setExportar(false); setSel(new Map()); cargar();
+              } catch (e) {
+                notify.error('No se pudo exportar', (e as Error).message);
+              }
+            }}
+          />
+        ) : null}
         {r && r.totalPages > 1 ? (
           <div className="paginado-footer">
             <span>Total: {r.totalElements}</span>

@@ -63,6 +63,7 @@ Avance: **20 / 20**
 | «Seleccionar artículos»: en pantallas táctiles el buscador no toma el foco solo (el teclado aparece al tocarlo); en escritorio sigue enfocado | — |
 | «Ver acta» en el POS y en pantallas táctiles: modal con el acta y botón Cerrar, en lugar de la ventana de impresión (dejaba al usuario atrapado en el visor) | — |
 | Listas: selector «Lista / Tarjetas» en causas, actas, ordenanzas, pagos, retenciones, usuarios y registro de correos; la elección se recuerda en el navegador (por defecto tarjetas en pantallas &lt; 1280 px) | — |
+| Exportar para Apremios: desde la bandeja (selección de causas) o desde la causa; lote numerado APR-AAAA-NNNN, PDF con remito, carátula de deuda (saldo a la fecha de exportación) y legajo sin memos; opción de derivar a «En Apremios»; constancia en el historial | — |
 
 ## Fuera del alcance del prototipo
 
