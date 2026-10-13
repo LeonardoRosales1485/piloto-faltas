@@ -4,13 +4,20 @@ $ErrorActionPreference = 'Stop'
 if ($Paso -eq 'manifest') {
   $m = Join-Path $PSScriptRoot 'android\app\src\main\AndroidManifest.xml'
   $x = [IO.File]::ReadAllText($m)
-  foreach ($p in 'INTERNET','CAMERA','ACCESS_FINE_LOCATION','ACCESS_COARSE_LOCATION') {
+  foreach ($p in 'INTERNET','CAMERA','ACCESS_FINE_LOCATION','ACCESS_COARSE_LOCATION','REQUEST_INSTALL_PACKAGES') {
     if ($x -notmatch "android\.permission\.$p`"") {
       $x = $x -replace '<application', "<uses-permission android:name=`"android.permission.$p`" />`n    <application"
     }
   }
   $x = $x -replace 'android:label="[^"]*"', 'android:label="Faltas"'
+  if ($x -notmatch 'OtaUpdateFileProvider') {
+    $prov = [IO.File]::ReadAllText((Join-Path $PSScriptRoot 'android-extra\provider.xml'))
+    $x = $x -replace '</application>', ($prov + "    </application>")
+  }
   [IO.File]::WriteAllText($m, $x)
+  $xml = Join-Path $PSScriptRoot 'android\app\src\main\res\xml'
+  New-Item -ItemType Directory -Force $xml | Out-Null
+  Copy-Item (Join-Path $PSScriptRoot 'android-extra\filepaths.xml') (Join-Path $xml 'filepaths.xml') -Force
 }
 elseif ($Paso -eq 'gradlejava') {
   $g = Join-Path $PSScriptRoot 'android\gradle.properties'

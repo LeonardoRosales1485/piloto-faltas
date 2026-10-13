@@ -51,6 +51,7 @@ Avance: **20 / 20**
 | APK del POS: firma fija desde el repo y número de versión por ejecución, para poder actualizar la app instalada | — |
 | Ticket del POS: logo de la municipalidad, cortes por palabra, separadores cortos; dominio siempre en mayúsculas (`sql/021`) | — |
 | Depuración: 7 toques en la lista de borradores muestran todas las actas (hasta cerrar la pestaña o «Salir»); los select ya no desplazan la pantalla al enfocarse (ej.: alcoholemia «Positivo») | — |
+| App del POS: actualización automática al iniciar desde Supabase Storage (versión actual y anterior), con pantalla de progreso; publicación desde compilar-apk.bat o GitHub Actions | — |
 
 ## Fuera del alcance del prototipo
 

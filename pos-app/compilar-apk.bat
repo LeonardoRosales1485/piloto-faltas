@@ -97,13 +97,26 @@ copy /y "firma\debug.keystore" "%KS%" >nul
 
 echo.
 echo === 6/6 Compilando (la primera vez tarda; las siguientes, 1-2 minutos) ===
-for /f %%i in ('powershell -NoProfile -Command "[int]((Get-Date).ToUniversalTime() - (Get-Date 2026-01-01)).TotalMinutes"') do set "BUILD=%%i"
+for /f %%i in ('powershell -NoProfile -Command "[int][math]::Floor(([DateTimeOffset]::UtcNow.ToUnixTimeSeconds() - 1767225600) / 60)"') do set "BUILD=%%i"
 call flutter build apk --release --build-number=%BUILD% --dart-define=APP_URL=%APP_URL%
 set "RES=%errorlevel%"
 if defined RESPALDO move /y "%KS%.respaldo-faltas" "%KS%" >nul
 if not "%RES%"=="0" goto :error
 
 copy /y "build\app\outputs\flutter-apk\app-release.apk" "faltas-pos.apk" >nul
+
+rem --- Publicar como actualizacion: los POS la descargan al abrir la app (Supabase Storage, quedan la actual y la anterior)
+echo.
+choice /m "Publicar esta version (%BUILD%) como actualizacion para los POS"
+if errorlevel 2 goto :sin_publicar
+where node >nul 2>nul
+if errorlevel 1 (
+  echo No se encontro Node.js; no se pudo publicar. Instale Node desde https://nodejs.org
+  goto :sin_publicar
+)
+node publicar.mjs "faltas-pos.apk" %BUILD%
+if errorlevel 1 echo *** No se pudo publicar la actualizacion. ***
+:sin_publicar
 echo.
 echo ============================================================
 echo  Listo: %CD%\faltas-pos.apk

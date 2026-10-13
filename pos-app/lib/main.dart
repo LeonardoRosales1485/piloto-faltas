@@ -6,6 +6,7 @@ import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 
+import 'actualizador.dart';
 import 'impresora_ticket.dart';
 
 /// URL del Sistema de Faltas. Se puede cambiar al compilar:
@@ -33,12 +34,18 @@ class Inicio extends StatefulWidget {
 class _InicioState extends State<Inicio> {
   final _impresora = ImpresoraTicket();
   InAppWebViewController? _web;
+  bool _buscando = true; // consultando si hay versión nueva
+  Actualizacion? _actualizacion;
 
   @override
   void initState() {
     super.initState();
     // GPS (lugar de infracción) y cámara (fotos del acta)
     [Permission.location, Permission.camera].request();
+    // Al iniciar: si hay una versión nueva publicada, se muestra la pantalla de actualización antes del sistema.
+    buscarActualizacion().then((a) {
+      if (mounted) setState(() { _actualizacion = a; _buscando = false; });
+    });
   }
 
   /// Pregunta cámara o galería y devuelve las fotos como data URL (JPEG reducido a 1600 px).
@@ -70,6 +77,23 @@ class _InicioState extends State<Inicio> {
 
   @override
   Widget build(BuildContext context) {
+    if (_buscando) {
+      return Scaffold(
+        backgroundColor: Colors.white,
+        body: Center(
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Image.asset('assets/logo_ticket.png', height: 110),
+            const SizedBox(height: 24),
+            const CircularProgressIndicator(),
+            const SizedBox(height: 12),
+            const Text('Buscando actualizaciones…'),
+          ]),
+        ),
+      );
+    }
+    if (_actualizacion != null) {
+      return PantallaActualizacion(a: _actualizacion!, onOmitir: () => setState(() => _actualizacion = null));
+    }
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) async {

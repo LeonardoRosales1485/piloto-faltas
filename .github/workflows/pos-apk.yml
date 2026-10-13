@@ -10,10 +10,15 @@ on:
       app_url:
         description: URL del Sistema de Faltas que abre la app
         default: https://piloto-faltas.vercel.app
+      publicar:
+        description: Publicar como actualización para los POS (si/no)
+        default: 'si'
 
 jobs:
   apk:
     runs-on: ubuntu-latest
+    env:
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
     defaults:
       run:
         working-directory: pos-app
@@ -38,10 +43,13 @@ jobs:
       - name: Permisos (internet, cámara, GPS) y nombre visible
         run: |
           M=android/app/src/main/AndroidManifest.xml
-          for p in INTERNET CAMERA ACCESS_FINE_LOCATION ACCESS_COARSE_LOCATION; do
+          for p in INTERNET CAMERA ACCESS_FINE_LOCATION ACCESS_COARSE_LOCATION REQUEST_INSTALL_PACKAGES; do
             grep -q "android.permission.$p\"" $M || sed -i "s#<application#<uses-permission android:name=\"android.permission.$p\" />\n    <application#" $M
           done
           sed -i 's#android:label="[^"]*"#android:label="Faltas"#' $M
+          # ota_update: provider para instalar versiones nuevas
+          grep -q OtaUpdateFileProvider $M || python3 -c "import sys;m=sys.argv[1];x=open(m).read();open(m,'w').write(x.replace('</application>', open('android-extra/provider.xml').read()+'    </application>',1))" $M
+          mkdir -p android/app/src/main/res/xml && cp android-extra/filepaths.xml android/app/src/main/res/xml/filepaths.xml
           cat $M
 
       - name: Compilar APK
@@ -52,7 +60,17 @@ jobs:
           flutter pub get
           # AGP nuevos rechazan getDefaultProguardFile('proguard-android.txt') usado por flutter_inappwebview_android
           find $HOME/.pub-cache/hosted -path '*flutter_inappwebview*' -name build.gradle -exec sed -i "s/proguard-android.txt/proguard-android-optimize.txt/g" {} +
-          flutter build apk --release --build-number=${{ github.run_number }} --dart-define=APP_URL=${{ github.event.inputs.app_url || 'https://piloto-faltas.vercel.app' }}
+          BUILD=$(( ($(date -u +%s) - 1767225600) / 60 ))   # minutos desde 2026-01-01 UTC (igual que compilar-apk.bat)
+          echo "BUILD=$BUILD" >> $GITHUB_ENV
+          flutter build apk --release --build-number=$BUILD --dart-define=APP_URL=${{ github.event.inputs.app_url || 'https://piloto-faltas.vercel.app' }}
+
+      - name: Publicar como actualización (Supabase Storage)
+        if: ${{ env.SUPABASE_SERVICE_ROLE_KEY != '' && github.event.inputs.publicar != 'no' }}
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        working-directory: .
+        run: node pos-app/publicar.mjs pos-app/build/app/outputs/flutter-apk/app-release.apk $BUILD
 
       - uses: actions/upload-artifact@v4
         with:

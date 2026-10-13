@@ -67,3 +67,18 @@ Doble click en `pos-app\compilar-apk.bat` (opcional: `compilar-apk.bat https://o
 abrirlo una vez) y Java (usa el de Android Studio). Hace los mismos pasos que GitHub Actions, firma con
 `firma\debug.keystore` (respalda y restaura la clave debug propia de la PC) y deja `pos-app\faltas-pos.apk`; si hay un POS conectado por USB con depuración activada, lo instala con adb (lo descarga si falta) y abre la app.
 La primera compilación tarda; las siguientes, 1–2 minutos.
+
+## Actualizaciones automáticas
+
+Al abrir la app consulta `version.json` en Supabase Storage (bucket público `pos-app`). Si hay una versión
+más nueva muestra una pantalla dedicada: descarga con barra de progreso, luego Android pide confirmar
+«Actualizar» y la app se reinicia con la versión nueva. Sin conexión, la app sigue con la versión instalada.
+
+- Se publican solo dos versiones: la **actual** y la **anterior** (las demás se borran del bucket).
+- Con la versión anterior se puede elegir «Seguir con la versión actual»; con una más vieja la actualización es obligatoria.
+- Publicar: `compilar-apk.bat` pregunta al final (usa `NEXT_PUBLIC_SUPABASE_URL` y `SUPABASE_SERVICE_ROLE_KEY`
+  del `.env.local` y necesita Node). En GitHub Actions publica si existen los secretos `SUPABASE_URL` y
+  `SUPABASE_SERVICE_ROLE_KEY` (Settings → Secrets and variables → Actions). También a mano:
+  `node pos-app/publicar.mjs <apk> <build>`.
+- Número de versión: minutos desde el 1/1/2026 (UTC), igual en la PC y en GitHub, así siempre crece.
+- La primera vez Android pide permitir «Instalar apps desconocidas» para Faltas.
