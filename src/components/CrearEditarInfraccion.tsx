@@ -746,7 +746,7 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
             <div className="row g-3">
               <div className="col-6 col-md-4">
                 <Campo id="vehiculoNumeroDominio" label="Dominio">
-                  {inp('vehiculoNumeroDominio', { style: { textTransform: 'uppercase' } })}
+                  <input id="vehiculoNumeroDominio" className="form-control" disabled={!habilitado} autoCapitalize="characters" autoCorrect="off" spellCheck={false} style={{ textTransform: 'uppercase' }} value={form.vehiculoNumeroDominio ?? ''} onChange={(e) => patch({ vehiculoNumeroDominio: e.target.value.toUpperCase().replace(/\s+/g, '') })} />
                 </Campo>
               </div>
               <div className="col-6 col-md-4">

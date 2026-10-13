@@ -49,6 +49,7 @@ Avance: **20 / 20**
 | App del POS: fotos del acta con cámara/galería nativas (image_picker), porque el input de archivo del WebView no devolvía la imagen | — |
 | Escritorio: el menú lateral se abre tras 1 s de hover sobre la barra y se cierra al salir si se abrió así | — |
 | APK del POS: firma fija desde el repo y número de versión por ejecución, para poder actualizar la app instalada | — |
+| Ticket del POS: logo de la municipalidad, cortes por palabra, separadores cortos; dominio siempre en mayúsculas (`sql/021`) | — |
 
 ## Fuera del alcance del prototipo
 

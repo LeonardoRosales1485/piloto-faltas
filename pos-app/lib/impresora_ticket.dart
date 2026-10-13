@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:senraise_printer/senraise_printer.dart';
 
 /// Imprime el ticket del acta con la impresora térmica del Senraise H10S (papel de 80 mm).
@@ -15,8 +16,13 @@ class ImpresoraTicket {
     await _p.setCode('UTF-8'); // tildes y ñ
     await _p.setDark(3); // más oscuro que el valor de fábrica (ajustar 1–3 según el papel)
 
-    // Encabezado
+    // Encabezado con el logo (PNG blanco y negro, 384 px de ancho, incluido en la app)
     await _p.setAlignment(_centro);
+    try {
+      final logo = await rootBundle.load('assets/logo_ticket.png');
+      await _p.printPic(logo.buffer.asUint8List());
+      await _p.nextLine(1);
+    } catch (_) {/* sin logo si la impresora no acepta la imagen */}
     await _texto('MUNICIPALIDAD DE\nMALVINAS ARGENTINAS', tam: 28, negrita: true);
     await _texto('Dirección de Faltas', tam: 24);
     await _separador();
@@ -39,8 +45,7 @@ class ImpresoraTicket {
     // Aviso
     await _separador();
     await _p.setAlignment(_centro);
-    await _texto('IMPORTANTE: no debe abonar monto de dinero\nalguno a la autoridad que confeccionó\nla presente acta.', tam: 24, negrita: true);
-    await _separador();
+    await _texto('IMPORTANTE: no debe abonar monto de dinero alguno a la autoridad que confeccionó la presente acta.', tam: 24, negrita: true);
 
     // QR nativo (nítido): módulo 8, corrección de errores nivel 2
     await _p.nextLine(1);
@@ -56,7 +61,32 @@ class ImpresoraTicket {
   Future<void> _texto(String s, {double tam = 24, bool negrita = false}) async {
     await _p.setTextSize(tam);
     await _p.setTextBold(negrita);
-    await _p.printText('$s\n');
+    await _p.printText('${_ajustar(s, tam)}\n');
+  }
+
+  /// Caracteres por renglón según el tamaño (576 puntos de ancho; cada carácter ocupa ~0,75 × tamaño).
+  static int _ancho(double tam) => (576 / (tam * 0.75)).floor();
+
+  /// Corta en palabras completas (la impresora corta a mitad de palabra).
+  static String _ajustar(String s, double tam) {
+    final max = _ancho(tam);
+    return s.split('\n').map((linea) {
+      final out = <String>[];
+      var actual = '';
+      for (final palabra in linea.split(' ')) {
+        if (actual.isEmpty) {
+          actual = palabra;
+        } else if (actual.length + 1 + palabra.length <= max) {
+          actual = '$actual $palabra';
+        } else {
+          out.add(actual);
+          actual = palabra;
+        }
+        while (actual.length > max) { out.add(actual.substring(0, max)); actual = actual.substring(max); }
+      }
+      out.add(actual);
+      return out.join('\n');
+    }).join('\n');
   }
 
   Future<void> _campo(String label, String valor) async {
@@ -65,8 +95,10 @@ class ImpresoraTicket {
   }
 
   Future<void> _separador() async {
+    // Un solo renglón, corto, centrado
+    await _p.setAlignment(_centro);
     await _p.setTextSize(24);
     await _p.setTextBold(false);
-    await _p.printText('------------------------------------------------\n');
+    await _p.printText('${'-' * 16}\n');
   }
 }

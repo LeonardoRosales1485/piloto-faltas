@@ -145,7 +145,7 @@ export function infraccionToRow(d: Infraccion, existing?: Partial<InfraccionRow>
     infractor_fecha_nacimiento: d.infractorFechaNacimiento ?? null,
     infractor_codigo_postal: d.infractorCodigoPostal ?? null,
     infractor_actividad_economica: d.infractorActividadEconomica ?? null,
-    vehiculo_numero_dominio: d.vehiculoNumeroDominio ?? null,
+    vehiculo_numero_dominio: d.vehiculoNumeroDominio ? String(d.vehiculoNumeroDominio).toUpperCase().replace(/\s+/g, '') : null,
     vehiculo_numero_control_interno: d.vehiculoNumeroControlInterno ?? null,
     vehiculo_numero_licencia: d.vehiculoNumeroLicencia ?? null,
     vehiculo_tipo_nombre: d.vehiculoTipoNombre ?? null,

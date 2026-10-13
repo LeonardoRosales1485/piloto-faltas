@@ -108,7 +108,7 @@ export function datosTicket(infraccion: Infraccion): DatosTicket {
     numero: infraccion.legajoNumeroActa || '-',
     fecha: formatearFechaTicket(infraccion.legajoFecha),
     lugar: lugar || '-',
-    dominio: infraccion.vehiculoNumeroDominio || '',
+    dominio: String(infraccion.vehiculoNumeroDominio || '').toUpperCase(),
     articulos: (Array.isArray(infraccion.leyesNombre) ? infraccion.leyesNombre.filter(Boolean) : []),
     reparticion: tipo === 'contravenciones' ? 'CONTRAVENCIONES' : tipo === 'sustancias' ? 'SUSTANCIAS ALIMENTICIAS' : 'TRÁNSITO',
     url: infraccion.uuid ? actaPublicaUrl(infraccion.uuid) : window.location.origin,
