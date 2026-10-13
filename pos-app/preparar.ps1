@@ -1,5 +1,5 @@
 # Usado por compilar-apk.bat. Paso "manifest": permisos y nombre. Paso "proguard": parche de flutter_inappwebview.
-param([string]$Paso)
+param([string]$Paso, [string]$Valor)
 $ErrorActionPreference = 'Stop'
 if ($Paso -eq 'manifest') {
   $m = Join-Path $PSScriptRoot 'android\app\src\main\AndroidManifest.xml'
@@ -11,6 +11,12 @@ if ($Paso -eq 'manifest') {
   }
   $x = $x -replace 'android:label="[^"]*"', 'android:label="Faltas"'
   [IO.File]::WriteAllText($m, $x)
+}
+elseif ($Paso -eq 'gradlejava') {
+  $g = Join-Path $PSScriptRoot 'android\gradle.properties'
+  $l = Get-Content $g | Where-Object { $_ -notmatch '^org\.gradle\.java\.home=' }
+  $l += 'org.gradle.java.home=' + ($Valor -replace '\\', '/')
+  Set-Content $g $l
 }
 elseif ($Paso -eq 'jdk') {
   $zip = Join-Path $env:TEMP 'jdk17.zip'
