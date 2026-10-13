@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 
 /**
- * Celular: al enfocar un campo, lo lleva a la parte superior de la pantalla para que se vea mientras se escribe
+ * Celular: al enfocar un campo de texto (no los select, que no abren teclado), lo lleva a la parte superior de la pantalla para que se vea mientras se escribe
  * con el teclado abierto. Si el campo está muy abajo y no hay recorrido, agrega espacio en blanco temporal al pie
  * (padding del body) y lo quita al salir del campo. En los modales, desplaza el cuerpo del modal.
  */
@@ -14,7 +14,7 @@ export function useScrollAlEnfocar(activo = true) {
     let timer = 0;
     let limpiar = 0;
     const esCampo = (el: EventTarget | null): el is HTMLElement =>
-      el instanceof HTMLElement && (el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || (el.tagName === 'INPUT' && !['checkbox', 'radio', 'file', 'button', 'submit'].includes((el as HTMLInputElement).type)));
+      el instanceof HTMLElement && (el.tagName === 'TEXTAREA' || (el.tagName === 'INPUT' && !['checkbox', 'radio', 'file', 'button', 'submit'].includes((el as HTMLInputElement).type)));
 
     function alEnfocar(e: FocusEvent) {
       if (!movil.matches || !esCampo(e.target)) return;
