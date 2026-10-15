@@ -66,6 +66,7 @@ Avance: **20 / 20**
 | Exportar para Apremios: desde la bandeja (selección de causas) o desde la causa; lote numerado APR-AAAA-NNNN, PDF con remito, carátula de deuda (saldo a la fecha de exportación) y legajo sin memos; opción de derivar a «En Apremios»; constancia en el historial | — |
 | Tarjetas: selector en el encabezado de la lista, tarjetas con sombra, título, «Ver detalle ›» y toda la tarjeta clickeable; sidebar por hover en 1 s con el ítem señalado bajo el puntero; botón «Más acciones» corregido | — |
 | Inicio de la causa: «Esperar al infractor» (Iniciado → En notificación, o constancia de no esperar) y «Considerar notificado» (→ Notificado, con plazo y notificación «considerada»). Resto del flujo a validar con el cliente | — |
+| Plantillas de escritos rediseñadas: lista con filtros, uso y «Usada por el sistema»; editor aparte con hoja A4 y membrete, campos como etiquetas de color (panel agrupado con buscador y «[» para insertar), configuración en lenguaje claro, estados de origen (recomendadas en la causa), validación en vivo, vista previa con un acta real, borrador → «Publicar cambios», historial de versiones con comparación y restauración, nueva desde cero / duplicada / importada de Word, mapa de estados, permiso «Ver plantillas» (solo lectura), Ctrl+S y aviso al salir sin guardar; requiere `sql/024_plantillas_versiones.sql` | — |
 
 ## Fuera del alcance del prototipo
 

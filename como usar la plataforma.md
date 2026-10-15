@@ -131,7 +131,16 @@ Para cualquier opción debe adjuntar el **DNI de frente y de dorso**, y el **est
 - **Si hace falta cambiar el texto** en un caso puntual, el botón **«Editar todo el texto»** habilita la edición completa de **ese** escrito. Queda registrado en el historial y la plantilla no cambia.
 - **Escritos que requieren revisión** (fallos, resoluciones, disposiciones): se envían a la Directora, que los firma. Los demás se dejan **definitivos** directamente.
 - **Descarga:** cualquier escrito se descarga en **PDF** o **DOCX**. Desde la causa también se descarga el **legajo completo en PDF**.
-- **Plantillas:** se editan como admin en **Configuración → Plantillas de escritos**, con botones para insertar campos del acta y campos a completar.
+- **Plantillas:** el admin las edita en **Configuración → Plantillas de escritos**; quien redacta escritos puede consultarlas (solo lectura) desde **Escritos y firma → Plantillas**.
+  - **Lista:** se filtra por categoría, tipo de acta, efecto en la causa y situación. Muestra a qué estado pasa la causa, si lleva firma, cuántos escritos se generaron y si es **«Usada por el sistema»** (fallos, compromisos, medida y levantamiento: no conviene deshabilitarlas).
+  - **Nueva plantilla:** en blanco, **duplicando** una existente o **importando un Word (.docx)**.
+  - **Editor:** la hoja A4 con membrete en el centro. Los campos se ven como etiquetas: **azul** = se completa solo con los datos del acta; **amarillo** = lo completa quien redacta. Se insertan desde la pestaña **Campos** (agrupados y con buscador) o escribiendo **«[»** en la hoja. Al pegar desde Word se limpia el formato sobrante.
+  - **Configuración:** título, categoría, tipos de acta, a qué estado pasa la causa al quedar definitivo/firmado y **en qué estados se recomienda**. Al generar un escrito desde la causa, esas plantillas aparecen primero como «★ Recomendada».
+  - **Revisión:** avisa errores (campo desconocido, sin título) que impiden publicar, y sugerencias (lleva número pero el texto no lo muestra, cambia el estado sin firma, etc.).
+  - **Guardar y publicar:** «Guardar borrador» (o Ctrl+S) no afecta los escritos; recién **«Publicar cambios»** hace que los próximos escritos usen la nueva versión. Los escritos ya generados nunca cambian.
+  - **Vista previa:** muestra la plantilla completada con un acta real (la más reciente o la que se indique), sin generar nada.
+  - **Historial:** cada publicación queda como versión, con quién, cuándo y qué cambió; se puede comparar y restaurar.
+  - **Mapa de estados:** para cada estado, qué escritos llevan a él y cuáles se recomiendan desde él.
 
 ## Otras herramientas
 

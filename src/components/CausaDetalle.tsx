@@ -20,6 +20,7 @@ import { useNotify } from './NotifyProvider';
 import { Plazo } from './Plazo';
 import { TarjetaPresentacion } from './TarjetaPresentacion';
 import { caminoInfractor, descargoPendiente } from '@/lib/camino';
+import { estadosOrigen, previstaPara, tiposDePlantilla } from '@/lib/plantillas';
 
 type R = Record<string, any>;
 type Detalle = {
@@ -85,7 +86,12 @@ export function CausaDetalle() {
   const gestion = puede(user?.rol, 'gestionarCausas');
   const final = estadoFinal(estado);
   const pendientes = (d?.presentaciones ?? []).filter((p) => p.estado === 'pendiente');
-  const plantillasTipo = useMemo(() => plantillas.filter((p) => p.tipo_acta === 'todas' || p.tipo_acta === tipo), [plantillas, tipo]);
+  // Plantillas del tipo de acta; primero las previstas para el estado actual de la causa (SF-36).
+  const plantillasTipo = useMemo(() => {
+    const delTipo = plantillas.filter((p) => tiposDePlantilla(p.tipo_acta).includes(tipo));
+    const rec = (p: R) => Boolean(estadosOrigen(p.estados_origen)?.includes(estado));
+    return [...delTipo.filter(rec), ...delTipo.filter((p) => !rec(p))].map((p): R => ({ ...p, recomendada: rec(p), prevista: previstaPara(p.estados_origen, estado) }));
+  }, [plantillas, tipo, estado]);
   const cuotasVencidas = (d?.boletas ?? []).some((b) => b.estado === 'emitida' && Number(b.vencimiento) < Date.now());
   const busqueda = useSearchParams();
   const [falloPedido, setFalloPedido] = useState(busqueda.get('fallo') === '1');
@@ -98,7 +104,7 @@ export function CausaDetalle() {
     setModal({
       titulo: 'Generar escrito desde plantilla', icono: 'fa-solid fa-file-circle-plus', accion: 'generar_escrito', textoOk: 'Generar y editar',
       aviso: 'El escrito se completa con los datos del acta. Después lo puede editar antes de dejarlo definitivo.',
-      campos: [{ k: 'plantillaId', t: 'Plantilla', tipo: 'buscar', req: true, placeholder: 'Buscar por nombre, categoría, estado o texto (ej.: «compromiso pago», «fallo», «cuotas»)', ayuda: 'Se muestran las mejores coincidencias. Use ↑ ↓ y Enter para elegir.', opciones: plantillasTipo.map((p) => ({ v: String(p.id), t: p.titulo, sub: `${p.categoria}${p.estado_resultante ? ` · la causa pasa a «${p.estado_resultante}»` : ''}`, extra: `${p.codigo ?? ''} ${String(p.contenido_html ?? '').replace(/<[^>]+>/g, ' ').slice(0, 600)}` })) }],
+      campos: [{ k: 'plantillaId', t: 'Plantilla', tipo: 'buscar', req: true, placeholder: 'Buscar por nombre, categoría, estado o texto (ej.: «compromiso pago», «fallo», «cuotas»)', ayuda: 'Se muestran las mejores coincidencias. Use ↑ ↓ y Enter para elegir.', opciones: plantillasTipo.map((p) => ({ v: String(p.id), t: p.titulo, sub: `${p.recomendada ? '★ Recomendada · ' : p.prevista ? '' : `No prevista para «${estado}» · `}${p.categoria}${p.estado_resultante ? ` · la causa pasa a «${p.estado_resultante}»` : ''}`, extra: `${p.codigo ?? ''} ${String(p.contenido_html ?? '').replace(/<[^>]+>/g, ' ').slice(0, 600)}` })) }],
     });
 
   const plantillaPorCodigo = (codigo: string) => plantillas.find((p) => p.codigo === codigo);
