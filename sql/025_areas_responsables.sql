@@ -11,16 +11,22 @@ INSERT INTO permiso_rol (rol, permiso, permitido)
 DELETE FROM permiso_rol WHERE rol = 'Abogada';
 
 -- 2. Usuario «abogada» → «responsable_contrav» (contraseña responsable123). Los permisos propios se conservan.
-CREATE TEMP TABLE _perm_abogada AS SELECT permiso, permitido FROM permiso_usuario WHERE username = 'abogada';
-DELETE FROM permiso_usuario WHERE username = 'abogada';
-UPDATE usuario SET username = 'responsable_contrav', nombre = 'Responsable', apellido = 'Contravenciones',
-  email = 'responsable.contravenciones@municipalidad.gob.ar', password_hash = '$2b$10$tyJwrvuEUePmgoAe4Fj9i.PDIV4QKi4dWp6phEfmO8xhbdUJrBcAO'
-WHERE username = 'abogada' AND NOT EXISTS (SELECT 1 FROM usuario WHERE username = 'responsable_contrav');
-INSERT INTO permiso_usuario (username, permiso, permitido)
-  SELECT 'responsable_contrav', permiso, permitido FROM _perm_abogada
-  WHERE EXISTS (SELECT 1 FROM usuario WHERE username = 'responsable_contrav')
-  ON CONFLICT (username, permiso) DO NOTHING;
-DROP TABLE _perm_abogada;
+-- (Un solo bloque: el editor SQL de Supabase puede correr cada sentencia en una conexión distinta y perder las tablas temporales.)
+DO $$
+DECLARE perms JSONB;
+BEGIN
+  IF EXISTS (SELECT 1 FROM usuario WHERE username = 'abogada') AND NOT EXISTS (SELECT 1 FROM usuario WHERE username = 'responsable_contrav') THEN
+    SELECT coalesce(jsonb_agg(jsonb_build_object('permiso', permiso, 'permitido', permitido)), '[]'::jsonb) INTO perms
+      FROM permiso_usuario WHERE username = 'abogada';
+    DELETE FROM permiso_usuario WHERE username = 'abogada';
+    UPDATE usuario SET username = 'responsable_contrav', nombre = 'Responsable', apellido = 'Contravenciones',
+      email = 'responsable.contravenciones@municipalidad.gob.ar', password_hash = '$2b$10$tyJwrvuEUePmgoAe4Fj9i.PDIV4QKi4dWp6phEfmO8xhbdUJrBcAO'
+    WHERE username = 'abogada';
+    INSERT INTO permiso_usuario (username, permiso, permitido)
+      SELECT 'responsable_contrav', x->>'permiso', (x->>'permitido')::boolean FROM jsonb_array_elements(perms) x
+      ON CONFLICT (username, permiso) DO NOTHING;
+  END IF;
+END $$;
 
 -- 3. Alcance de los usuarios del piloto
 UPDATE usuario SET modulos_acta = 'multas' WHERE username = 'directora';
