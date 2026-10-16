@@ -2,7 +2,7 @@
  * Operaciones de la causa: notificación, escritos, presentaciones, boletas, fallo y archivo.
  * Todo cambio de estado pasa por cambiarEstado() y deja historial.
  */
-import { claveLey, esContravencional, fechaCorta, pesos, resolverLeyes, TIPOS_ACTA, tipoActa } from './dominio';
+import { ahoraArgentina, claveLey, esContravencional, fechaCorta, pesos, resolverLeyes, TIPOS_ACTA, tipoActa } from './dominio';
 import { claseVehiculo, tarifaAcarreo } from './tarifas';
 import { causaVigente, leyesVigentes, subsanacionDe } from './subsanacion';
 import {
@@ -113,7 +113,7 @@ function esc(s: unknown) {
 export async function camposDeCausa(d: Db, c0: CausaRow, user?: UsuarioRow) {
   const c = await causaVigente(d, c0);
   const v = await valorizacion(d, c);
-  const ahora = new Date();
+  const hoy = ahoraArgentina();
   const [fecha, hora] = String(c.legajo_fecha ?? '').split('T');
   const { data: deps } = await d.from('infraccion_dependencia').select('dependencia_nombre').eq('infraccion_id', c.id);
   const ids = ((deps ?? []) as { dependencia_nombre: string }[]).map((x) => Number(x.dependencia_nombre)).filter((n) => !Number.isNaN(n));
@@ -145,9 +145,9 @@ export async function camposDeCausa(d: Db, c0: CausaRow, user?: UsuarioRow) {
     'Acta:Dominio.Vehiculo': c.vehiculo_numero_dominio,
     'Acta:Infracciones': v.leyes.map((l) => `${l.nombre} ${l.articulo} (${l.descripcion})`).join('; '),
     'Acta:Actividad': ' ', // Anexo V: se elimina «actividad económica»
-    'System:FECHA': ahora.toLocaleDateString('es-AR'),
-    'System:TEXTOFECHA': `${ahora.getDate()} de ${MESES[ahora.getMonth()]} de ${ahora.getFullYear()}`,
-    'System:HORA': ahora.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }),
+    'System:FECHA': `${hoy.dia}/${hoy.mes}/${hoy.anio}`,
+    'System:TEXTOFECHA': `${hoy.dia} de ${MESES[hoy.mes - 1]} de ${hoy.anio}`,
+    'System:HORA': `${hoy.hora}:${hoy.minuto}`,
     'Causa:Monto': pesos(v.multa),
     'Causa:Unidades': String(v.unidades),
     'Causa:Medidas': medidasDe(c).join(', ') || 'sin medidas',

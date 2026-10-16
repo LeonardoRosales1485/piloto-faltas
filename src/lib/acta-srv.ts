@@ -1,7 +1,7 @@
 import { modulosDe, type ModuloActa } from './dominio';
 import { valoresVigentes } from './causa-srv';
 import { causaPorUuid, check, configNum, historial, HttpError, nombreUsuario, sha, type Db } from './srv';
-import { formatearNumeroActa, resolverLeyes, TIPOS_ACTA, tipoActa } from './dominio';
+import { ahoraArgentina, formatearNumeroActa, resolverLeyes, TIPOS_ACTA, tipoActa } from './dominio';
 import type { UsuarioRow } from './types';
 
 export async function reservar(d: Db, serie: string): Promise<number> {
@@ -16,16 +16,16 @@ export async function iniciarActa(d: Db, user: UsuarioRow, tipoNombre: string, u
   const info = TIPOS_ACTA[tipo];
   const nActa = await reservar(d, info.serie);
   const nLeg = await reservar(d, 'LEG');
-  const ahora = new Date();
-  const pad = (n: number) => String(n).padStart(2, '0');
-  const fecha = `${ahora.getFullYear()}-${pad(ahora.getMonth() + 1)}-${pad(ahora.getDate())}T${pad(ahora.getHours())}:${pad(ahora.getMinutes())}`;
+  // Hora del servidor expresada en hora argentina (el servidor corre en UTC: sin esto quedaba 3 h adelantada).
+  const ahora = ahoraArgentina();
+  const fecha = ahora.iso;
   const row = {
     uuid,
     infraccion_tipo_id: info.id,
     infraccion_tipo_nombre: tipo,
     legajo_numero_acta: formatearNumeroActa(info.serie, nActa),
     legajo_number: String(nLeg),
-    legajo_anio: String(ahora.getFullYear()),
+    legajo_anio: String(ahora.anio),
     legajo_fecha: fecha,
     estado: 'Activo',
     estado_faltas: 'Borrador',

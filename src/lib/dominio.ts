@@ -275,18 +275,31 @@ export function pesos(n?: number | null): string {
   return Number(n).toLocaleString('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 2 });
 }
 
+/** Huso horario oficial: el servidor (Vercel) corre en UTC y los dispositivos pueden estar mal configurados. */
+export const ZONA_HORARIA = 'America/Argentina/Buenos_Aires';
+
+/** Fecha y hora en Argentina, por partes y como «AAAA-MM-DDTHH:MM» (formato del campo fecha y hora del acta). */
+export function ahoraArgentina(ms: number = Date.now()) {
+  const p = Object.fromEntries(
+    new Intl.DateTimeFormat('en-CA', { timeZone: ZONA_HORARIA, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
+      .formatToParts(new Date(ms)).map((x) => [x.type, x.value]),
+  ) as Record<string, string>;
+  return { anio: Number(p.year), mes: Number(p.month), dia: Number(p.day), hora: p.hour, minuto: p.minute, iso: `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}` };
+}
+
 export function fechaCorta(ms?: number | string | null): string {
   if (ms == null || ms === '') return '-';
   const d = typeof ms === 'number' ? new Date(ms) : new Date(ms);
   if (Number.isNaN(d.getTime())) return String(ms);
-  return d.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  // Marcas de tiempo (número): siempre en hora argentina. Textos «AAAA-MM-DDTHH:MM»: ya son hora local, se muestran tal cual.
+  return d.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', ...(typeof ms === 'number' ? { timeZone: ZONA_HORARIA } : {}) });
 }
 
 export function fechaHora(ms?: number | string | null): string {
   if (ms == null || ms === '') return '-';
   const d = new Date(ms);
   if (Number.isNaN(d.getTime())) return String(ms);
-  return d.toLocaleString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  return d.toLocaleString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', ...(typeof ms === 'number' ? { timeZone: ZONA_HORARIA } : {}) });
 }
 
 /** Identificador legible y único de un artículo: «Ordenanza 261/2022 · Art. 45». */

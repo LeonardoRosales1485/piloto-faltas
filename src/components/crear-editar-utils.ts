@@ -1,5 +1,5 @@
 import type { Infraccion } from '@/lib/types';
-import type { TipoActa } from '@/lib/dominio';
+import { ahoraArgentina, type TipoActa } from '@/lib/dominio';
 
 export const MAX_IMAGENES = 5;
 
@@ -27,9 +27,9 @@ function pad(n: number) {
   return String(n).padStart(2, '0');
 }
 
+/** Fecha y hora actuales en hora argentina (aunque el dispositivo tenga otro huso). */
 export function nowLocalInputValue() {
-  const d = new Date();
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  return ahoraArgentina().iso;
 }
 
 export function toDateTimeLocal(value?: string) {

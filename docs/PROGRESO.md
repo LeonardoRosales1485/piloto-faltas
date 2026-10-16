@@ -69,6 +69,7 @@ Avance: **20 / 20**
 | Plantillas de escritos rediseñadas: lista con filtros, uso y «Usada por el sistema»; editor aparte con hoja A4 y membrete, campos como etiquetas de color (panel agrupado con buscador y «[» para insertar), configuración en lenguaje claro, estados de origen (recomendadas en la causa), validación en vivo, vista previa con un acta real, borrador → «Publicar cambios», historial de versiones con comparación y restauración, nueva desde cero / duplicada / importada de Word, mapa de estados, permiso «Ver plantillas» (solo lectura), Ctrl+S y aviso al salir sin guardar; requiere `sql/024_plantillas_versiones.sql` | — |
 | Login: se quita el botón de acceso rápido del Administrador (sigue entrando con usuario y contraseña) | — |
 | Áreas: cada tipo de acta con su responsable y su agente (Directora/Agente de Tránsito, Responsable/Agente de Contravenciones, Responsable/Agente de Sustancias). Rol «Abogada» → «Responsable»; alcance por usuario («Tipos de acta que gestiona»); login con acceso rápido por área (responsable a la izquierda, agente a la derecha); requiere `sql/025_areas_responsables.sql` | — |
+| Hora del acta en hora argentina: el servidor (Vercel, UTC) la dejaba 3 h adelantada; también las fechas y horas de los escritos ([System:FECHA/HORA/TEXTOFECHA]), las fechas de marcas de tiempo y la firma | — |
 
 ## Fuera del alcance del prototipo
 

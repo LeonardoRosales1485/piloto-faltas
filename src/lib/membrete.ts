@@ -11,7 +11,7 @@ export function pieHtml() {
 
 export function firmaHtml(doc: { firmado_por?: string | null; firmado_at?: number | null; hash?: string | null; numero?: string | null }) {
   if (!doc.firmado_por) return '';
-  const f = doc.firmado_at ? new Date(doc.firmado_at).toLocaleString('es-AR') : '';
+  const f = doc.firmado_at ? new Date(doc.firmado_at).toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' }) : '';
   return `<div class="sello-firma"><strong>Firmado digitalmente por ${doc.firmado_por}</strong><br/>Directora de Faltas · ${f}<br/>Código de verificación: ${(doc.hash ?? '').slice(0, 16).toUpperCase()}<br/><em>Firma simulada en el piloto (P-04)</em></div>`;
 }
 
