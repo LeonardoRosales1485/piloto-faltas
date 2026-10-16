@@ -73,6 +73,7 @@ Avance: **20 / 20**
 | Sesión: sin sesión se vuelve al login desde cualquier pantalla privada (al navegar, con «Atrás» tras salir, al volver a la pestaña o al salir en otra pestaña); la API con 401 manda al login («Su sesión venció») en vez de quedar cargando; las pantallas privadas no se guardan en la caché del navegador | — |
 | Labrado con infractor ausente: el número de documento (o CUIT) deja de ser obligatorio (pantalla y servidor); el nombre o la razón social siguen siéndolo | — |
 | Permisos «Actas de tránsito / de contravención / de sustancias alimenticias» (grupo Actas) en el ABM por tipo de usuario y por usuario: definen qué actas ve y labra cada inspector en la app (por tipo de usuario se combinan con el tipo de inspector; dados al usuario, mandan). También filtran la lista de actas en el servidor | — |
+| Login en dos columnas en escritorio (formulario a la izquierda, acceso rápido a la derecha) sin scroll, compacto en pantallas bajas; en celular/POS sigue en una columna | — |
 
 ## Fuera del alcance del prototipo
 

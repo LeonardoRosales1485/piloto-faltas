@@ -67,7 +67,8 @@ export function LoginPage() {
 
   return (
     <div className="login-page">
-      <div className="login-card">
+      <div className="login-card login-card-doble">
+        <div className="login-col-form">
         <div className="login-brand">
           <div className="login-bo">
             <i className="fa-solid fa-building-columns" aria-hidden="true" />
@@ -127,7 +128,14 @@ export function LoginPage() {
         </form>
         {aviso && !error ? <p className="err mt-2" role="status">{aviso}</p> : null}
         {error ? <p className="err mt-2">{error}</p> : null}
-        <div className="login-rapido">
+        <div className="login-footer">
+          <span>Municipalidad de Malvinas Argentinas</span>
+          <span>© {year} Blue Open Data</span>
+          <span>V:1.0.0</span>
+          {versionPos ? <span>App POS v{versionPos}</span> : null}
+        </div>
+        </div>
+        <div className="login-rapido" aria-label="Acceso rápido">
           <p className="login-rapido-titulo">Acceso rápido (piloto)</p>
           {AREAS.map((a) => (
             <div key={a.area} className="login-rapido-area">
@@ -157,12 +165,6 @@ export function LoginPage() {
               </a>
             </div>
           </div>
-        </div>
-        <div className="login-footer">
-          <span>Municipalidad de Malvinas Argentinas</span>
-          <span>© {year} Blue Open Data</span>
-          <span>V:1.0.0</span>
-          {versionPos ? <span>App POS v{versionPos}</span> : null}
         </div>
       </div>
     </div>

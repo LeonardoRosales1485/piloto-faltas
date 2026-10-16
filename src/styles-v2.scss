@@ -929,3 +929,36 @@ span.dato-subsanado { font-size: .75rem; padding: .1rem .45rem; font-weight: 600
     small { color: var(--bo-texto-secundario); white-space: nowrap; }
     &.activo { background: var(--bo-azul); color: #fff; small { color: rgba(255,255,255,.85); } } }
 }
+
+// Login en dos columnas (escritorio): formulario a la izquierda y acceso rápido a la derecha, sin scroll.
+@media (min-width: 900px) {
+  .login-page { height: 100vh; min-height: 0; overflow: hidden; padding: 1rem; }
+  .login-card.login-card-doble {
+    max-width: 980px; max-height: calc(100vh - 2rem); padding: 2rem 2.25rem;
+    display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); gap: 0 2.25rem; align-items: center;
+  }
+  .login-card-doble .login-col-form { display: flex; flex-direction: column; justify-content: center; min-height: 100%; }
+  .login-card-doble .login-brand { margin-bottom: 1.5rem; }
+  .login-card-doble .login-footer { margin-top: 1.25rem; }
+  .login-card-doble .login-rapido { margin-top: 0; padding: 0 0 0 2.25rem; border-top: 0; border-left: 1px solid #e5e7eb; align-self: stretch; display: flex; flex-direction: column; justify-content: center; overflow-y: auto; }
+  .login-card-doble .login-rapido-titulo { text-align: left; }
+  .login-card-doble .login-rapido-btn { padding: .45rem .65rem; }
+}
+// Pantallas bajas (notebooks de 768 px o menos): se compacta para seguir sin scroll.
+@media (min-width: 900px) and (max-height: 760px) {
+  .login-card.login-card-doble { padding: 1.25rem 1.75rem; }
+  .login-card-doble .login-brand { gap: .5rem; margin-bottom: 1rem; }
+  .login-card-doble .login-bo { width: 48px; height: 48px; font-size: 1.3rem; }
+  .login-card-doble .login-brand h1 strong { font-size: 1.4rem; }
+  .login-card-doble .form-group { margin-bottom: .6rem; }
+  .login-card-doble .login-rapido-area + .login-rapido-area { margin-top: .45rem; }
+  .login-card-doble .login-rapido-btn { padding: .35rem .6rem; font-size: .8rem; }
+}
+[data-theme='dark'] .login-card-doble .login-rapido { border-left-color: var(--bo-borde); }
+// Celular / POS: una columna (formulario, acceso rápido y el pie al final).
+@media (max-width: 899.98px) {
+  .login-card-doble { display: flex; flex-direction: column; }
+  .login-card-doble .login-col-form { display: contents; }
+  .login-card-doble .login-rapido { order: 2; }
+  .login-card-doble .login-footer { order: 3; }
+}
