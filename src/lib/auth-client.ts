@@ -73,6 +73,7 @@ export function logout(navigate = true): void {
   localStorage.removeItem(USER_KEY);
   emit(null);
   if (navigate && typeof window !== 'undefined') {
-    window.location.href = '/login';
+    // replace: la pantalla privada no queda en el historial (el botón «Atrás» no vuelve a ella).
+    window.location.replace('/login');
   }
 }

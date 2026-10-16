@@ -40,6 +40,8 @@ export function LoginPage() {
   // En la app del POS (WebView) el user agent trae «FaltasPOS/<versión>».
   const [versionPos, setVersionPos] = useState('');
   useEffect(() => { setVersionPos(navigator.userAgent.match(/FaltasPOS\/(\d+)/)?.[1] ?? ''); }, []);
+  const [aviso, setAviso] = useState('');
+  useEffect(() => { if (new URLSearchParams(window.location.search).get('sesion') === 'vencida') setAviso('Su sesión venció o se cerró. Vuelva a ingresar.'); }, []);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const year = new Date().getFullYear();
@@ -123,6 +125,7 @@ export function LoginPage() {
             )}
           </button>
         </form>
+        {aviso && !error ? <p className="err mt-2" role="status">{aviso}</p> : null}
         {error ? <p className="err mt-2">{error}</p> : null}
         <div className="login-rapido">
           <p className="login-rapido-titulo">Acceso rápido (piloto)</p>

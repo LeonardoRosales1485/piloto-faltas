@@ -70,6 +70,7 @@ Avance: **20 / 20**
 | Login: se quita el botón de acceso rápido del Administrador (sigue entrando con usuario y contraseña) | — |
 | Áreas: cada tipo de acta con su responsable y su agente (Directora/Agente de Tránsito, Responsable/Agente de Contravenciones, Responsable/Agente de Sustancias). Rol «Abogada» → «Responsable»; alcance por usuario («Tipos de acta que gestiona»); login con acceso rápido por área (responsable a la izquierda, agente a la derecha); requiere `sql/025_areas_responsables.sql` | — |
 | Hora del acta en hora argentina: el servidor (Vercel, UTC) la dejaba 3 h adelantada; también las fechas y horas de los escritos ([System:FECHA/HORA/TEXTOFECHA]), las fechas de marcas de tiempo y la firma | — |
+| Sesión: sin sesión se vuelve al login desde cualquier pantalla privada (al navegar, con «Atrás» tras salir, al volver a la pestaña o al salir en otra pestaña); la API con 401 manda al login («Su sesión venció») en vez de quedar cargando; las pantallas privadas no se guardan en la caché del navegador | — |
 
 ## Fuera del alcance del prototipo
 

@@ -53,7 +53,21 @@ function authHeaders(): HeadersInit {
   return headers;
 }
 
+const USER_KEY = 'faltas-piloto-user';
+
+/**
+ * Sesión vencida o cerrada (el servidor respondió 401): se borra la sesión local y se va al login, en lugar de
+ * dejar la pantalla cargando. No aplica al propio login (usuario o contraseña incorrectos también es 401).
+ */
+function sinSesion(res: Response) {
+  if (res.status !== 401 || typeof window === 'undefined') return;
+  if (new URL(res.url, window.location.href).pathname === '/api/auth/login') return;
+  try { localStorage.removeItem(TOKEN_KEY); localStorage.removeItem(USER_KEY); } catch { /* sin almacenamiento */ }
+  if (!window.location.pathname.startsWith('/login')) window.location.replace('/login?sesion=vencida');
+}
+
 async function parseData<T>(res: Response): Promise<T> {
+  sinSesion(res);
   const body = (await res.json()) as HttpData<T>;
   if (!res.ok) {
     throw new Error(body.message ?? `HTTP ${res.status}`);
@@ -73,6 +87,7 @@ async function post<T>(path: string, body: unknown): Promise<T> {
 
 async function del(path: string): Promise<void> {
   const res = await fetch(path, { method: 'DELETE', headers: authHeaders() });
+  sinSesion(res);
   if (!res.ok) {
     const body = (await res.json()) as HttpData<null>;
     throw new Error(body.message ?? `HTTP ${res.status}`);
