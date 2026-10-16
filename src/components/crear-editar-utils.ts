@@ -131,7 +131,8 @@ export function faltantesPorPaso(form: Partial<Infraccion>, firma: string | null
   if (!txt(form.domicilioInfraccionCalle)) add('lugar', 'calle del lugar de infracción');
   if (sit !== 'nn') {
     if (!txt(form.infractorNombre) && !txt(form.infractorRazonSocial)) add('infractor', 'nombre o razón social');
-    if (!txt(form.infractorDocumentoNumero) && !txt(form.infractorCuit)) add('infractor', 'documento o CUIT');
+    // Ausente: el documento (o CUIT) puede no conocerse en el momento; se carga si se puede constatar.
+    if (sit !== 'ausente' && !txt(form.infractorDocumentoNumero) && !txt(form.infractorCuit)) add('infractor', 'documento o CUIT');
     if ((sit === 'presente' || sit === 'se_niega') && !txt(form.infractorDomicilio)) add('infractor', 'domicilio');
   }
   if (form.infraccionTipoNombre !== 'contravenciones') {

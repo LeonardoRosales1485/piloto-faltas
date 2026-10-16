@@ -662,7 +662,7 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
                     </Campo>
                   </div>
                   <div className="col-12 col-md-4">
-                    <Campo id="infractorCuit" label="CUIT" req>
+                    <Campo id="infractorCuit" label="CUIT" req={form.situacionInfractor !== 'ausente'}>
                       {inp('infractorCuit', { inputMode: 'numeric', placeholder: '30-12345678-9' })}
                     </Campo>
                   </div>
@@ -685,7 +685,7 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
                     </Campo>
                   </div>
                   <div className="col-7 col-md-4">
-                    <Campo id="infractorDocumentoNumero" label="Número de documento" req>
+                    <Campo id="infractorDocumentoNumero" label="Número de documento" req={form.situacionInfractor !== 'ausente'}>
                       {inp('infractorDocumentoNumero', { inputMode: 'numeric' })}
                     </Campo>
                   </div>
