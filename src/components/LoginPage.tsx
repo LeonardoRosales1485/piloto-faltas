@@ -140,7 +140,7 @@ export function LoginPage() {
             </div>
           ))}
           <div className="login-rapido-area">
-            <p className="login-rapido-subtitulo">Inspectores y portal</p>
+            <p className="login-rapido-subtitulo">Inspectores y portal ciudadano</p>
             <div className="login-rapido-grid">
               {INSPECTORES.map((x) => (
                 <button key={x.u} type="button" className="login-rapido-btn" disabled={loading} onClick={() => void entrar(x.u, x.p)} title={`${x.u} / ${x.p}`}>
