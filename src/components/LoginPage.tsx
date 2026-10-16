@@ -12,7 +12,6 @@ const ACCESOS = [
   { u: 'operador', p: 'operador123', t: 'Agente', i: 'fa-solid fa-user-tie' },
   { u: 'directora', p: 'directora123', t: 'Directora (tránsito)', i: 'fa-solid fa-car' },
   { u: 'abogada', p: 'abogada123', t: 'Abogada (contrav.)', i: 'fa-solid fa-scale-balanced' },
-  { u: 'admin', p: 'admin123', t: 'Administrador', i: 'fa-solid fa-gear' },
 ];
 
 export function LoginPage() {

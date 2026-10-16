@@ -67,6 +67,7 @@ Avance: **20 / 20**
 | Tarjetas: selector en el encabezado de la lista, tarjetas con sombra, título, «Ver detalle ›» y toda la tarjeta clickeable; sidebar por hover en 1 s con el ítem señalado bajo el puntero; botón «Más acciones» corregido | — |
 | Inicio de la causa: «Esperar al infractor» (Iniciado → En notificación, o constancia de no esperar) y «Considerar notificado» (→ Notificado, con plazo y notificación «considerada»). Resto del flujo a validar con el cliente | — |
 | Plantillas de escritos rediseñadas: lista con filtros, uso y «Usada por el sistema»; editor aparte con hoja A4 y membrete, campos como etiquetas de color (panel agrupado con buscador y «[» para insertar), configuración en lenguaje claro, estados de origen (recomendadas en la causa), validación en vivo, vista previa con un acta real, borrador → «Publicar cambios», historial de versiones con comparación y restauración, nueva desde cero / duplicada / importada de Word, mapa de estados, permiso «Ver plantillas» (solo lectura), Ctrl+S y aviso al salir sin guardar; requiere `sql/024_plantillas_versiones.sql` | — |
+| Login: se quita el botón de acceso rápido del Administrador (sigue entrando con usuario y contraseña) | — |
 
 ## Fuera del alcance del prototipo
 

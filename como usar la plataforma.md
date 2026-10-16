@@ -15,7 +15,7 @@ Guía paso a paso para recorrer un acta de tránsito de punta a punta: desde que
 | Directora | `directora` / `directora123` | Revisa y firma escritos. Sólo ve causas de **tránsito** |
 | Abogada | `abogada` / `abogada123` | Mismos permisos que la Directora, pero sólo ve causas de **contravención** (y sustancias alimenticias) |
 | Usuario tributario | `tributario` / `tributario123` | Actualiza valores y tarifas |
-| Administrador | `admin` / `admin123` | Configura plantillas, textos y feriados |
+| Administrador | `admin` / `admin123` | Configura plantillas, textos y feriados. No tiene botón de acceso rápido: se entra escribiendo usuario y contraseña |
 | Ciudadano | `valeria@example.com` / `ciudadano123` (DNI 30111222) | Consulta, paga y presenta descargos |
 
 > En la pantalla de ingreso hay botones de **acceso rápido** para cada rol: un clic y entrás.
