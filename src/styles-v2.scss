@@ -962,3 +962,25 @@ span.dato-subsanado { font-size: .75rem; padding: .1rem .45rem; font-weight: 600
   .login-card-doble .login-rapido { order: 2; }
   .login-card-doble .login-footer { order: 3; }
 }
+
+// Causa: «Próximo paso»
+.proximo-paso {
+  display: flex; flex-wrap: wrap; align-items: center; gap: .75rem 1rem; margin-bottom: 1rem; padding: .9rem 1.1rem;
+  background: var(--bo-card); border: 1px solid var(--bo-borde); border-left: 5px solid var(--bo-azul); border-radius: var(--bo-radio-lg); box-shadow: var(--bo-sombra-card);
+}
+.proximo-paso-icono { width: 2.5rem; height: 2.5rem; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: var(--bo-azul-claro); color: var(--bo-azul); font-size: 1.1rem; flex-shrink: 0; }
+.proximo-paso-texto { flex: 1 1 320px; min-width: 0; display: flex; flex-direction: column; gap: .15rem;
+  strong { font-size: 1.05rem; }
+}
+.proximo-paso-etiqueta { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--bo-texto-secundario); }
+.proximo-paso-detalle { font-size: .88rem; color: var(--bo-texto-secundario); }
+.proximo-paso-quien { font-size: .8rem; font-weight: 600; color: var(--bo-texto); margin-top: .15rem; i { margin-right: .25rem; } }
+.proximo-paso-acciones { display: flex; flex-wrap: wrap; gap: .5rem; }
+.proximo-espera { border-left-color: #94a3b8; .proximo-paso-icono { background: #f1f5f9; color: #475569; } }
+.proximo-alerta { border-left-color: #f59e0b; .proximo-paso-icono { background: #fef3c7; color: #b45309; } }
+.proximo-fin { border-left-color: #16a34a; .proximo-paso-icono { background: #dcfce7; color: #15803d; } }
+[data-theme='dark'] {
+  .proximo-espera .proximo-paso-icono { background: #1e293b; color: #cbd5e1; }
+  .proximo-alerta .proximo-paso-icono { background: #451a03; color: #fde68a; }
+  .proximo-fin .proximo-paso-icono { background: #052e16; color: #bbf7d0; }
+}

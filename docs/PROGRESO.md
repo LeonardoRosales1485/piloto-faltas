@@ -74,6 +74,7 @@ Avance: **20 / 20**
 | Labrado con infractor ausente: nombre/razón social y documento/CUIT dejan de ser obligatorios (pantalla y servidor) | — |
 | Permisos «Actas de tránsito / de contravención / de sustancias alimenticias» (grupo Actas) en el ABM por tipo de usuario y por usuario: definen qué actas ve y labra cada inspector en la app (por tipo de usuario se combinan con el tipo de inspector; dados al usuario, mandan). También filtran la lista de actas en el servidor | — |
 | Login en dos columnas en escritorio (formulario a la izquierda, acceso rápido a la derecha) sin scroll, compacto en pantallas bajas; en celular/POS sigue en una columna | — |
+| Causa: recuadro «Próximo paso» (qué falta, a quién le toca y botón para avanzar: notificar el fallo/resolución, firmar, resolver presentaciones, dictar fallo, derivar, etc.) y «Considerar notificado» para fallos, resoluciones y disposiciones que el infractor no abrió en el portal (empieza a correr el plazo) | — |
 
 ## Fuera del alcance del prototipo
 

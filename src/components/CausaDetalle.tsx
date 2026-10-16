@@ -21,6 +21,7 @@ import { Plazo } from './Plazo';
 import { TarjetaPresentacion } from './TarjetaPresentacion';
 import { caminoInfractor, descargoPendiente } from '@/lib/camino';
 import { estadosOrigen, previstaPara, tiposDePlantilla } from '@/lib/plantillas';
+import { proximoPaso, type AccionPaso } from '@/lib/proximo-paso';
 
 type R = Record<string, any>;
 type Detalle = {
@@ -178,6 +179,25 @@ export function CausaDetalle() {
     { t: 'Desestimar', i: 'fa-solid fa-ban', ver: puede(user?.rol, 'archivar') && !final, peligro: true, on: () => setModal({ titulo: 'Desestimar causa', accion: 'desestimar', peligro: true, textoOk: 'Desestimar', aviso: 'La causa se cierra sin eliminarse: queda el registro completo.', campos: [{ k: 'motivo', t: 'Motivo', tipo: 'area', req: true }] }) },
   ];
 
+  // Próximo paso: qué falta, quién actúa y con qué acción se avanza (arriba de la causa).
+  const paso = proximoPaso({
+    estado, vencePlazoAt: c.vencePlazoAt, notificadaAt: c.notificadaAt, medidaVigente: c.medidaVigente === 1,
+    documentos: d.documentos, notificaciones: d.notificaciones, presentaciones: d.presentaciones, boletas: d.boletas, cuotasVencidas,
+    botones: botones.filter((b) => b.ver && !b.deshabilitado).map((b) => b.t),
+  });
+  const considerarDoc = (docUuid: string, titulo?: string) => setModal({
+    titulo: 'Considerar notificado', icono: 'fa-solid fa-envelope-circle-check', accion: 'considerar_notificado_documento', textoOk: 'Sí, considerar notificado', campos: [], extra: { documentoUuid: docUuid },
+    aviso: `El infractor no abrió ${titulo ? `«${titulo}»` : 'el documento'} en el portal. ¿Considera que tuvo tiempo suficiente para verlo? Se lo da por notificado y empieza a correr el plazo que corresponda.`,
+  });
+  const ejecutarPaso = (a: AccionPaso) => {
+    if (a.tipo === 'boton') return botones.find((b) => b.t === a.boton)?.on();
+    if (a.tipo === 'notificar') return void accion('notificar_documento', { documentoUuid: a.uuid }, 'Notificación iniciada');
+    if (a.tipo === 'considerarDoc') return considerarDoc(a.uuid, d.documentos.find((x) => x.uuid === a.uuid)?.titulo);
+    if (a.tipo === 'tab') { setTab(a.tab as (typeof TABS)[number]['id']); return; }
+    router.push(a.href);
+  };
+  const QUIEN_ICONO: Record<string, string> = { Agente: 'fa-solid fa-user-tie', 'Directora / Responsable': 'fa-solid fa-signature', Infractor: 'fa-solid fa-user', 'Organismo externo': 'fa-solid fa-landmark', Nadie: 'fa-solid fa-check' };
+
   const subCampos = (d.subsanacion?.campos ?? {}) as Record<string, { antes: string; despues: string }>;
   const verSubsanada = Boolean(d.subsanacion && d.actaVigente && vista === 'subsanada');
   const cf: Infraccion = verSubsanada ? d.actaVigente! : c;
@@ -237,6 +257,25 @@ export function CausaDetalle() {
           })}
         </div>
       </div>
+
+      <section className={`proximo-paso proximo-${paso.tono}`} aria-label="Próximo paso">
+        <div className="proximo-paso-icono" aria-hidden="true"><i className={paso.tono === 'fin' ? 'fa-solid fa-flag-checkered' : paso.tono === 'alerta' ? 'fa-solid fa-triangle-exclamation' : paso.tono === 'espera' ? 'fa-solid fa-hourglass-half' : 'fa-solid fa-arrow-right'} /></div>
+        <div className="proximo-paso-texto">
+          <span className="proximo-paso-etiqueta">Próximo paso</span>
+          <strong>{paso.titulo}</strong>
+          {paso.detalle ? <span className="proximo-paso-detalle">{paso.detalle}</span> : null}
+          <span className="proximo-paso-quien"><i className={QUIEN_ICONO[paso.quien]} aria-hidden="true" /> {paso.quien === 'Nadie' ? 'Sin pendientes' : `Le toca: ${paso.quien}`}</span>
+        </div>
+        {paso.acciones.length ? (
+          <div className="proximo-paso-acciones">
+            {paso.acciones.map((a, i) => (
+              <button key={`${a.tipo}-${i}`} type="button" className={`btn ${i === 0 ? 'btn-primary' : 'btn-outline-primary'}`} onClick={() => ejecutarPaso(a)}>
+                {a.tipo === 'boton' ? (a.t ?? a.boton) : a.t}
+              </button>
+            ))}
+          </div>
+        ) : null}
+      </section>
 
       <div className="causa-layout">
         <div className="card-step">
@@ -341,6 +380,9 @@ export function CausaDetalle() {
                       {doc.tipo === 'escrito' ? <Link className="btn btn-sm btn-outline-primary" href={`/private/escrito/${doc.uuid}`}>{['borrador', 'devuelto'].includes(doc.estado) ? 'Editar' : 'Ver'}</Link> : <a className="btn btn-sm btn-outline-primary" href={`/private/escrito/${doc.uuid}`}>Ver</a>}
                       {doc.tipo === 'escrito' && ['firmado', 'definitivo'].includes(doc.estado) && ['Fallo', 'Resolución', 'Disposición'].includes(doc.plantilla?.categoria) && gestion && !d.notificaciones.some((n) => n.documento_id === doc.id) ? (
                         <button type="button" className="btn btn-sm btn-success" onClick={() => void accion('notificar_documento', { documentoUuid: doc.uuid }, 'Notificación iniciada')}>Notificar</button>
+                      ) : null}
+                      {gestion && d.notificaciones.some((n) => n.documento_id === doc.id && n.estado === 'pendiente') ? (
+                        <button type="button" className="btn btn-sm btn-outline-success" title="El infractor no lo abrió en el portal" onClick={() => considerarDoc(doc.uuid, doc.titulo)}>Considerar notificado</button>
                       ) : null}
                       {puede(user?.rol, 'redactarEscritos') && !doc.presentacion_id && (doc.tipo === 'adjunto' || ['borrador', 'devuelto', 'en_revision'].includes(doc.estado)) && !d.notificaciones.some((n) => n.documento_id === doc.id) ? (
                         <button type="button" className="btn btn-sm btn-outline-danger" title="Quitar de la causa" aria-label="Quitar de la causa" onClick={() => setModal({ titulo: `Quitar «${doc.titulo}»`, icono: 'fa-solid fa-trash', accion: 'quitar_documento', textoOk: 'Quitar', peligro: true, aviso: 'Se elimina de la causa y queda constancia en el historial. No se puede deshacer.', campos: [{ k: 'motivo', t: 'Motivo (opcional)', tipo: 'texto' }], extra: { documentoUuid: doc.uuid } })}>

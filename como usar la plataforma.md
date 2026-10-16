@@ -129,6 +129,10 @@ Para cualquier opción debe adjuntar el **DNI de frente y de dorso**, y el **est
 
 ---
 
+## Próximo paso de la causa
+
+Arriba de cada causa, el recuadro **«Próximo paso»** dice qué falta, a quién le toca (agente, Directora o Responsable, infractor u organismo externo) y tiene el botón para avanzar. Por ejemplo: con el fallo firmado, **Notificar el fallo**; si el infractor no lo abre en el portal, **Considerar notificado** (empieza a correr el plazo para pagar o apelar); con el plazo vencido, **Derivar a Apremios**.
+
 ## Los escritos
 
 - **Desde la causa**, con **«Generar escrito»**, se elige una plantilla. El escrito se abre en una hoja A4 con los datos del acta ya completados.

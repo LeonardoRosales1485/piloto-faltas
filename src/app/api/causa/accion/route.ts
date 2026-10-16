@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { emitirBoletas, evaluarArchivoPorPago, generarEscrito, notificarActa, notificarDocumento, valorizacion, valoresVigentes } from '@/lib/causa-srv';
+import { efectoNotificacionPositiva, emitirBoletas, evaluarArchivoPorPago, generarEscrito, notificarActa, notificarDocumento, valorizacion, valoresVigentes } from '@/lib/causa-srv';
 import { ESTADOS, estadoFinal, puede, pesos } from '@/lib/dominio';
 import { descargoPendiente } from '@/lib/camino';
 import { calculoLiberacion, claseVehiculo, diasEnDeposito, tarifaEstadia } from '@/lib/tarifas';
@@ -188,6 +188,21 @@ export async function POST(req: NextRequest) {
         const { data } = await db.from('documento').select('id').eq('uuid', txt('documentoUuid')).single();
         check(data, 'Documento inexistente', 404);
         return notificarDocumento(db, (data as { id: number }).id, quien);
+      }
+      case 'considerar_notificado_documento': {
+        // Fallo, resolución o disposición publicados en el portal que el infractor no abrió: la Dirección lo
+        // considera notificado (como con el acta) y empieza a correr el plazo que corresponda.
+        check(gestion, 'Sin permiso', 403);
+        const { data: doc } = await db.from('documento').select('id, titulo').eq('uuid', txt('documentoUuid')).eq('infraccion_id', c.id).maybeSingle();
+        check(doc, 'Documento inexistente', 404);
+        const { data: pend } = await db.from('notificacion').select('id, objeto').eq('infraccion_id', c.id).eq('documento_id', (doc as { id: number }).id).eq('estado', 'pendiente');
+        check((pend ?? []).length, 'Ese documento no tiene una notificación pendiente', 409);
+        await historial(db, c.id, quien, 'Considerado notificado', `${(doc as { titulo: string }).titulo}: el infractor tuvo tiempo suficiente para verlo en el portal.`);
+        for (const n of (pend ?? []) as { id: number; objeto: string }[]) {
+          await db.from('notificacion').update({ estado: 'positiva', via: 'considerada', fecha_resultado: Date.now(), registrado_por: quien }).eq('id', n.id);
+          await efectoNotificacionPositiva(db, await causaPorUuid(db, c.uuid as string), n.objeto, quien);
+        }
+        return { ok: true };
       }
       case 'emitir_boleta': {
         check(puede(user.rol, 'emitirBoletas'), 'Sin permiso', 403);
