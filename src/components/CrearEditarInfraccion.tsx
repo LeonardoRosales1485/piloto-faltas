@@ -657,7 +657,7 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
               {esJuridica ? (
                 <>
                   <div className="col-12 col-md-8">
-                    <Campo id="infractorRazonSocial" label="Razón social" req>
+                    <Campo id="infractorRazonSocial" label="Razón social" req={form.situacionInfractor !== 'ausente'}>
                       {inp('infractorRazonSocial')}
                     </Campo>
                   </div>
@@ -675,7 +675,7 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
               ) : (
                 <>
                   <div className="col-12 col-md-6">
-                    <Campo id="infractorNombre" label="Nombre y apellido" req>
+                    <Campo id="infractorNombre" label="Nombre y apellido" req={form.situacionInfractor !== 'ausente'}>
                       {inp('infractorNombre')}
                     </Campo>
                   </div>

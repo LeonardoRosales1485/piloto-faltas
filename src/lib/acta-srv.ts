@@ -62,7 +62,8 @@ export async function firmarActa(d: Db, user: UsuarioRow, uuidActa: string, firm
   const sit = String(c.situacion_infractor ?? '');
   check(['presente', 'ausente', 'se_niega', 'nn'].includes(sit), 'Indique la situación del infractor');
   if (sit !== 'nn') {
-    check(String(c.infractor_nombre ?? '').trim() || String(c.infractor_razon_social ?? '').trim(), 'Complete el nombre o la razón social del infractor');
+    // Ausente: nombre y documento no son obligatorios (se cargan si se pueden constatar).
+    if (sit !== 'ausente') check(String(c.infractor_nombre ?? '').trim() || String(c.infractor_razon_social ?? '').trim(), 'Complete el nombre o la razón social del infractor');
     // Ausente: el documento o CUIT no es obligatorio (se carga si se puede constatar).
     if (sit !== 'ausente') check(String(c.infractor_documento_numero ?? '').trim() || String(c.infractor_cuit ?? '').trim(), 'Complete el documento o CUIT del infractor');
     if (sit === 'presente' || sit === 'se_niega') {
