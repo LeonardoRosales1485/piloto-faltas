@@ -114,7 +114,7 @@ export function CausaDetalle() {
   const busqueda = useSearchParams();
   const [falloPedido, setFalloPedido] = useState(busqueda.get('fallo') === '1');
 
-  if (error && cargadaDe.current !== uuid) {
+  if (error && falloDe.current === uuid) {
     return (
       <div className="pagina">
         <div className="card-step mb-3 text-center">
