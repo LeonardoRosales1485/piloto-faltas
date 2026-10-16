@@ -13,14 +13,14 @@ export async function POST(req: NextRequest) {
     if (!puede(user.rol, 'ordenanzas')) return jsonFail(403, 'No tiene permiso para modificar ordenanzas');
     const dto = (await req.json()) as Ley;
     const supabase = createServerClient();
-    // La Directora administra las de tránsito; la Abogada, contravenciones y sustancias.
-    if (!tipoVisible(user.rol, tipoIdDe(dto.infraccionTipoNombre))) return jsonFail(403, 'No puede modificar ordenanzas de este tipo de acta');
+    // La Directora administra las de tránsito; cada Responsable, su área (según los tipos de acta del usuario).
+    if (!tipoVisible(user, tipoIdDe(dto.infraccionTipoNombre))) return jsonFail(403, 'No puede modificar ordenanzas de este tipo de acta');
 
     let existing: LeyRow | null = null;
     if (dto.uuid) {
       const { data } = await supabase.from('ley').select('*').eq('uuid', dto.uuid).maybeSingle();
       existing = (data as LeyRow) ?? null;
-      if (existing && !tipoVisible(user.rol, Number(existing.infraccion_tipo_id))) return jsonFail(403, 'No puede modificar ordenanzas de este tipo de acta');
+      if (existing && !tipoVisible(user, Number(existing.infraccion_tipo_id))) return jsonFail(403, 'No puede modificar ordenanzas de este tipo de acta');
     }
 
     const uuid = dto.uuid && dto.uuid.trim() ? dto.uuid : randomUUID();

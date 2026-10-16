@@ -182,6 +182,8 @@
 // Login: accesos rápidos por rol
 .login-rapido { margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid #e5e7eb; }
 .login-rapido-titulo { font-size: .8rem; text-transform: uppercase; letter-spacing: .05em; color: #6b7280; margin: 0 0 .6rem; text-align: center; }
+.login-rapido-area + .login-rapido-area { margin-top: .7rem; }
+.login-rapido-subtitulo { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: #6b7280; margin: 0 0 .35rem; }
 .login-rapido-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; }
 .login-rapido-btn {
   display: flex; align-items: center; gap: .5rem; padding: .55rem .7rem; border: 1px solid #d1d5db; border-radius: 8px;

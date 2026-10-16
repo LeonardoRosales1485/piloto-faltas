@@ -6,6 +6,8 @@ export type Usuario = {
   sector: string;
   rol: string;
   modulosActa?: string[];
+  /** Tipos de acta que gestiona (1 tránsito, 2 contravenciones, 3 sustancias); null = todos. */
+  tiposActa?: number[] | null;
   /** Permisos efectivos (usuario > tipo de usuario > por defecto). */
   permisos?: string[];
   token?: string;

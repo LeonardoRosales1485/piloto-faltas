@@ -66,7 +66,7 @@ export function OpcionesSandbox() {
           <article className="card-step sandbox-card">
             <div className="card-step-header"><h2><i className="fa-solid fa-users-gear" aria-hidden="true" /> Resetear usuarios</h2><p>A los usuarios de prueba del repositorio</p></div>
             <div className="card-step-body">
-              <p>Borra los usuarios creados y revierte las ediciones. Quedan: admin, operador, inspector, inspector_contrav, directora, abogada, tributario y becario, con sus contraseñas originales.</p>
+              <p>Borra los usuarios creados y revierte las ediciones. Quedan: admin, los inspectores, directora y operador (tránsito), responsable_contrav y agente_contrav, responsable_sust y agente_sust, tributario y becario, con sus contraseñas originales.</p>
               <p className="texto-ayuda">Su sesión sigue abierta: el usuario admin se vuelve a crear.</p>
               <button type="button" className="btn btn-outline-danger w-100" onClick={() => pedir({ accion: 'usuarios', palabra: 'USUARIOS', titulo: 'Usuarios reseteados', aviso: 'Se borrarán todos los usuarios y se volverán a crear los de prueba.' })}>Resetear usuarios</button>
             </div>

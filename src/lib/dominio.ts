@@ -36,26 +36,26 @@ export const ROLES = {
   agente: 'Usuario',
   inspector: 'Inspector',
   directora: 'Directora',
-  abogada: 'Abogada',
+  responsable: 'Responsable',
   tributario: 'Tributario',
   becario: 'Becario',
 } as const;
 
 export const ROL_ETIQUETA: Record<string, string> = {
   Administrador: 'Administrador funcional',
-  Usuario: 'Agente de Faltas',
+  Usuario: 'Agente',
   Inspector: 'Inspector',
-  Directora: 'Directora de Faltas',
-  Abogada: 'Abogada (contravenciones)',
+  Directora: 'Directora (tránsito)',
+  Responsable: 'Responsable de área',
   Tributario: 'Usuario tributario',
   Becario: 'Becario',
 };
 
-const BACK_OFFICE = ['Administrador', 'Usuario', 'Directora', 'Abogada', 'Becario'];
+const BACK_OFFICE = ['Administrador', 'Usuario', 'Directora', 'Responsable', 'Becario'];
 
-const GESTION = ['Administrador', 'Usuario', 'Directora', 'Abogada'];
-const ESCRITOS = ['Administrador', 'Usuario', 'Directora', 'Abogada', 'Becario'];
-const SUPERVISION = ['Directora', 'Abogada', 'Administrador'];
+const GESTION = ['Administrador', 'Usuario', 'Directora', 'Responsable'];
+const ESCRITOS = ['Administrador', 'Usuario', 'Directora', 'Responsable', 'Becario'];
+const SUPERVISION = ['Directora', 'Responsable', 'Administrador'];
 const ADMIN = ['Administrador'];
 
 /** Valores por defecto de cada permiso. El Administrador puede cambiarlos por tipo de usuario o por usuario. */
@@ -71,7 +71,7 @@ export const PERMISOS = {
   resolverPresentaciones: GESTION,
   verEscritos: BACK_OFFICE,
   redactarEscritos: ESCRITOS,
-  firmar: ['Directora', 'Abogada'],
+  firmar: ['Directora', 'Responsable'],
   verPagos: BACK_OFFICE,
   emitirBoletas: GESTION,
   confirmarPagos: GESTION,
@@ -94,18 +94,28 @@ export const PERMISOS = {
 
 export type Permiso = keyof typeof PERMISOS;
 
+/** Usuario con lo necesario para calcular su alcance (rol y tipos de acta que gestiona). */
+export type ConAlcance = { rol?: string | null; modulosActa?: string | string[] | null; modulos_acta?: string | null; tiposActa?: number[] | null } | string | null | undefined;
+
 /**
- * Alcance por tipo de acta: la Directora ve sólo tránsito (1); la Abogada, contravenciones (2) y
- * sustancias alimenticias (3). null = sin restricción.
+ * Alcance por tipo de acta (ids 1 tránsito, 2 contravenciones, 3 sustancias). Cada área tiene su responsable
+ * (Directora en tránsito, Responsable en contravenciones y en sustancias) y sus agentes: el alcance sale de los
+ * «tipos de acta que gestiona» del usuario. Sin tipos cargados: la Directora ve tránsito, el Responsable
+ * contravenciones y el resto (Administrador, agentes generales, Becario, Tributario) todo. null = sin restricción.
  */
-export function tiposPermitidos(rol: string | undefined | null): number[] | null {
-  if (rol === 'Directora') return [1];
-  if (rol === 'Abogada') return [2, 3];
-  return null;
+export function tiposPermitidos(u: ConAlcance): number[] | null {
+  if (!u) return null;
+  if (typeof u === 'string') return u === 'Directora' ? [1] : u === 'Responsable' ? [2] : null;
+  if (Array.isArray(u.tiposActa)) return u.tiposActa.length ? u.tiposActa : null;
+  if (!u.rol || !['Directora', 'Responsable', 'Usuario'].includes(u.rol)) return null;
+  // Solo el dato guardado (modulos_acta): el modulosActa del navegador es calculado y para no inspectores trae todos.
+  const lista = String(u.modulos_acta ?? '').split(',').map((x) => x.trim()).filter((x) => x in TIPOS_ACTA) as TipoActa[];
+  if (lista.length) return lista.map((t) => TIPOS_ACTA[t].id);
+  return tiposPermitidos(u.rol);
 }
 
-export function tipoVisible(rol: string | undefined | null, tipoId: number | string | null | undefined): boolean {
-  const t = tiposPermitidos(rol);
+export function tipoVisible(u: ConAlcance, tipoId: number | string | null | undefined): boolean {
+  const t = tiposPermitidos(u);
   return !t || t.includes(Number(tipoId));
 }
 

@@ -5,13 +5,31 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { login } from '@/lib/auth-client';
 
-const ACCESOS = [
+type Acceso = { u: string; p: string; t: string; i: string };
+
+/** Acceso rápido por área: a la izquierda quien dirige el área, a la derecha el agente. */
+const AREAS: { area: string; responsable: Acceso; agente: Acceso }[] = [
+  {
+    area: 'Tránsito',
+    responsable: { u: 'directora', p: 'directora123', t: 'Directora de Tránsito', i: 'fa-solid fa-car' },
+    agente: { u: 'operador', p: 'operador123', t: 'Agente de Tránsito', i: 'fa-solid fa-user-tie' },
+  },
+  {
+    area: 'Contravenciones',
+    responsable: { u: 'responsable_contrav', p: 'responsable123', t: 'Responsable Contravenciones', i: 'fa-solid fa-scale-balanced' },
+    agente: { u: 'agente_contrav', p: 'agente123', t: 'Agente de Contravenciones', i: 'fa-solid fa-user-tie' },
+  },
+  {
+    area: 'Sustancias alimenticias',
+    responsable: { u: 'responsable_sust', p: 'responsable123', t: 'Responsable Sustancias', i: 'fa-solid fa-utensils' },
+    agente: { u: 'agente_sust', p: 'agente123', t: 'Agente de Sustancias', i: 'fa-solid fa-user-tie' },
+  },
+];
+
+const INSPECTORES: Acceso[] = [
   { u: 'inspector', p: 'inspector123', t: 'Inspector Tránsito', i: 'fa-solid fa-car-side' },
   { u: 'inspector_contrav', p: 'inspector123', t: 'Inspector Contrav.', i: 'fa-solid fa-clipboard-list' },
   { u: 'inspector_sustancias', p: 'inspector123', t: 'Inspector Sustancias', i: 'fa-solid fa-truck' },
-  { u: 'operador', p: 'operador123', t: 'Agente', i: 'fa-solid fa-user-tie' },
-  { u: 'directora', p: 'directora123', t: 'Directora (tránsito)', i: 'fa-solid fa-car' },
-  { u: 'abogada', p: 'abogada123', t: 'Abogada (contrav.)', i: 'fa-solid fa-scale-balanced' },
 ];
 
 export function LoginPage() {
@@ -108,17 +126,33 @@ export function LoginPage() {
         {error ? <p className="err mt-2">{error}</p> : null}
         <div className="login-rapido">
           <p className="login-rapido-titulo">Acceso rápido (piloto)</p>
-          <div className="login-rapido-grid">
-            {ACCESOS.map((x) => (
-              <button key={x.u} type="button" className="login-rapido-btn" disabled={loading} onClick={() => void entrar(x.u, x.p)} title={`${x.u} / ${x.p}`}>
-                <i className={x.i} aria-hidden="true" />
-                <span>{x.t}</span>
-              </button>
-            ))}
-            <a className="login-rapido-btn" href="/portal" title="valeria@example.com / ciudadano123">
-              <i className="fa-solid fa-users" aria-hidden="true" />
-              <span>Portal ciudadano</span>
-            </a>
+          {AREAS.map((a) => (
+            <div key={a.area} className="login-rapido-area">
+              <p className="login-rapido-subtitulo">{a.area}</p>
+              <div className="login-rapido-grid">
+                {[a.responsable, a.agente].map((x) => (
+                  <button key={x.u} type="button" className="login-rapido-btn" disabled={loading} onClick={() => void entrar(x.u, x.p)} title={`${x.u} / ${x.p}`}>
+                    <i className={x.i} aria-hidden="true" />
+                    <span>{x.t}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+          <div className="login-rapido-area">
+            <p className="login-rapido-subtitulo">Inspectores y portal</p>
+            <div className="login-rapido-grid">
+              {INSPECTORES.map((x) => (
+                <button key={x.u} type="button" className="login-rapido-btn" disabled={loading} onClick={() => void entrar(x.u, x.p)} title={`${x.u} / ${x.p}`}>
+                  <i className={x.i} aria-hidden="true" />
+                  <span>{x.t}</span>
+                </button>
+              ))}
+              <a className="login-rapido-btn" href="/portal" title="valeria@example.com / ciudadano123">
+                <i className="fa-solid fa-users" aria-hidden="true" />
+                <span>Portal ciudadano</span>
+              </a>
+            </div>
           </div>
         </div>
         <div className="login-footer">

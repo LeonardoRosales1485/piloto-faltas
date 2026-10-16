@@ -14,7 +14,7 @@ export async function DELETE(req: NextRequest, ctx: Ctx) {
     const supabase = createServerClient();
     const { data } = await supabase.from('ley').select('id, infraccion_tipo_id, nombre, articulo').eq('uuid', uuid).maybeSingle();
     if (!data) return jsonFail(404, 'Ley no encontrada');
-    if (!tipoVisible(user.rol, Number(data.infraccion_tipo_id))) return jsonFail(403, 'No puede modificar ordenanzas de este tipo de acta');
+    if (!tipoVisible(user, Number(data.infraccion_tipo_id))) return jsonFail(403, 'No puede modificar ordenanzas de este tipo de acta');
     console.info(`[ordenanzas] ${user.username} eliminó ${data.nombre} ${data.articulo}`);
     const { error } = await supabase.from('ley').delete().eq('uuid', uuid);
     if (error) return jsonFail(500, error.message);

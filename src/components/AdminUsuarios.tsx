@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { LoaderLogo } from './LoaderLogo';
 import { useCarga } from '@/lib/use-carga';
 import { http } from '@/lib/api-client';
-import { fechaCorta, MODULOS_ACTA, modulosDe, ROL_ETIQUETA } from '@/lib/dominio';
+import { fechaCorta, MODULOS_ACTA, modulosDe, ROL_ETIQUETA, TIPOS_ACTA, tiposPermitidos } from '@/lib/dominio';
 import { useAuthUser } from '@/lib/use-auth-user';
 import { ModalForm, type CampoModal } from './ModalForm';
 import { useNotify } from './NotifyProvider';
@@ -45,7 +45,7 @@ export function AdminUsuarios() {
     { k: 'email', t: 'Correo', tipo: 'texto', valor: u?.email ?? '' },
     { k: 'sector', t: 'Sector', tipo: 'texto', valor: u?.sector ?? '', ayuda: 'Para inspectores: «Inspecciones Generales» los lleva al acta de contravención; si no, al acta de tránsito.' },
     { k: 'legajo', t: 'N° de legajo', tipo: 'texto', valor: u?.legajo ?? '', ayuda: 'Se imprime debajo de la firma del inspector en el acta.' },
-    { k: 'modulos_acta', t: 'Tipo de inspector (solo para el rol Inspector)', tipo: 'multi', opciones: MODULOS_ACTA.map((m) => ({ v: m.v, t: m.t })), valor: u?.modulos_acta ?? (u?.rol === 'Inspector' ? modulosDe(u).join(',') : 'multas'), ayuda: 'Módulos de acta que puede labrar. No aplica a los demás roles.' },
+    { k: 'modulos_acta', t: 'Tipos de acta (inspector: los que labra; directora, responsable y agente: los que gestiona)', tipo: 'multi', opciones: MODULOS_ACTA.map((m) => ({ v: m.v, t: m.t })), valor: u?.modulos_acta ?? (u?.rol === 'Inspector' ? modulosDe(u).join(',') : ''), ayuda: 'Inspector: módulos que puede labrar. Directora, Responsable y Agente: solo ven causas, escritos y pagos de esos tipos (vacío: Directora tránsito, Responsable contravenciones, Agente todos). No aplica a los demás roles.' },
     { k: 'rol', t: 'Rol', tipo: 'select', opciones: ROLES, req: true, valor: u?.rol },
     { k: 'password', t: u ? 'Nueva contraseña (opcional)' : 'Contraseña', tipo: 'clave', req: !u, ayuda: 'Mínimo 6 caracteres.' },
   ];
@@ -74,7 +74,7 @@ export function AdminUsuarios() {
               <tr key={u.uuid} className={u.activo === false ? 'text-muted' : ''}>
                 <td><Link href={`/private/usuarios/${u.uuid}`}><strong>{u.username}</strong></Link>{u.username === yo?.username ? <span className="texto-ayuda"> (vos)</span> : null}</td>
                 <td>{u.nombre} {u.apellido}</td>
-                <td>{ROL_ETIQUETA[u.rol] ?? u.rol}{u.rol === 'Inspector' ? <div className="texto-ayuda">{modulosDe(u).map((m) => MODULOS_ACTA.find((x) => x.v === m)?.t).join(', ')}</div> : null}</td>
+                <td>{ROL_ETIQUETA[u.rol] ?? u.rol}{u.rol === 'Inspector' ? <div className="texto-ayuda">{modulosDe(u).map((m) => MODULOS_ACTA.find((x) => x.v === m)?.t).join(', ')}</div> : ['Directora', 'Responsable', 'Usuario'].includes(u.rol) ? <div className="texto-ayuda">{(tiposPermitidos(u) ?? []).map((id) => MODULOS_ACTA.find((x) => TIPOS_ACTA[x.v].id === id)?.t).join(', ') || 'Todos los tipos'}</div> : null}</td>
                 <td>{u.sector ?? '-'}</td><td>{u.legajo ?? '-'}</td>
                 <td>{u.email ?? '-'}</td>
                 <td>{fechaCorta(u.date_created)}</td>

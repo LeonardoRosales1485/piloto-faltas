@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
       .select('id, uuid, infraccion_tipo_id, legajo_numero_acta, legajo_fecha, firmada_at, vehiculo_numero_dominio, vehiculo_tipo_nombre, estadia_ingreso_at, vehiculo_liberado_at, vehiculo_liberacion_json, infractor_nombre, infractor_razon_social, estado_faltas')
       .eq('retencion_de_vehiculo', 1).not('firmada_at', 'is', null).not('estado_faltas', 'in', '("Borrador","Anulada")').order('id', { ascending: false }).limit(2000);
     if (error) throw new Error(error.message);
-    const filas = ((data ?? []) as Fila[]).filter((f) => tipoVisible(user.rol, f.infraccion_tipo_id))
+    const filas = ((data ?? []) as Fila[]).filter((f) => tipoVisible(user, f.infraccion_tipo_id))
       .map((f) => ({ ...f, ingreso: Number(f.estadia_ingreso_at || f.firmada_at) }))
       .filter((f) => (!desde || f.ingreso >= desde) && (!hasta || f.ingreso <= hasta));
     const ids = filas.map((f) => f.id);

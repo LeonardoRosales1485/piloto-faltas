@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
     if (texto) q = q.ilike('titulo', `%${texto}%`);
     const { data, error } = await q;
     if (error) throw new Error(error.message);
-    const vis = (r: { infraccion?: { infraccion_tipo_id?: number } | null }) => tipoVisible(user.rol, r.infraccion?.infraccion_tipo_id);
+    const vis = (r: { infraccion?: { infraccion_tipo_id?: number } | null }) => tipoVisible(user, r.infraccion?.infraccion_tipo_id);
     const { data: cnt } = await db.from('documento').select('estado, infraccion(infraccion_tipo_id)').eq('tipo', 'escrito');
     const conteos: Record<string, number> = {};
     for (const r of ((cnt ?? []) as unknown as { estado: string; infraccion?: { infraccion_tipo_id?: number } | null }[]).filter(vis)) conteos[r.estado] = (conteos[r.estado] ?? 0) + 1;

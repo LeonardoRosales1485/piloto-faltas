@@ -40,7 +40,10 @@ export async function POST(req: NextRequest) {
       email: (b.email ?? '').trim() || null,
       sector: (b.sector ?? '').trim() || null,
       legajo: (b.legajo ?? '').trim() || null,
-      modulos_acta: b.rol === 'Inspector' ? (String(b.modulos_acta ?? '').split(',').map((x) => x.trim()).filter((x) => ['multas', 'contravenciones', 'sustancias'].includes(x)).join(',') || 'multas') : null,
+      // Inspector: tipos que puede labrar (al menos uno). Directora, Responsable y Agente: tipos que gestiona (vacío = rol por defecto).
+      modulos_acta: ['Inspector', 'Directora', 'Responsable', 'Usuario'].includes(String(b.rol))
+        ? (String(b.modulos_acta ?? '').split(',').map((x) => x.trim()).filter((x) => ['multas', 'contravenciones', 'sustancias'].includes(x)).join(',') || (b.rol === 'Inspector' ? 'multas' : null))
+        : null,
       rol: b.rol ?? '',
     };
     check(datos.nombre && datos.apellido, 'Nombre y apellido son obligatorios');

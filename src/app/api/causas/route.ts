@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
   return handle(req, async ({ db, user }) => {
     const { data, error } = await db.from('infraccion').select(CAMPOS).not('estado_faltas', 'in', '("Borrador","Anulada")').order('id', { ascending: false }).limit(5000);
     if (error) throw new Error(error.message);
-    const filas = ((data ?? []) as unknown as (FilaCausa & { infraccion_tipo_id: number })[]).filter((f) => tipoVisible(user.rol, f.infraccion_tipo_id));
+    const filas = ((data ?? []) as unknown as (FilaCausa & { infraccion_tipo_id: number })[]).filter((f) => tipoVisible(user, f.infraccion_tipo_id));
     const ahora = Date.now();
     const { data: bol } = await db.from('boleta').select('infraccion_id').eq('estado', 'emitida').lt('vencimiento', ahora);
     const cuotasVencidas = new Set(((bol ?? []) as { infraccion_id: number }[]).map((b) => b.infraccion_id));

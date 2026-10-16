@@ -1,4 +1,4 @@
-import { modulosDe } from './dominio';
+import { modulosDe, tiposPermitidos } from './dominio';
 import { NextRequest } from 'next/server';
 import { subjectFromToken } from './jwt';
 import { cargarPermisos, permisosActuales } from './permisos-srv';
@@ -47,6 +47,7 @@ export function toUsuarioDto(row: UsuarioRow, token?: string | null): Usuario {
     email: row.email ?? '',
     sector: row.sector ?? '',
     modulosActa: modulosDe(row),
+    tiposActa: tiposPermitidos(row),
     rol: row.rol,
     permisos: row.permisos ?? [],
     ...(token ? { token } : {}),

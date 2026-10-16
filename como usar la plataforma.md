@@ -11,14 +11,19 @@ Guía paso a paso para recorrer un acta de tránsito de punta a punta: desde que
 |---|---|---|
 | Inspector Tránsito | `inspector` / `inspector123` | Labra actas de tránsito. Entra directo a «Labrar acta» y sólo ve sus propios borradores: no ve actas firmadas ni causas |
 | Inspector Contrav. | `inspector_contrav` / `inspector123` | Igual que el anterior, pero entra directo al acta de contravención |
-| Agente de Faltas | `operador` / `operador123` | Tramita las causas |
-| Directora | `directora` / `directora123` | Revisa y firma escritos. Sólo ve causas de **tránsito** |
-| Abogada | `abogada` / `abogada123` | Mismos permisos que la Directora, pero sólo ve causas de **contravención** (y sustancias alimenticias) |
+| Directora de Tránsito | `directora` / `directora123` | Revisa y firma escritos. Sólo ve causas de **tránsito** |
+| Agente de Tránsito | `operador` / `operador123` | Tramita las causas de **tránsito** |
+| Responsable Contravenciones | `responsable_contrav` / `responsable123` | Como la Directora, pero para causas de **contravención** |
+| Agente de Contravenciones | `agente_contrav` / `agente123` | Tramita las causas de **contravención** |
+| Responsable Sustancias | `responsable_sust` / `responsable123` | Como la Directora, pero para causas de **sustancias alimenticias** |
+| Agente de Sustancias | `agente_sust` / `agente123` | Tramita las causas de **sustancias alimenticias** |
 | Usuario tributario | `tributario` / `tributario123` | Actualiza valores y tarifas |
 | Administrador | `admin` / `admin123` | Configura plantillas, textos y feriados. No tiene botón de acceso rápido: se entra escribiendo usuario y contraseña |
 | Ciudadano | `valeria@example.com` / `ciudadano123` (DNI 30111222) | Consulta, paga y presenta descargos |
 
-> En la pantalla de ingreso hay botones de **acceso rápido** para cada rol: un clic y entrás.
+> En la pantalla de ingreso hay botones de **acceso rápido** agrupados por área (Tránsito, Contravenciones, Sustancias): a la izquierda quien dirige el área y a la derecha el agente. Más abajo, los inspectores y el portal.
+>
+> Cada usuario del back office solo ve las causas, escritos, presentaciones y pagos de su área. El área se define en **Usuarios** con «Tipos de acta que gestiona».
 
 > Para probar el circuito completo con Valeria, cargá su **DNI 30111222** en el acta: así el acta le aparece sola en «Mis actas» del portal.
 
@@ -104,7 +109,7 @@ Para cualquier opción debe adjuntar el **DNI de frente y de dorso**, y el **est
 3. En la causa, el agente toca **«Dictar fallo»** y elige si es condenatorio o absolutorio. Se abre el escrito ya completado con los datos del acta:
    - completa los campos resaltados, si hay alguno;
    - toca **«Enviar a revisión»**.
-4. La **Directora** (o la **Abogada**, si la causa es de contravención) entra a **Escritos y firma**, pestaña **«En revisión»**. Abre el escrito y puede **corregirlo**, **devolverlo con una observación** o **firmarlo digitalmente**. Al firmar, el sistema le asigna número.
+4. La **Directora** (o el **Responsable** del área, si la causa es de contravención o de sustancias) entra a **Escritos y firma**, pestaña **«En revisión»**. Abre el escrito y puede **corregirlo**, **devolverlo con una observación** o **firmarlo digitalmente**. Al firmar, el sistema le asigna número.
 5. De vuelta en la causa, en la pestaña Escritos, el agente toca **Notificar**. El ciudadano queda notificado del fallo cuando lo abre en el portal, o al instante si tiene domicilio electrónico.
 6. Desde ahí corren **5 días hábiles**: el ciudadano puede **pagar el total** o **apelar**.
    - **Si apela** y se le concede, la causa pasa a **«En Juzgado»**.

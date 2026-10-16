@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
     const acta = String(b.acta ?? '').trim();
     q = acta ? q.ilike('legajo_numero_acta', `%${acta.replace(/[%_]/g, '')}%`) : q;
     const { data } = await q.order('id', { ascending: false }).limit(40);
-    const filas = ((data ?? []) as Fila[]).filter((f) => tipoVisible(user.rol, f.infraccion_tipo_id));
+    const filas = ((data ?? []) as Fila[]).filter((f) => tipoVisible(user, f.infraccion_tipo_id));
     const elegida = acta
       ? filas.find((f) => f.legajo_numero_acta?.toLowerCase() === acta.toLowerCase()) ?? filas[0]
       : filas.find((f) => tipos.includes(tipoActa(f.infraccion_tipo_nombre))) ?? filas[0];

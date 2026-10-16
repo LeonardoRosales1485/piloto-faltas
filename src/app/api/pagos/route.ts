@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
     else if (estado !== 'todas') q = q.eq('estado', estado);
     const { data, error } = await q;
     if (error) throw new Error(error.message);
-    const vis = (r: { infraccion?: { infraccion_tipo_id?: number } | null }) => tipoVisible(user.rol, r.infraccion?.infraccion_tipo_id);
+    const vis = (r: { infraccion?: { infraccion_tipo_id?: number } | null }) => tipoVisible(user, r.infraccion?.infraccion_tipo_id);
     return ((data ?? []) as { infraccion?: { infraccion_tipo_id?: number } | null }[]).filter(vis);
   }, 'verPagos');
 }

@@ -5,7 +5,7 @@ import { requireUser } from './auth';
 import { jsonFail, jsonOk } from './http-data';
 import { createServerClient } from './supabase-server';
 import type { UsuarioRow } from './types';
-import { estadoFinal, puede, tipoVisible, type Permiso } from './dominio';
+import { estadoFinal, puede, tiposPermitidos, type Permiso } from './dominio';
 
 export type Db = ReturnType<typeof createServerClient>;
 
@@ -20,11 +20,12 @@ export function db(): Db {
 }
 
 /** Envuelve un handler de API: autentica, controla permisos y traduce errores a { data, status, message }. */
-/** Rol del usuario de la request en curso (para el alcance por tipo de acta). */
-export const rolActual = new AsyncLocalStorage<string>();
+/** Alcance por tipo de acta del usuario de la request en curso (null = todos). */
+export const alcanceActual = new AsyncLocalStorage<number[] | null>();
 
 function verificarAlcance(c: CausaRow | null): CausaRow | null {
-  if (c && !tipoVisible(rolActual.getStore(), (c as unknown as { infraccion_tipo_id?: number }).infraccion_tipo_id)) return null;
+  const alcance = alcanceActual.getStore();
+  if (c && alcance && !alcance.includes(Number((c as unknown as { infraccion_tipo_id?: number }).infraccion_tipo_id))) return null;
   return c;
 }
 
@@ -38,7 +39,7 @@ export async function handle<T>(
     if (permiso && !puede(user, permiso)) {
       return jsonFail(403, 'No tiene permiso para esta acción');
     }
-    const data = await rolActual.run(user.rol, () => fn({ user, db: db() }));
+    const data = await alcanceActual.run(tiposPermitidos(user), () => fn({ user, db: db() }));
     return jsonOk(data);
   } catch (e) {
     const status = (e as { status?: number }).status ?? 500;

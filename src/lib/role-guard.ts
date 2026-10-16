@@ -27,7 +27,7 @@ const RUTAS: { prefijo: string; permiso: Permiso }[] = [
   { prefijo: '/private/sandbox', permiso: 'sandbox' },
 ];
 
-type U = { rol?: string; sector?: string | null; modulosActa?: string[] } | null | undefined;
+type U = { rol?: string; sector?: string | null; modulosActa?: string[]; tiposActa?: number[] | null } | null | undefined;
 
 export function rutaPermitida(path: string, rol?: string, user?: U): boolean {
   const p = path.split('?')[0];
@@ -35,9 +35,9 @@ export function rutaPermitida(path: string, rol?: string, user?: U): boolean {
   if (r && !puede(rol, r.permiso)) return false;
   // Los inspectores solo entran a los módulos de acta que tienen autorizados.
   const m = p.match(/^\/private\/(?:crear-editar|lista-infracciones)\/(multas|contravenciones|sustancias)/);
-  // Ordenanzas: cada rol solo las de su alcance (Directora tránsito; Abogada contravenciones y sustancias).
+  // Ordenanzas: cada usuario solo las de su alcance (tipos de acta que gestiona).
   const o = p.match(/^\/private\/ordenanzas\/(multas|contravenciones|sustancias)/);
-  if (o && !tipoVisible(rol, tipoIdDe(o[1]))) return false;
+  if (o && !tipoVisible(user ? { ...user, rol } : rol, tipoIdDe(o[1]))) return false;
   if (m && rol === 'Inspector') return modulosDe({ rol, sector: user?.sector, modulosActa: user?.modulosActa }).includes(m[1] as ModuloActa);
   return true;
 }

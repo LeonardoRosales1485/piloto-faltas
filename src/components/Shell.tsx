@@ -217,7 +217,7 @@ function ShellInner({ children }: { children: ReactNode }) {
 
   const gruposVisibles = useMemo(() => {
     const modulos = modulosDe(user) as string[];
-    const alcance = tiposPermitidos(user?.rol);
+    const alcance = tiposPermitidos(user);
     // Configuración: el grupo aparece si el usuario tiene al menos uno de sus ítems.
     const conHijos = GRUPOS.map((g) => (g.id === 'config' ? { ...g, children: g.children?.filter((c) => !c.permiso || puede(user?.rol, c.permiso)) } : g));
     return conHijos.filter((g) => (g.id === 'config' ? Boolean(g.children?.length) : puede(user?.rol, g.permiso)) && (g.permiso !== 'labrar' || modulos.includes(g.id))).map((g) =>

@@ -101,9 +101,10 @@ export function UsuarioDetalle() {
                 </select>
                 {propio ? <small className="texto-ayuda">No puede cambiar su propio tipo de usuario.</small> : null}
               </div>
-              {f.rol === 'Inspector' ? (
+              {['Inspector', 'Directora', 'Responsable', 'Usuario'].includes(f.rol) ? (
                 <div className="col-12">
-                  <label className="form-label-v2">Tipos de acta que puede labrar</label>
+                  <label className="form-label-v2">{f.rol === 'Inspector' ? 'Tipos de acta que puede labrar' : 'Tipos de acta que gestiona'}</label>
+                  {f.rol !== 'Inspector' ? <small className="texto-ayuda d-block mb-1">Solo ve causas, escritos, presentaciones y pagos de estos tipos. Sin marcar: Directora tránsito, Responsable contravenciones, Agente todos.</small> : null}
                   <div className="d-flex gap-2 flex-wrap">
                     {MODULOS_ACTA.map((mo) => {
                       const sel = (f.modulos_acta ?? '').split(',').filter(Boolean);
