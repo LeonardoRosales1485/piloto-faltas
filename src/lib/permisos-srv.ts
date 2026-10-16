@@ -11,11 +11,17 @@ registrarResolverPermisos(() => permisosActuales.getStore() ?? null);
 const aOverrides = (filas: { permiso: string; permitido: boolean }[] | null) =>
   Object.fromEntries((filas ?? []).map((f) => [f.permiso, Boolean(f.permitido)])) as Overrides;
 
-/** Calcula los permisos efectivos (usuario > tipo de usuario > por defecto). Si las tablas no existen, usa los por defecto. */
-export async function cargarPermisos(db: Db, username: string, rol: string): Promise<Permiso[]> {
+/** Permisos efectivos (usuario > tipo de usuario > por defecto) y las excepciones propias del usuario. */
+export async function cargarAcceso(db: Db, username: string, rol: string): Promise<{ permisos: Permiso[]; delUsuario: Overrides }> {
   const [r, u] = await Promise.all([
     db.from('permiso_rol').select('permiso, permitido').eq('rol', rol),
     db.from('permiso_usuario').select('permiso, permitido').eq('username', username),
   ]);
-  return permisosEfectivos(rol, r.error ? {} : aOverrides(r.data as never), u.error ? {} : aOverrides(u.data as never));
+  const delUsuario = u.error ? {} : aOverrides(u.data as never);
+  return { permisos: permisosEfectivos(rol, r.error ? {} : aOverrides(r.data as never), delUsuario), delUsuario };
+}
+
+/** Calcula los permisos efectivos (usuario > tipo de usuario > por defecto). Si las tablas no existen, usa los por defecto. */
+export async function cargarPermisos(db: Db, username: string, rol: string): Promise<Permiso[]> {
+  return (await cargarAcceso(db, username, rol)).permisos;
 }

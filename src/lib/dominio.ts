@@ -61,6 +61,9 @@ const ADMIN = ['Administrador'];
 /** Valores por defecto de cada permiso. El Administrador puede cambiarlos por tipo de usuario o por usuario. */
 export const PERMISOS = {
   labrar: ['Inspector', 'Administrador'],
+  actasTransito: ['Inspector', 'Administrador'],
+  actasContravenciones: ['Inspector', 'Administrador'],
+  actasSustancias: ['Inspector', 'Administrador'],
   verCausas: BACK_OFFICE,
   gestionarCausas: GESTION,
   cambiarEstadoManual: GESTION,
@@ -122,6 +125,9 @@ export function tipoVisible(u: ConAlcance, tipoId: number | string | null | unde
 /** Descripción de cada permiso para el ABM (qué secciones habilita). */
 export const PERMISO_INFO: Record<Permiso, { g: string; t: string; d: string }> = {
   labrar: { g: 'Actas', t: 'Labrar actas', d: 'Inicio del inspector, labrado y borradores (según los tipos de acta asignados)' },
+  actasTransito: { g: 'Actas', t: 'Actas de tránsito', d: 'Ver y labrar actas de tránsito en la app de inspectores. Por tipo de usuario se suma al «tipo de inspector»; dado al usuario, lo habilita aunque no sea de ese tipo' },
+  actasContravenciones: { g: 'Actas', t: 'Actas de contravención', d: 'Ver y labrar actas de contravención en la app de inspectores. Por tipo de usuario se suma al «tipo de inspector»; dado al usuario, lo habilita aunque no sea de ese tipo' },
+  actasSustancias: { g: 'Actas', t: 'Actas de sustancias alimenticias', d: 'Ver y labrar actas de sustancias alimenticias en la app de inspectores. Por tipo de usuario se suma al «tipo de inspector»; dado al usuario, lo habilita aunque no sea de ese tipo' },
   verCausas: { g: 'Causas', t: 'Ver causas', d: 'Bandeja de causas y detalle de la causa' },
   gestionarCausas: { g: 'Causas', t: 'Gestionar causas', d: 'Acciones generales de la causa: notificar, derivar, ajustar valorización, presentación en mesa' },
   cambiarEstadoManual: { g: 'Causas', t: 'Cambiar estado manualmente', d: 'Acción «Cambiar estado»' },
@@ -327,14 +333,42 @@ export const MODULOS_ACTA = [
 ] as const;
 export type ModuloActa = (typeof MODULOS_ACTA)[number]['v'];
 
-/** Módulos autorizados: los del usuario; si no tiene, se deducen de la dependencia. Los no inspectores ven todos. */
-export function modulosDe(u: { rol?: string | null; modulosActa?: string | string[] | null; modulos_acta?: string | null; sector?: string | null } | null | undefined): ModuloActa[] {
+/** Permiso que habilita cada tipo de acta en la app de inspectores. */
+export const PERMISO_TIPO_ACTA: Record<ModuloActa, Permiso> = {
+  multas: 'actasTransito',
+  contravenciones: 'actasContravenciones',
+  sustancias: 'actasSustancias',
+};
+
+/**
+ * Módulos autorizados: los del usuario; si no tiene, se deducen de la dependencia. Los no inspectores ven todos.
+ * Si el servidor ya calculó los módulos efectivos (tipo de inspector + permisos), se usan esos.
+ */
+export function modulosDe(u: { rol?: string | null; modulosActa?: string | string[] | null; modulos_acta?: string | null; sector?: string | null; modulosEfectivos?: string[] | null } | null | undefined): ModuloActa[] {
   if (!u) return [];
   const todos = MODULOS_ACTA.map((m) => m.v) as ModuloActa[];
+  if (Array.isArray(u.modulosEfectivos)) return todos.filter((t) => u.modulosEfectivos!.includes(t));
   if (u.rol !== 'Inspector') return todos;
   const raw = u.modulosActa ?? u.modulos_acta;
   const lista = (Array.isArray(raw) ? raw : String(raw ?? '').split(',')).map((x) => x.trim()).filter((x): x is ModuloActa => (todos as string[]).includes(x));
   if (lista.length) return lista;
   const s = u.sector ?? '';
   return [/bromatolog/i.test(s) ? 'sustancias' : /contrav|inspecciones generales/i.test(s) ? 'contravenciones' : 'multas'];
+}
+
+/**
+ * Tipos de acta que el usuario ve y labra en la app de inspectores: su tipo de inspector (o todos si no es inspector),
+ * filtrado por el permiso de cada tipo. Un permiso dado al usuario puntualmente (sí o no) manda sobre su tipo de inspector.
+ */
+export function modulosConPermisos(
+  u: { rol?: string | null; modulos_acta?: string | null; sector?: string | null },
+  permisos: string[],
+  delUsuario: Overrides = {},
+): ModuloActa[] {
+  const base = modulosDe({ rol: u.rol, modulos_acta: u.modulos_acta, sector: u.sector });
+  return (MODULOS_ACTA.map((m) => m.v) as ModuloActa[]).filter((t) => {
+    const p = PERMISO_TIPO_ACTA[t];
+    if (delUsuario[p] !== undefined) return Boolean(delUsuario[p]);
+    return base.includes(t) && permisos.includes(p);
+  });
 }

@@ -10,6 +10,8 @@ export type Usuario = {
   tiposActa?: number[] | null;
   /** Permisos efectivos (usuario > tipo de usuario > por defecto). */
   permisos?: string[];
+  /** Tipos de acta que ve y labra en la app de inspectores (tipo de inspector + permisos). */
+  modulosEfectivos?: string[];
   token?: string;
 };
 
@@ -194,6 +196,8 @@ export type UsuarioRow = {
   firma_activa?: boolean | null;
   modulos_acta?: string | null;
   permisos?: string[];
+  /** Tipos de acta que ve y labra en la app de inspectores (tipo de inspector + permisos). */
+  modulosEfectivos?: string[];
 };
 
 export type InfraccionRow = {

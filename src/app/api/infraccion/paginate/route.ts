@@ -1,3 +1,4 @@
+import { modulosDe } from '@/lib/dominio';
 import { NextRequest } from 'next/server';
 import { requireUser } from '@/lib/auth';
 import { jsonFail, jsonOk } from '@/lib/http-data';
@@ -47,6 +48,8 @@ export async function POST(req: NextRequest) {
     query = applyInfraccionFiltros(query as never, body) as typeof query;
     // Inspector: solo sus borradores. «debugTodas» (7 toques en la lista) lo levanta temporalmente para depurar en el piloto.
     if (user.rol === 'Inspector' && !(body as { debugTodas?: boolean }).debugTodas) query = query.eq('inspector_username', user.username).eq('estado_faltas', 'Borrador');
+    // Inspector: solo los tipos de acta habilitados (tipo de inspector + permisos «Actas de …»), también en depuración.
+    if (user.rol === 'Inspector') query = query.in('infraccion_tipo_nombre', modulosDe(user));
     query = applyOrdenes(query as never, body.ordenes) as typeof query;
     query = query.range(from, to);
 

@@ -3,7 +3,8 @@ import bcrypt from 'bcryptjs';
 import { toUsuarioDto } from '@/lib/auth';
 import { jsonFail, jsonOk } from '@/lib/http-data';
 import { issueToken } from '@/lib/jwt';
-import { cargarPermisos } from '@/lib/permisos-srv';
+import { cargarAcceso } from '@/lib/permisos-srv';
+import { modulosConPermisos } from '@/lib/dominio';
 import { createServerClient } from '@/lib/supabase-server';
 import type { UsuarioRow } from '@/lib/types';
 
@@ -28,7 +29,9 @@ export async function POST(req: NextRequest) {
       return jsonFail(401, 'Usuario o contraseña incorrectos');
     }
     const token = await issueToken(row.username);
-    row.permisos = await cargarPermisos(supabase, row.username, row.rol);
+    const acceso = await cargarAcceso(supabase, row.username, row.rol);
+    row.permisos = acceso.permisos;
+    row.modulosEfectivos = modulosConPermisos(row, acceso.permisos, acceso.delUsuario);
     return jsonOk(toUsuarioDto(row, token));
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Error de login';
