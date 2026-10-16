@@ -10,6 +10,7 @@ import { fechaCorta, pesos } from '@/lib/dominio';
 import { useCarga } from '@/lib/use-carga';
 import { LoaderLogo } from './LoaderLogo';
 import { useNotify } from './NotifyProvider';
+import { useRefresco } from '@/lib/use-refresco';
 
 type R = Record<string, any>;
 const RANGOS = [{ v: '30', t: 'Últimos 30 días' }, { v: 'anio', t: 'Este año' }, { v: 'todo', t: 'Todo' }];
@@ -29,13 +30,15 @@ export function Retenciones() {
   const [enviando, setEnviando] = useState(false);
   const [cargando, seguir] = useCarga();
 
-  const cargar = useCallback(() => {
+  const cargar = useCallback((silencioso = false) => {
     const q = new URLSearchParams();
     if (desde) q.set('desde', String(new Date(`${desde}T00:00`).getTime()));
     if (hasta) q.set('hasta', String(new Date(`${hasta}T23:59:59`).getTime()));
-    void seguir(http.get<R>(`/api/retenciones?${q}`).then(setD));
+    const p = http.get<R>(`/api/retenciones?${q}`).then(setD);
+    void (silencioso ? p.catch(() => undefined) : seguir(p));
   }, [desde, hasta, seguir]);
-  useEffect(cargar, [cargar]);
+  useEffect(() => cargar(), [cargar]);
+  useRefresco(() => cargar(true));
 
   function elegirRango(v: string) {
     setRango(v);

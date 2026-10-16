@@ -6,7 +6,7 @@ import { ArticulosValorizacion } from './ArticulosValorizacion';
 import Link from 'next/link';
 import { LoaderLogo } from './LoaderLogo';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { http } from '@/lib/api-client';
 import { printTicket } from '@/lib/print';
 import { ESTADOS_CAUSA, TIPOS_ACTA, claveLey, estadoFinal, fechaCorta, fechaHora, infoEstado, pesos, puede, tipoActa } from '@/lib/dominio';
@@ -22,6 +22,7 @@ import { TarjetaPresentacion } from './TarjetaPresentacion';
 import { caminoInfractor, descargoPendiente } from '@/lib/camino';
 import { estadosOrigen, previstaPara, tiposDePlantilla } from '@/lib/plantillas';
 import { proximoPaso, type AccionPaso } from '@/lib/proximo-paso';
+import { useRefresco } from '@/lib/use-refresco';
 
 type R = Record<string, any>;
 type Detalle = {
@@ -58,9 +59,25 @@ export function CausaDetalle() {
   const [vista, setVista] = useState<'subsanada' | 'original'>('subsanada');
   const [memo, setMemo] = useState('');
 
+  // Si la primera carga falla (causa inexistente o de un tipo de acta fuera del alcance del usuario) se muestra el
+  // error en pantalla en lugar de quedar «Cargando causa…», y no se reintenta solo hasta que el usuario lo pida.
+  const [error, setError] = useState<string | null>(null);
+  const cargadaDe = useRef<string | null>(null);
+  const falloDe = useRef<string | null>(null);
   const cargar = useCallback(() => {
-    http.get<Detalle>(`/api/causa/${uuid}`).then(setD).catch((e: Error) => notify.error('No se pudo cargar la causa', e.message));
+    if (falloDe.current === uuid) return;
+    http.get<Detalle>(`/api/causa/${uuid}`)
+      .then((x) => { cargadaDe.current = uuid; setError(null); setD(x); })
+      .catch((e: Error) => {
+        if (cargadaDe.current === uuid) { notify.error('No se pudo cargar la causa', e.message); return; }
+        falloDe.current = uuid;
+        setError(e.message);
+      });
   }, [uuid, notify]);
+  const reintentar = () => { falloDe.current = null; setError(null); cargar(); };
+
+  // Sin F5: se recarga sola tras cualquier acción, al volver a la pestaña y cada 20 s (portal, otros usuarios).
+  useRefresco(cargar);
 
   useEffect(() => {
     cargar();
@@ -96,6 +113,23 @@ export function CausaDetalle() {
   const cuotasVencidas = (d?.boletas ?? []).some((b) => b.estado === 'emitida' && Number(b.vencimiento) < Date.now());
   const busqueda = useSearchParams();
   const [falloPedido, setFalloPedido] = useState(busqueda.get('fallo') === '1');
+
+  if (error && cargadaDe.current !== uuid) {
+    return (
+      <div className="pagina">
+        <div className="card-step mb-3 text-center">
+          <h1>No se pudo abrir la causa</h1>
+          <p className="texto-ayuda">
+            {error === 'Causa no encontrada' ? 'La causa no existe o corresponde a un tipo de acta que su usuario no gestiona.' : error}
+          </p>
+          <div className="d-flex gap-2 justify-content-center">
+            <button type="button" className="btn btn-outline-primary" onClick={() => router.back()}>Volver</button>
+            <button type="button" className="btn btn-primary" onClick={reintentar}>Reintentar</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!d || !c) {
     return <LoaderLogo texto="Cargando causa…" pantalla />;

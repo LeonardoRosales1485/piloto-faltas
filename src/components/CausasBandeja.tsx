@@ -13,6 +13,7 @@ import { ModalForm } from './ModalForm';
 import { useNotify } from './NotifyProvider';
 import { exportarApremios } from '@/lib/apremios-client';
 import { getUser } from '@/lib/auth-client';
+import { useRefresco } from '@/lib/use-refresco';
 
 type Fila = Record<string, string | number | null> & { uuid: string };
 type Resp = { content: Fila[]; totalElements: number; totalPages: number; page: number; conteos: Record<string, number> };
@@ -35,10 +36,11 @@ export function CausasBandeja() {
   useEffect(() => { setGestion(puede(getUser()?.rol, 'gestionarCausas')); }, []);
   const alternar = (c: Fila) => setSel((m) => { const n = new Map(m); if (n.has(c.uuid)) n.delete(c.uuid); else n.set(c.uuid, String(c.legajo_numero_acta)); return n; });
 
-  const cargar = useCallback(() => {
-    setCargando(true);
-    http.post<Resp>('/api/causas', { bandeja, texto, tipo, estado, anio, page, size: 15 }).then(setR).finally(() => setCargando(false));
+  const cargar = useCallback((silencioso = false) => {
+    if (!silencioso) setCargando(true);
+    http.post<Resp>('/api/causas', { bandeja, texto, tipo, estado, anio, page, size: 15 }).then(setR).catch(() => undefined).finally(() => setCargando(false));
   }, [bandeja, texto, tipo, estado, anio, page]);
+  useRefresco(() => cargar(true));
 
   useEffect(() => {
     const t = setTimeout(cargar, texto ? 300 : 0);

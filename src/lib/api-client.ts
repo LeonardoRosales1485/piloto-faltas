@@ -1,3 +1,4 @@
+import { avisarCambio } from './avisos-datos';
 import type {
   ConfiguracionItem,
   Constantes,
@@ -82,7 +83,9 @@ async function get<T>(path: string): Promise<T> {
 
 async function post<T>(path: string, body: unknown): Promise<T> {
   const res = await fetch(path, { method: 'POST', headers: authHeaders(), body: JSON.stringify(body) });
-  return parseData<T>(res);
+  const data = await parseData<T>(res);
+  avisarCambio(path);
+  return data;
 }
 
 async function del(path: string): Promise<void> {

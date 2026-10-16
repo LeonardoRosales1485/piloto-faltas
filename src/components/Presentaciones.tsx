@@ -9,6 +9,7 @@ import { puede } from '@/lib/dominio';
 import { useAuthUser } from '@/lib/use-auth-user';
 import { TarjetaPresentacion, TIPO_PRESENTACION as TIPO } from './TarjetaPresentacion';
 import { useNotify } from './NotifyProvider';
+import { useRefresco } from '@/lib/use-refresco';
 
 type R = Record<string, any>;
 const FILTROS = [{ v: 'pendiente', t: 'Pendientes' }, { v: 'aceptada', t: 'Aceptadas' }, { v: 'observada', t: 'Observadas' }, { v: 'rechazada', t: 'Rechazadas' }, { v: 'todas', t: 'Todas' }];
@@ -22,8 +23,9 @@ export function Presentaciones() {
   const [items, setItems] = useState<R[] | null>(null);
 
   const [cargando, seguir] = useCarga();
-  const cargar = useCallback(() => { void seguir(http.get<R[]>(`/api/presentaciones?estado=${estado}`).then(setItems)); }, [estado, seguir]);
-  useEffect(cargar, [cargar]);
+  const cargar = useCallback((silencioso = false) => { const p = http.get<R[]>(`/api/presentaciones?estado=${estado}`).then(setItems); void (silencioso ? p.catch(() => undefined) : seguir(p)); }, [estado, seguir]);
+  useEffect(() => cargar(), [cargar]);
+  useRefresco(() => cargar(true));
 
   function resuelta(p: R, accion: string) {
     notify.success('Presentación resuelta', 'Se notificó la respuesta al infractor.', p.tipo === 'descargo' && accion === 'aceptar' && p.infraccion?.uuid

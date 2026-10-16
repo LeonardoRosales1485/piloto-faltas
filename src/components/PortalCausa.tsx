@@ -9,6 +9,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { crearDocx } from '@/lib/docx-simple';
 import { fechaCorta, fechaHora, pesos } from '@/lib/dominio';
 import { portal, portalPerfil } from '@/lib/portal-client';
+import { useRefresco } from '@/lib/use-refresco';
 
 type R = Record<string, any>;
 
@@ -60,6 +61,8 @@ export function PortalCausa() {
     cargar();
     portal.get<{ textos: Record<string, string>; contacto: string }>('/api/portal/textos').then((r) => { setTextos(r.textos); setContacto(r.contacto); });
   }, [cargar, uuid]);
+  // Se actualiza sola cuando la Dirección mueve la causa (cada 20 s y al volver a la pestaña).
+  useRefresco(() => { if (portalPerfil()) portal.get<R>(`/api/portal/causa/${uuid}`).then(setD).catch(() => undefined); });
 
   async function adjuntar(titulo: string, f?: File | null) {
     if (!f) return;

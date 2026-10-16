@@ -10,6 +10,7 @@ import { http } from '@/lib/api-client';
 import { fechaCorta, pesos, puede } from '@/lib/dominio';
 import { useAuthUser } from '@/lib/use-auth-user';
 import { useNotify } from './NotifyProvider';
+import { useRefresco } from '@/lib/use-refresco';
 
 type R = Record<string, any>;
 const FILTROS = [{ v: 'a_verificar', t: 'A verificar' }, { v: 'emitida', t: 'Emitidas' }, { v: 'vencidas', t: 'Cuotas o boletas vencidas' }, { v: 'definitiva', t: 'Acreditadas' }, { v: 'todas', t: 'Todas' }];
@@ -22,8 +23,9 @@ export function Pagos() {
   const [estado, setEstado] = useState('a_verificar');
   const [items, setItems] = useState<R[]>([]);
   const [cargando, seguir] = useCarga();
-  const cargar = useCallback(() => { void seguir(http.get<R[]>(`/api/pagos?estado=${estado}`).then(setItems)); }, [estado, seguir]);
-  useEffect(cargar, [cargar]);
+  const cargar = useCallback((silencioso = false) => { const p = http.get<R[]>(`/api/pagos?estado=${estado}`).then(setItems); void (silencioso ? p.catch(() => undefined) : seguir(p)); }, [estado, seguir]);
+  useEffect(() => cargar(), [cargar]);
+  useRefresco(() => cargar(true));
 
   async function confirmar(b: R) {
     try {

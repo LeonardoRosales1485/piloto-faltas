@@ -1,4 +1,5 @@
 'use client';
+import { avisarCambio } from './avisos-datos';
 
 const KEY = 'faltas-portal-token';
 const PERFIL = 'faltas-portal-perfil';
@@ -39,6 +40,7 @@ async function req<T>(path: string, init: RequestInit = {}): Promise<T> {
   const body = (await res.json()) as { data: T; message?: string };
   if (res.status === 401 && t) { salirPortal(); }
   if (!res.ok) throw new Error(body.message ?? `Error ${res.status}`);
+  if (init.method === 'POST') avisarCambio(path);
   return body.data;
 }
 

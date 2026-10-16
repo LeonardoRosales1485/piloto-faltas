@@ -8,6 +8,7 @@ import { useEffect, useState } from 'react';
 import { http } from '@/lib/api-client';
 import { fechaHora, puede } from '@/lib/dominio';
 import { useAuthUser } from '@/lib/use-auth-user';
+import { useRefresco } from '@/lib/use-refresco';
 
 type R = Record<string, any>;
 const ESTADOS = [
@@ -27,10 +28,12 @@ export function BandejaEscritos() {
   const [r, setR] = useState<{ items: R[]; conteos: Record<string, number> } | null>(null);
 
   const [cargando, seguir] = useCarga();
+  const url = `/api/escritos?estado=${estado}&texto=${encodeURIComponent(texto)}`;
   useEffect(() => {
-    const t = setTimeout(() => seguir(http.get<{ items: R[]; conteos: Record<string, number> }>(`/api/escritos?estado=${estado}&texto=${encodeURIComponent(texto)}`)).then(setR), 250);
+    const t = setTimeout(() => seguir(http.get<{ items: R[]; conteos: Record<string, number> }>(url)).then(setR), 250);
     return () => clearTimeout(t);
-  }, [estado, texto, seguir]);
+  }, [url, seguir]);
+  useRefresco(() => { http.get<{ items: R[]; conteos: Record<string, number> }>(url).then(setR).catch(() => undefined); });
 
   const grupos = (r?.items ?? []).reduce<Record<string, R[]>>((acc, x) => { const k = x.plantilla?.categoria ?? 'Otros'; (acc[k] ??= []).push(x); return acc; }, {});
 
