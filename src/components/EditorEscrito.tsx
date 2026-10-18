@@ -116,6 +116,10 @@ export function EditorEscrito() {
   const pendientes = campos.filter((c) => !(valores[c.k] ?? '').trim()).length;
   const payload = () => (modo === 'libre' ? { modo, valores, html: restaurarDocumento(sinSaltos(ref.current?.innerHTML ?? '')) } : { modo, valores });
   const requiereRevision = Number(doc.plantilla?.requiere_revision ?? 0) === 1;
+  // PDF y Word salen de lo guardado (QA CONT-6): se bloquean con cambios sin guardar y, en un borrador con campos
+  // a completar, hasta que se guarde al menos una vez (valores_json se escribe recién al guardar).
+  const nuncaGuardado = ['borrador', 'devuelto'].includes(doc.estado) && doc.valores_json == null && camposCompletar(base.current).length > 0;
+  const sinGuardar = cambios || nuncaGuardado;
 
   async function enviar(accion: 'guardar' | 'revision' | 'definitivo') {
     setTrabajando(true);
@@ -202,11 +206,11 @@ export function EditorEscrito() {
           </>
         ) : null}
         {/* PDF y Word salen de lo guardado: con cambios sin guardar quedan bloqueados para no mostrar un escrito vacío o viejo (QA CONT-6). */}
-        {cambios ? (
+        {sinGuardar ? (
           <>
             <button type="button" className="btn btn-outline-secondary" disabled title="Guarde los cambios para verlo en PDF"><i className="fa-solid fa-file-pdf" aria-hidden="true" /> PDF</button>
             <button type="button" className="btn btn-outline-secondary" disabled title="Guarde los cambios para descargarlo en Word"><i className="fa-solid fa-file-word" aria-hidden="true" /> Word (editable)</button>
-            <span className="texto-ayuda align-self-center"><i className="fa-solid fa-circle-info" aria-hidden="true" /> Guarde para ver el PDF o descargar el Word con lo cargado.</span>
+            <span className="texto-ayuda align-self-center"><i className="fa-solid fa-circle-info" aria-hidden="true" /> {cambios ? 'Guarde para ver el PDF o descargar el Word con lo cargado.' : 'Complete los campos y guarde para ver el PDF o descargar el Word.'}</span>
           </>
         ) : (
           <>
