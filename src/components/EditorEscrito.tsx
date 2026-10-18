@@ -152,6 +152,7 @@ export function EditorEscrito() {
     a.href = URL.createObjectURL(blob);
     a.download = `${doc.titulo}${doc.numero ? ` ${doc.numero}` : ''}.docx`;
     a.click();
+    notify.info('Word descargado', 'Ábralo con Word, LibreOffice o Google Docs. Para solo verlo o imprimirlo, use «PDF».');
   }
 
   if (doc.tipo === 'adjunto') {
@@ -201,7 +202,7 @@ export function EditorEscrito() {
           </>
         ) : null}
         <a className="btn btn-outline-secondary" href={`/imprimir/documento/${uuid}`} target="_blank" rel="noreferrer"><i className="fa-solid fa-file-pdf" aria-hidden="true" /> PDF</a>
-        <button type="button" className="btn btn-outline-secondary" onClick={() => void descargarDocx()}><i className="fa-solid fa-file-word" aria-hidden="true" /> DOCX</button>
+        <button type="button" className="btn btn-outline-secondary" onClick={() => void descargarDocx()} title="Archivo editable: se abre con Word, LibreOffice o Google Docs (no con el Bloc de notas)"><i className="fa-solid fa-file-word" aria-hidden="true" /> Word (editable)</button>
         <Link className="btn btn-outline-secondary" href={`/private/causa/${d.causa.uuid}`}>Volver a la causa</Link>
       </div>
 

@@ -97,16 +97,33 @@ export function PortalCausa() {
     } catch (e) { setMsg({ ok: false, t: (e as Error).message }); }
   }
 
-  function descargarModelo() {
+  /** Párrafos del formulario modelo de descargo (para el PDF y el Word). */
+  function parrafosModelo() {
     const r = d?.resumen ?? {};
     const base = (textos.formulario_descargo || 'Sr./Sra. Director/a de Faltas: Quien suscribe, [nombre y apellido], DNI [número], con domicilio en [domicilio], en relación al Acta N.° [número], vengo a presentar descargo en los siguientes términos: [exponga los hechos]. Ofrezco como prueba: [detalle]. Sin otro particular, saludo atentamente.')
       .replace('Acta N.° [número]', `Acta N.° ${r.numero ?? '[número]'}`);
-    const blob = crearDocx([
+    return [
       { texto: 'FORMULARIO DE DESCARGO', negrita: true, centrado: true, tamano: 14 },
       { texto: `${r.tipoTitulo ?? 'Acta'} N.° ${r.numero ?? ''} · Legajo ${r.legajo ?? ''}${r.dominio ? ` · Dominio ${r.dominio}` : ''}`, centrado: true },
       ...base.split(/\n+/).map((t: string) => ({ texto: t.trim() })).filter((x: { texto: string }) => x.texto),
       { texto: '' }, { texto: 'Firma: ______________________________' }, { texto: 'Aclaración: __________________________' }, { texto: 'DNI: ________________   Fecha: ____/____/________' },
-    ]);
+    ] as { texto: string; negrita?: boolean; centrado?: boolean; tamano?: number }[];
+  }
+
+  /** Formulario en una hoja lista para imprimir o guardar como PDF (se abre en cualquier dispositivo). */
+  function imprimirModelo() {
+    const esc = (t: string) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const html = parrafosModelo().map((p) => `<p style="${p.centrado ? 'text-align:center;' : ''}${p.negrita ? 'font-weight:bold;' : ''}${p.tamano ? `font-size:${p.tamano}pt;` : ''}">${esc(p.texto) || '&nbsp;'}</p>`).join('');
+    const w = window.open('', '_blank');
+    if (!w) { setMsg({ ok: false, t: 'El navegador bloqueó la ventana. Permita ventanas emergentes para este sitio.' }); return; }
+    w.document.write(`<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Formulario de descargo</title><style>@page{size:A4;margin:25mm 20mm}body{font-family:'Times New Roman',serif;font-size:12pt;line-height:1.5;max-width:170mm;margin:0 auto;padding:12mm 0}p{margin:0 0 10pt}</style></head><body>${html}<script>window.onload=function(){window.print()}</script></body></html>`);
+    w.document.close();
+  }
+
+  /** Formulario editable en Word (.docx): se abre con Word, LibreOffice o Google Docs. */
+  function descargarModelo() {
+    const r = d?.resumen ?? {};
+    const blob = crearDocx(parrafosModelo());
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
     a.download = `Formulario de descargo - Acta ${r.numero ?? ''}.docx`.replace(/\s+\.docx$/, '.docx');
@@ -181,7 +198,16 @@ export function PortalCausa() {
               </button>
             ))}
           </div>
-          {acciones.descargo?.ok || acciones.reenviar_descargo?.ok ? <button type="button" className="btn btn-link px-0 mt-2" onClick={descargarModelo}><i className="fa-solid fa-download" aria-hidden="true" /> Descargar el formulario modelo de descargo</button> : null}
+          {acciones.descargo?.ok || acciones.reenviar_descargo?.ok ? (
+            <div className="mt-2">
+              <span className="texto-ayuda d-block mb-1">Formulario modelo de descargo:</span>
+              <div className="d-flex flex-wrap gap-2">
+                <button type="button" className="btn btn-outline-primary btn-sm" onClick={imprimirModelo}><i className="fa-solid fa-print" aria-hidden="true" /> Imprimir o guardar en PDF</button>
+                <button type="button" className="btn btn-link btn-sm px-0" onClick={descargarModelo} title="Se abre con Word, LibreOffice o Google Docs"><i className="fa-solid fa-file-word" aria-hidden="true" /> Descargar en Word (editable)</button>
+              </div>
+              <span className="texto-ayuda d-block mt-1">El archivo de Word se abre con Word, LibreOffice o Google Docs. Si no tiene esos programas, use «Imprimir o guardar en PDF».</span>
+            </div>
+          ) : null}
           {noDisponibles.length ? <details className="mt-2"><summary className="texto-ayuda">Opciones no disponibles y por qué</summary><ul className="texto-ayuda mt-1">{noDisponibles.map((a) => <li key={a.k}>{a.t}: {acciones[a.k]?.motivo}</li>)}</ul></details> : null}
         </div>
       ) : null}

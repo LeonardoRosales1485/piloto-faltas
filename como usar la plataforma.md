@@ -139,7 +139,7 @@ Arriba de cada causa, el recuadro **«Próximo paso»** dice qué falta, a quié
 - **Por defecto el texto de la plantilla está bloqueado** y solo se completan los **campos resaltados**, por ejemplo un número de expediente o un monto. Arriba de la hoja hay un panel con esos mismos campos, que indica cuántos faltan.
 - **Si hace falta cambiar el texto** en un caso puntual, el botón **«Editar todo el texto»** habilita la edición completa de **ese** escrito. Queda registrado en el historial y la plantilla no cambia.
 - **Escritos que requieren revisión** (fallos, resoluciones, disposiciones): se envían a la Directora, que los firma. Los demás se dejan **definitivos** directamente.
-- **Descarga:** cualquier escrito se descarga en **PDF** o **DOCX**. Desde la causa también se descarga el **legajo completo en PDF**.
+- **Descarga:** cualquier escrito se descarga en **PDF** o en **Word (editable)**. El Word se abre con Word, LibreOffice o Google Docs; con el Bloc de notas se ven caracteres raros. Desde la causa también se descarga el **legajo completo en PDF**.
 - **Plantillas:** el admin las edita en **Configuración → Plantillas de escritos**; quien redacta escritos puede consultarlas (solo lectura) desde **Escritos y firma → Plantillas**.
   - **Lista:** se filtra por categoría, tipo de acta, efecto en la causa y situación. Muestra a qué estado pasa la causa, si lleva firma, cuántos escritos se generaron y si es **«Usada por el sistema»** (fallos, compromisos, medida y levantamiento: no conviene deshabilitarlas).
   - **Nueva plantilla:** en blanco, **duplicando** una existente o **importando un Word (.docx)**.
