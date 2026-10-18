@@ -78,6 +78,7 @@ Avance: **20 / 20**
 | Sin F5: la causa, las bandejas (causas, presentaciones, escritos, pagos, retenciones) y la causa en el portal se recargan solas después de cualquier acción (también hecha en otra pestaña), al volver a la pestaña y cada 20 s | — |
 | Auditoría: cada usuario ve solo el historial de las causas de los tipos de acta que gestiona (el Responsable de contravenciones veía causas de tránsito y al abrirlas quedaba «Cargando causa…»). La causa que no se puede abrir (inexistente o fuera del alcance) muestra el motivo con «Volver» y «Reintentar» en lugar de quedar cargando | — |
 | Escritos en borrador: [Documento:Numero] y [Documento:Fecha] se ven como «número / fecha a asignar» (etiqueta en el editor, texto en PDF y DOCX) en lugar del marcador; el sistema los completa al quedar definitivo o firmado | — |
+| QA CONT-2: la Directora y los Responsables pueden labrar actas, solo de su área (los tipos de acta que gestionan); botón «Nueva acta» en la bandeja de causas para quien puede labrar. Los Agentes no labran por defecto (se habilita en Permisos) | — |
 
 ## Fuera del alcance del prototipo
 

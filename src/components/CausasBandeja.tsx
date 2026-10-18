@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { http } from '@/lib/api-client';
 import { BANDEJAS, type BandejaId } from '@/lib/bandejas';
-import { ESTADOS_CAUSA, TIPOS_ACTA, fechaCorta, pesos, puede, tipoActa } from '@/lib/dominio';
+import { ESTADOS_CAUSA, TIPOS_ACTA, fechaCorta, modulosDe, pesos, puede, tipoActa, type ModuloActa } from '@/lib/dominio';
 import { EstadoChip } from './EstadoChip';
 import { Plazo } from './Plazo';
 import { LoaderLogo } from './LoaderLogo';
@@ -34,6 +34,9 @@ export function CausasBandeja() {
   const notify = useNotify();
   const [gestion, setGestion] = useState(false);
   useEffect(() => { setGestion(puede(getUser()?.rol, 'gestionarCausas')); }, []);
+  // Tipos de acta que el usuario puede labrar (su área): botón «Nueva acta».
+  const [labra, setLabra] = useState<ModuloActa[]>([]);
+  useEffect(() => { const u = getUser(); setLabra(puede(u?.rol, 'labrar') ? modulosDe(u) : []); }, []);
   const alternar = (c: Fila) => setSel((m) => { const n = new Map(m); if (n.has(c.uuid)) n.delete(c.uuid); else n.set(c.uuid, String(c.legajo_numero_acta)); return n; });
 
   const cargar = useCallback((silencioso = false) => {
@@ -126,6 +129,11 @@ export function CausasBandeja() {
           <i className="fa-solid fa-magnifying-glass" aria-hidden="true" />
           <input aria-label="Buscar por acta, legajo, dominio, documento o nombre" className="form-control" value={texto} onChange={(e) => { setTexto(e.target.value); setPage(0); }} placeholder="Buscar acta, legajo, dominio, documento o nombre" />
         </div>
+        {labra.map((m) => (
+          <Link key={m} href={`/private/crear-editar/${m}`} className="btn btn-primary text-nowrap">
+            <i className="fa-solid fa-plus" aria-hidden="true" /> {labra.length === 1 ? 'Nueva acta' : `Nueva acta de ${TIPOS_ACTA[m].corto.toLowerCase()}`}
+          </Link>
+        ))}
       </div>
 
       <div className="card-step">

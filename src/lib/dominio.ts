@@ -60,10 +60,11 @@ const ADMIN = ['Administrador'];
 
 /** Valores por defecto de cada permiso. El Administrador puede cambiarlos por tipo de usuario o por usuario. */
 export const PERMISOS = {
-  labrar: ['Inspector', 'Administrador'],
-  actasTransito: ['Inspector', 'Administrador'],
-  actasContravenciones: ['Inspector', 'Administrador'],
-  actasSustancias: ['Inspector', 'Administrador'],
+  // Directora y Responsables también labran (actas en mesa o en operativos), solo de su área.
+  labrar: ['Inspector', 'Administrador', 'Directora', 'Responsable'],
+  actasTransito: ['Inspector', 'Administrador', 'Directora', 'Responsable'],
+  actasContravenciones: ['Inspector', 'Administrador', 'Directora', 'Responsable'],
+  actasSustancias: ['Inspector', 'Administrador', 'Directora', 'Responsable'],
   verCausas: BACK_OFFICE,
   gestionarCausas: GESTION,
   cambiarEstadoManual: GESTION,
@@ -365,7 +366,11 @@ export function modulosConPermisos(
   permisos: string[],
   delUsuario: Overrides = {},
 ): ModuloActa[] {
-  const base = modulosDe({ rol: u.rol, modulos_acta: u.modulos_acta, sector: u.sector });
+  // Inspector: su tipo de inspector. Back office: el área que gestiona (Directora tránsito, cada Responsable la suya).
+  const alcance = u.rol === 'Inspector' ? null : tiposPermitidos(u);
+  const base = alcance
+    ? (MODULOS_ACTA.map((m) => m.v) as ModuloActa[]).filter((t) => alcance.includes(TIPOS_ACTA[t].id))
+    : modulosDe({ rol: u.rol, modulos_acta: u.modulos_acta, sector: u.sector });
   return (MODULOS_ACTA.map((m) => m.v) as ModuloActa[]).filter((t) => {
     const p = PERMISO_TIPO_ACTA[t];
     if (delUsuario[p] !== undefined) return Boolean(delUsuario[p]);
