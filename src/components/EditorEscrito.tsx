@@ -201,8 +201,19 @@ export function EditorEscrito() {
             {doc.estado === 'en_revision' ? <button type="button" className="btn btn-outline-danger" disabled={trabajando} onClick={() => setDevolver(true)}><i className="fa-solid fa-reply" aria-hidden="true" /> Devolver con observación</button> : null}
           </>
         ) : null}
-        <a className="btn btn-outline-secondary" href={`/imprimir/documento/${uuid}`} target="_blank" rel="noreferrer"><i className="fa-solid fa-file-pdf" aria-hidden="true" /> PDF</a>
-        <button type="button" className="btn btn-outline-secondary" onClick={() => void descargarDocx()} title="Archivo editable: se abre con Word, LibreOffice o Google Docs (no con el Bloc de notas)"><i className="fa-solid fa-file-word" aria-hidden="true" /> Word (editable)</button>
+        {/* PDF y Word salen de lo guardado: con cambios sin guardar quedan bloqueados para no mostrar un escrito vacío o viejo (QA CONT-6). */}
+        {cambios ? (
+          <>
+            <button type="button" className="btn btn-outline-secondary" disabled title="Guarde los cambios para verlo en PDF"><i className="fa-solid fa-file-pdf" aria-hidden="true" /> PDF</button>
+            <button type="button" className="btn btn-outline-secondary" disabled title="Guarde los cambios para descargarlo en Word"><i className="fa-solid fa-file-word" aria-hidden="true" /> Word (editable)</button>
+            <span className="texto-ayuda align-self-center"><i className="fa-solid fa-circle-info" aria-hidden="true" /> Guarde para ver el PDF o descargar el Word con lo cargado.</span>
+          </>
+        ) : (
+          <>
+            <a className="btn btn-outline-secondary" href={`/imprimir/documento/${uuid}`} target="_blank" rel="noreferrer"><i className="fa-solid fa-file-pdf" aria-hidden="true" /> PDF</a>
+            <button type="button" className="btn btn-outline-secondary" onClick={() => void descargarDocx()} title="Archivo editable: se abre con Word, LibreOffice o Google Docs (no con el Bloc de notas)"><i className="fa-solid fa-file-word" aria-hidden="true" /> Word (editable)</button>
+          </>
+        )}
         <Link className="btn btn-outline-secondary" href={`/private/causa/${d.causa.uuid}`}>Volver a la causa</Link>
       </div>
 

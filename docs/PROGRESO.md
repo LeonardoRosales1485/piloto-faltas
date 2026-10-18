@@ -80,6 +80,7 @@ Avance: **20 / 20**
 | Escritos en borrador: [Documento:Numero] y [Documento:Fecha] se ven como «número / fecha a asignar» (etiqueta en el editor, texto en PDF y DOCX) en lugar del marcador; el sistema los completa al quedar definitivo o firmado | — |
 | QA CONT-2: la Directora y los Responsables pueden labrar actas, solo de su área (los tipos de acta que gestionan); botón «Nueva acta» en la bandeja de causas para quien puede labrar. Los Agentes no labran por defecto (se habilita en Permisos) | — |
 | QA CONT-4 (DOCX «en chino» al abrirlo con el Bloc de notas): el formulario modelo de descargo del portal se ofrece primero como «Imprimir o guardar en PDF» (hoja imprimible en el navegador) y aparte «Descargar en Word (editable)» con aclaración de con qué abrirlo; en el back office el botón dice «Word (editable)» y avisa con qué abrirlo | — |
+| QA CONT-6: en el editor de escritos, «PDF» y «Word» quedan deshabilitados mientras haya cambios sin guardar (salen de lo guardado y se veían vacíos), con aviso «Guarde para ver el PDF…» | — |
 
 ## Fuera del alcance del prototipo
 
