@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import { EvidenciaPublica } from '@/components/EvidenciaPublica';
 import { TIPOS_ACTA, tipoActa } from '@/lib/dominio';
 import { createServerClient } from '@/lib/supabase-server';
 
@@ -7,19 +6,15 @@ export const dynamic = 'force-dynamic';
 
 /**
  * Destino del QR del ticket y del PDF: verifica en el sitio oficial que el acta es válida (PI-02)
- * y lleva al infractor al portal para consultarla y gestionarla (PI-01). No muestra datos personales.
+ * y lleva al infractor al portal para consultarla y gestionarla (PI-01). No muestra datos personales ni las fotos:
+ * la evidencia se ve recién en el portal, con la cuenta del infractor (QA CONT-MOB-3).
  */
 export default async function ActaPublicaPage({ params }: { params: Promise<{ uuid: string }> }) {
   const { uuid } = await params;
   let a: Record<string, unknown> | null = null;
-  let imagenes: string[] = [];
   try {
-    const { data } = await createServerClient().from('infraccion').select('id, legajo_numero_acta, legajo_fecha, infraccion_tipo_nombre, estado_faltas, firmada_at, firma_inspector_hash, inspector_nombre').eq('uuid', uuid).maybeSingle();
+    const { data } = await createServerClient().from('infraccion').select('legajo_numero_acta, legajo_fecha, infraccion_tipo_nombre, estado_faltas, firmada_at, firma_inspector_hash, inspector_nombre').eq('uuid', uuid).maybeSingle();
     a = data as Record<string, unknown> | null;
-    if (a?.id && a.firmada_at) {
-      const { data: imgs } = await createServerClient().from('infraccion_imagen').select('preview_raw').eq('infraccion_id', a.id);
-      imagenes = ((imgs ?? []) as { preview_raw: string | null }[]).map((x) => x.preview_raw ?? '').filter(Boolean);
-    }
   } catch {
     a = null;
   }
@@ -43,7 +38,8 @@ export default async function ActaPublicaPage({ params }: { params: Promise<{ uu
               <p className="texto-ayuda">Labrada el {String(a!.legajo_fecha ?? '').replace('T', ' ')} por {String(a!.inspector_nombre ?? 'inspector municipal')}.<br />Código de verificación: {String(a!.firma_inspector_hash ?? '').slice(0, 16).toUpperCase()}</p>
               <Link className="btn btn-primary btn-lg w-100" href={`/portal/causa/${uuid}`}>Ver y gestionar mi acta</Link>
               <p className="texto-ayuda mt-2 mb-0">Necesita una cuenta en el portal. Al abrir el acta queda notificado/a.</p>
-              <EvidenciaPublica imagenes={imagenes} />
+              <Link className="btn btn-outline-primary w-100 mt-3" href={`/portal/causa/${uuid}`}><i className="fa-solid fa-images" aria-hidden="true" /> Ver evidencias</Link>
+              <p className="texto-ayuda mt-2 mb-0">Las fotos de la infracción se ven al ingresar al portal.</p>
             </>
           ) : (
             <>
