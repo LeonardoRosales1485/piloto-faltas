@@ -77,6 +77,7 @@ Avance: **20 / 20**
 | Causa: recuadro «Próximo paso» (qué falta, a quién le toca y botón para avanzar: notificar el fallo/resolución, firmar, resolver presentaciones, dictar fallo, derivar, etc.) y «Considerar notificado» para fallos, resoluciones y disposiciones que el infractor no abrió en el portal (empieza a correr el plazo) | — |
 | Sin F5: la causa, las bandejas (causas, presentaciones, escritos, pagos, retenciones) y la causa en el portal se recargan solas después de cualquier acción (también hecha en otra pestaña), al volver a la pestaña y cada 20 s | — |
 | Auditoría: cada usuario ve solo el historial de las causas de los tipos de acta que gestiona (el Responsable de contravenciones veía causas de tránsito y al abrirlas quedaba «Cargando causa…»). La causa que no se puede abrir (inexistente o fuera del alcance) muestra el motivo con «Volver» y «Reintentar» en lugar de quedar cargando | — |
+| Escritos en borrador: [Documento:Numero] y [Documento:Fecha] se ven como «número / fecha a asignar» (etiqueta en el editor, texto en PDF y DOCX) en lugar del marcador; el sistema los completa al quedar definitivo o firmado | — |
 
 ## Fuera del alcance del prototipo
 

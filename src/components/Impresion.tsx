@@ -6,14 +6,14 @@ import { http } from '@/lib/api-client';
 import { actaHtmlPorTipo } from '@/lib/acta-oficial';
 import { CSS_HOJA, firmaHtml, membreteHtml, pieHtml } from '@/lib/membrete';
 import { fechaHora } from '@/lib/dominio';
-import { aplicarValores } from '@/lib/campos';
+import { aplicarValores, mostrarDocumento } from '@/lib/campos';
 
 type R = Record<string, any>;
 
 export function hoja(doc: R) {
   let v: Record<string, string> = {};
   try { v = JSON.parse(doc.valores_json ?? '{}'); } catch { v = {}; }
-  return `<section class="hoja">${membreteHtml()}${aplicarValores(doc.contenido_html ?? '', v, 'puntos')}${firmaHtml(doc)}${pieHtml()}</section>`;
+  return `<section class="hoja">${membreteHtml()}${mostrarDocumento(aplicarValores(doc.contenido_html ?? '', v, 'puntos'), 'texto')}${firmaHtml(doc)}${pieHtml()}</section>`;
 }
 
 /** Hojas del legajo de una causa (acta, escritos y adjuntos en orden, historial y, si se pide, memos internos). */

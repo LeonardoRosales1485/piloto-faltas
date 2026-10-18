@@ -74,3 +74,22 @@ export function normalizarHtml(html: string): string {
   }
   return h;
 }
+
+/**
+ * [Documento:Numero] y [Documento:Fecha] se completan recién al quedar definitivo o firmado (numeración correlativa,
+ * sin huecos). Mientras tanto se muestran como «a asignar» (el texto de la plantilla ya suele decir «N°» delante) en lugar del marcador técnico.
+ * - 'chip': etiqueta no editable en la hoja del editor (se vuelve a marcador con restaurarDocumento al guardar).
+ * - 'texto': texto común para el PDF o DOCX de un borrador.
+ */
+const RE_DOC = /\[Documento:(Numero|Fecha)\]/g;
+const DOC_TXT: Record<string, string> = { Numero: '(a asignar al firmar)', Fecha: '(fecha a asignar al firmar)' };
+
+export function mostrarDocumento(html: string, modo: 'chip' | 'texto'): string {
+  return html.replace(RE_DOC, (_m, k: string) => (modo === 'texto'
+    ? DOC_TXT[k]
+    : `<span class="doc-auto" contenteditable="false" data-doc="${k}" title="Lo asigna el sistema al dejar el escrito definitivo o firmado">${k === 'Numero' ? 'número a asignar' : 'fecha a asignar'}</span>`));
+}
+
+export function restaurarDocumento(html: string): string {
+  return html.replace(/<span class="doc-auto"[^>]*data-doc="(Numero|Fecha)"[^>]*>[^<]*<\/span>/g, '[Documento:$1]');
+}

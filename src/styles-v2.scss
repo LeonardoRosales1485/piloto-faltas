@@ -984,3 +984,6 @@ span.dato-subsanado { font-size: .75rem; padding: .1rem .45rem; font-weight: 600
   .proximo-alerta .proximo-paso-icono { background: #451a03; color: #fde68a; }
   .proximo-fin .proximo-paso-icono { background: #052e16; color: #bbf7d0; }
 }
+// Número y fecha del escrito que asigna el sistema al firmar
+.doc-auto { display: inline-block; font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; font-size: .8em; font-weight: 600; background: #e0e7ff; color: #3730a3; border: 1px dashed #818cf8; border-radius: 4px; padding: 0 .35em; white-space: nowrap; }
+@media print { .doc-auto { background: none; border: 0; color: inherit; } }

@@ -7,7 +7,7 @@ import { useParams } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { getToken } from '@/lib/auth-client';
 import { http } from '@/lib/api-client';
-import { aplicarValores, camposCompletar, RE_COMPLETAR } from '@/lib/campos';
+import { aplicarValores, camposCompletar, mostrarDocumento, RE_COMPLETAR, restaurarDocumento } from '@/lib/campos';
 import { fechaHora, puede } from '@/lib/dominio';
 import { firmaHtml, PIE_INSTITUCIONAL } from '@/lib/membrete';
 import { useAuthUser } from '@/lib/use-auth-user';
@@ -76,10 +76,10 @@ export function EditorEscrito() {
   useEffect(() => {
     const el = ref.current;
     if (!el || !d) return;
-    if (!puedeEditar) { el.innerHTML = base.current; return; }
-    if (modo === 'libre') { el.innerHTML = aplicarValores(base.current, valores); return; }
+    if (!puedeEditar) { el.innerHTML = mostrarDocumento(base.current, 'chip'); return; }
+    if (modo === 'libre') { el.innerHTML = mostrarDocumento(aplicarValores(base.current, valores), 'chip'); return; }
     let i = 0;
-    el.innerHTML = base.current.replace(RE_COMPLETAR, (_m, label: string, tipo?: string) => {
+    el.innerHTML = mostrarDocumento(base.current, 'chip').replace(RE_COMPLETAR, (_m, label: string, tipo?: string) => {
       i += 1;
       const k = `c${i}`;
       const t = tipo === 'fecha' ? 'date' : tipo === 'numero' || tipo === 'moneda' ? 'number' : 'text';
@@ -114,7 +114,7 @@ export function EditorEscrito() {
   const editable = puedeEditar;
   const campos = modo === 'campos' && editable ? camposCompletar(base.current) : [];
   const pendientes = campos.filter((c) => !(valores[c.k] ?? '').trim()).length;
-  const payload = () => (modo === 'libre' ? { modo, valores, html: sinSaltos(ref.current?.innerHTML ?? '') } : { modo, valores });
+  const payload = () => (modo === 'libre' ? { modo, valores, html: restaurarDocumento(sinSaltos(ref.current?.innerHTML ?? '')) } : { modo, valores });
   const requiereRevision = Number(doc.plantilla?.requiere_revision ?? 0) === 1;
 
   async function enviar(accion: 'guardar' | 'revision' | 'definitivo') {

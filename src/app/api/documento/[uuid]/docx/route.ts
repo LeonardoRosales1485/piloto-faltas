@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import HTMLtoDOCX from 'html-to-docx';
 import { requireUser } from '@/lib/auth';
 import { firmaHtml, PIE_INSTITUCIONAL } from '@/lib/membrete';
-import { aplicarValores } from '@/lib/campos';
+import { aplicarValores, mostrarDocumento } from '@/lib/campos';
 import { db } from '@/lib/srv';
 import { jsonFail } from '@/lib/http-data';
 
@@ -16,7 +16,7 @@ export async function GET(req: NextRequest, ctx: Ctx) {
     const { data } = await db().from('documento').select('titulo, numero, contenido_html, valores_json, firmado_por, firmado_at, hash').eq('uuid', uuid).maybeSingle();
     if (!data) return jsonFail(404, 'Documento inexistente');
     const doc = data as { titulo: string; numero: string | null; contenido_html: string; valores_json: string | null; firmado_por: string | null; firmado_at: number | null; hash: string | null };
-    const cuerpo = `<p style="text-align:center"><strong>MUNICIPALIDAD DE MALVINAS ARGENTINAS</strong><br/>DIRECCIÓN DE FALTAS</p>${aplicarValores(doc.contenido_html, (() => { try { return JSON.parse(doc.valores_json ?? '{}'); } catch { return {}; } })(), 'puntos')}${firmaHtml(doc)}`;
+    const cuerpo = `<p style="text-align:center"><strong>MUNICIPALIDAD DE MALVINAS ARGENTINAS</strong><br/>DIRECCIÓN DE FALTAS</p>${mostrarDocumento(aplicarValores(doc.contenido_html, (() => { try { return JSON.parse(doc.valores_json ?? '{}'); } catch { return {}; } })(), 'puntos'), 'texto')}${firmaHtml(doc)}`;
     const buf = (await HTMLtoDOCX(`<!DOCTYPE html><html><body>${cuerpo}</body></html>`, null, {
       font: 'Times New Roman', fontSize: 24, pageSize: { width: 11906, height: 16838 },
       margins: { top: 1134, right: 1134, bottom: 1134, left: 1418, footer: 567 }, footer: true,
