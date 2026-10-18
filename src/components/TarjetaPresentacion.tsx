@@ -61,7 +61,7 @@ export function TarjetaPresentacion({ p, causa, adjuntos = [], gestion, destacad
         </div>
         <span className={`tp-estado tp-${p.estado}`}>{ESTADO[p.estado] ?? p.estado}</span>
       </div>
-      {conCausa ? <div className="d-flex gap-2 align-items-center flex-wrap mt-1"><EstadoChip estado={causa.estado_faltas ?? ''} /><Plazo vence={causa.vence_plazo_at ?? undefined} /></div> : null}
+      {conCausa ? <div className="d-flex gap-2 align-items-center flex-wrap mt-1"><EstadoChip estado={causa.estado_faltas ?? ''} /><Plazo vence={causa.vence_plazo_at ?? undefined} estado={causa.estado_faltas} ocultarSinPlazo /></div> : null}
       {p.texto ? <p className="tp-texto">{p.texto}</p> : null}
       {adjuntos.length ? (
         <div className="d-flex gap-2 flex-wrap mt-1">

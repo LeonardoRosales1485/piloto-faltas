@@ -1,8 +1,9 @@
-import { fechaCorta } from '@/lib/dominio';
+import { estadoFinal, fechaCorta } from '@/lib/dominio';
 
 /** Contador de plazo: muestra la fecha de vencimiento y los días que faltan. */
-export function Plazo({ vence }: { vence: number | null | undefined }) {
-  if (!vence) return <span className="texto-ayuda">-</span>;
+export function Plazo({ vence, estado, ocultarSinPlazo = false }: { vence: number | null | undefined; estado?: string | null; ocultarSinPlazo?: boolean }) {
+  // Causa cerrada (archivada, pagada, etc.): no hay plazo que corra aunque haya quedado una fecha guardada.
+  if (!vence || estadoFinal(estado)) return ocultarSinPlazo ? null : <span className="texto-ayuda">-</span>;
   const dias = Math.ceil((vence - Date.now()) / 86400000);
   const vencido = dias < 0;
   return (

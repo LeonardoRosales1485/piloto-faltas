@@ -64,7 +64,8 @@ export function RoadmapCausa({ estado, historial, medidaVigente, camino }: Props
         {etapas.map((e, i) => {
           const hecho = i < idx || (e.id === 'cierre' && actual === 'cierre');
           const salteado = i < idx && i > 0 && !entrada[e.id];
-          const clase = e.id === actual && actual !== 'cierre' ? 'actual' : hecho ? (salteado ? 'salteado' : 'hecho') : 'futuro';
+          // Causa cerrada: la etapa final se resalta como «final» (verde), para que se lea que el recorrido terminó.
+          const clase = e.id === 'cierre' && actual === 'cierre' ? 'hecho final' : e.id === actual ? 'actual' : hecho ? (salteado ? 'salteado' : 'hecho') : 'futuro';
           const fecha = entrada[e.id];
           // La etapa de presentación muestra el camino elegido: pago voluntario, descargo o sin presentación.
           const etiquetaCamino = camino && ['pago', 'descargo', 'ignorado'].includes(camino.id) ? (camino.id === 'ignorado' ? 'Sin presentación' : camino.titulo) : null;

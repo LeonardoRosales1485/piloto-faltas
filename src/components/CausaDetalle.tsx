@@ -275,7 +275,7 @@ export function CausaDetalle() {
         <div className="causa-cabecera">
           <h1>{c.legajoNumeroActa}</h1>
           <EstadoChip estado={estado} medida={c.medidaVigente === 1} />
-          <Plazo vence={c.vencePlazoAt} />
+          <Plazo vence={c.vencePlazoAt} estado={estado} ocultarSinPlazo />
           <span className="sub">
             {TIPOS_ACTA[tipo].titulo} · Legajo {c.legajoNumber}/{c.legajoAnio} · {c.infractorRazonSocial || c.infractorNombre || 'NN'} · En el portal se ve como «{infoEstado(estado).portal}»
           </span>

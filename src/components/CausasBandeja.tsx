@@ -183,7 +183,7 @@ export function CausasBandeja() {
                   <td>{c.infractor_razon_social || c.infractor_nombre || 'NN'}<div className="texto-ayuda">{c.infractor_cuit || c.infractor_documento_numero}</div></td>
                   <td>{c.vehiculo_numero_dominio || '-'}</td>
                   <td><EstadoChip estado={String(c.estado_faltas)} medida={Number(c.medida_vigente) === 1} />{c.marca ? <div className="marca-causa">{String(c.marca)}</div> : null}</td>
-                  <td><Plazo vence={c.vence_plazo_at ? Number(c.vence_plazo_at) : null} /></td>
+                  <td><Plazo vence={c.vence_plazo_at ? Number(c.vence_plazo_at) : null} estado={String(c.estado_faltas ?? "")} /></td>
                   <td className="text-end">{pesos(c.monto_estimado == null ? null : Number(c.monto_estimado))}</td>
                 </tr>
               ))}
