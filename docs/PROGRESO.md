@@ -86,6 +86,7 @@ Avance: **20 / 20**
 | QA UI-CONT-09: un descargo rechazado cuenta como presentado: no se puede presentar otro y, en tránsito, se pierde el pago voluntario y queda la boleta sin beneficio (100 %). En contravención el pago voluntario sigue disponible (RN-41 · PI-15), a confirmar con el cliente | — |
 | QA AUTH-CONT-10: portal del infractor con la misma protección de sesión que el back office: «Salir» no deja la pantalla en el historial, «Atrás», volver a la pestaña o salir en otra pestaña llevan al ingreso, un 401 cierra la sesión y las páginas del portal no se guardan en la caché del navegador | — |
 | QA STEPS (labrado): al dejar un paso incompleto aparece un aviso con lo que falta; el paso en el que se está no se marca en rojo (vuelve a marcarse al salir si sigue incompleto) | — |
+| Acta de contravención y sustancias (PDF): la casilla «Ejido urbano» muestra «[X] Dentro / [ ] Fuera» según la ubicación GPS (antes quedaba vacía; el acta de tránsito ya lo tenía) | — |
 
 ## Fuera del alcance del prototipo
 

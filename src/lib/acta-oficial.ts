@@ -443,7 +443,7 @@ export function actaOficialHtml(infraccion: Infraccion, extras: ActaExtras = {})
             <td><span class="acta-label">Hora</span><span class="acta-value">${fh.hora}</span></td>
             <td><span class="acta-label">Minutos</span><span class="acta-value">${fh.minutos}</span></td>
             <td><span class="acta-label">Aut. Const.</span><span class="acta-value">&nbsp;</span></td>
-            <td class="acta-cell-wide"><span class="acta-label">Ejido Urbano</span><span class="acta-value">&nbsp;</span></td>
+            <td class="acta-cell-wide"><span class="acta-label">Ejido Urbano</span><span class="acta-value">${infraccion.ejido === 'dentro' ? '[X]' : '[&nbsp;&nbsp;]'} Dentro&nbsp;&nbsp;${infraccion.ejido === 'fuera' ? '[X]' : '[&nbsp;&nbsp;]'} Fuera</span></td>
           </tr>
         </table>
       </section>
