@@ -13,6 +13,7 @@ type Accion = { accion: 'borrar' | 'usuarios' | 'cargar' | 'guardar_foto'; orige
 const ETIQUETA: Record<string, string> = {
   ciudadano: 'cuentas del portal', lote: 'lotes', infraccion: 'actas', infraccion_ley: 'artículos', infraccion_dependencia: 'dependencias', infraccion_imagen: 'imágenes',
   causa_historial: 'movimientos', presentacion: 'presentaciones', documento: 'escritos y documentos', boleta: 'boletas', notificacion: 'notificaciones', correo_saliente: 'correos',
+  subsanacion: 'subsanaciones', memo: 'memos internos', causa_ley_ajuste: 'montos ajustados por artículo',
 };
 
 /** Opciones sandbox (solo administrador): borrar datos, resetear usuarios y cargar datos dummy. */

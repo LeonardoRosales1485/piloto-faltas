@@ -227,3 +227,12 @@ El PDF trae el remito del lote (número APR-AAAA-NNNN, listado y total con espac
 - En «Iniciado», la acción recomendada es **Esperar al infractor**. **Sí** pasa la causa a «En notificación» (se espera que el infractor vea el acta en el portal); **No** la deja en «Iniciado» y la acción pasa a ser **Considerar notificado**.
 - **Considerar notificado** (en «Iniciado» tras elegir No, o en «En notificación»): **Sí** pasa la causa a «Notificado» desde ese momento, con su plazo y la constancia en el historial; **No** la deja como está.
 - Si el infractor abre el acta en el portal, la causa se notifica sola como hasta ahora.
+
+## Opciones sandbox (Administrador, entorno de pruebas)
+
+En **Configuración → Opciones sandbox** hay tres acciones. Todas piden escribir una palabra para confirmar y **no se pueden deshacer**:
+
+- **Borrar todo:** elimina actas, causas, escritos, presentaciones, boletas, notificaciones, correos, memos, subsanaciones y cuentas del portal, y reinicia la numeración (la próxima acta de tránsito es T-001001). Se conservan usuarios, plantillas, ordenanzas, valores y tarifas, feriados y textos del portal.
+- **Resetear usuarios:** deja solo los usuarios de prueba (admin, inspectores, Directora y Agente de tránsito, Responsable y Agente de contravenciones y de sustancias, Tributario y Becario) con sus contraseñas originales.
+- **Cargar datos dummy:** borra todo y carga un conjunto de prueba con las fechas corridas al día de hoy. **Datos de sistema** trae 26 actas en todas las bandejas (con fotos, firmas, escritos, pagos, memos, una subsanación y un monto ajustado); **Foto guardada** es el estado que el Administrador guardó con «Guardar estado actual como dummy» (hay una sola).
+

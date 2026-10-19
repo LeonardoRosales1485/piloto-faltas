@@ -2,6 +2,8 @@
 
 Uso: python3 generar.py   (con el piloto en http://localhost:3000 y la base local)
 Al final captura el estado como snapshot 'default'.
+Desactualizado respecto del piloto (09/10/2026): si se regenera el snapshot, correr después
+sql/027_sandbox_default_actualizado.sql (o revisar que lo nuevo ya venga en los datos generados).
 """
 import base64, io, json, math, random, subprocess, sys, time
 import requests
