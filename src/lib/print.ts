@@ -1,10 +1,5 @@
-import QRCode from 'qrcode';
 import type { Infraccion } from './types';
-import { actaHtmlPorTipo, type ActaExtras } from './acta-oficial';
-
-function actaPublicaUrl(uuid: string): string {
-  return `${window.location.origin}/acta/${encodeURIComponent(uuid)}`;
-}
+import { actaHtmlPorTipo, actaPublicaUrl, svgQr, type ActaExtras } from './acta-oficial';
 
 function abrirVentana(titulo: string, cuerpo: string, estilos: string, ancho = 820): void {
   const win = window.open('', '_blank', `width=${ancho},height=640`);
@@ -146,20 +141,6 @@ export async function tomarFotosPos(max: number): Promise<File[] | null> {
 export function printActa(infraccion: Infraccion, extras: ActaExtras = {}): void {
   const { html, css } = actaHtmlPorTipo(infraccion, extras);
   abrirVentana('Acta de Infracción', html, css);
-}
-
-function svgQr(url: string): string {
-  const qr = QRCode.create(url, { errorCorrectionLevel: 'M' });
-  const n = qr.modules.size;
-  const quiet = 2;
-  const side = n + quiet * 2;
-  const celdas: string[] = [];
-  for (let y = 0; y < n; y += 1) {
-    for (let x = 0; x < n; x += 1) {
-      if (qr.modules.get(x, y)) celdas.push(`<rect x="${x}" y="${y}" width="1" height="1"/>`);
-    }
-  }
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${-quiet} ${-quiet} ${side} ${side}" width="40mm" height="40mm"><rect x="${-quiet}" y="${-quiet}" width="${side}" height="${side}" fill="#ffffff"/><g fill="#000000">${celdas.join('')}</g></svg>`;
 }
 
 /** Modal «¿Imprimir el ticket?» para evitar impresiones por un toque accidental. Resuelve true si confirma. */

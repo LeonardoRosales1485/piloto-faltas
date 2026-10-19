@@ -175,30 +175,36 @@ export async function feriados(d: Db): Promise<Set<string>> {
   return new Set(((data ?? []) as { fecha: string }[]).map((f) => String(f.fecha).slice(0, 10)));
 }
 
-function isoDia(dt: Date) {
-  const y = dt.getFullYear();
-  const m = String(dt.getMonth() + 1).padStart(2, '0');
-  const day = String(dt.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
+// Los plazos se cuentan en días del calendario argentino, aunque el servidor corra en UTC (Vercel).
+// Argentina está en UTC−3 todo el año (sin horario de verano).
+const OFFSET_AR_MS = 3 * 3600 * 1000;
+
+/** Medianoche (UTC) del día argentino que contiene `ms`; se usa solo para contar días. */
+function diaArgentino(ms: number): Date {
+  const d = new Date(ms - OFFSET_AR_MS);
+  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+}
+
+/** 23:59:59 hora argentina del día `dia` (medianoche UTC de ese día). */
+function finDelDiaArgentino(dia: Date): number {
+  return Date.UTC(dia.getUTCFullYear(), dia.getUTCMonth(), dia.getUTCDate(), 23, 59, 59) + OFFSET_AR_MS;
 }
 
 export function sumarCorridos(desde: number, dias: number): number {
-  const dt = new Date(desde);
-  dt.setDate(dt.getDate() + dias);
-  dt.setHours(23, 59, 59, 0);
-  return dt.getTime();
+  const dt = diaArgentino(desde);
+  dt.setUTCDate(dt.getUTCDate() + dias);
+  return finDelDiaArgentino(dt);
 }
 
 export function sumarHabiles(desde: number, dias: number, fer: Set<string>): number {
-  const dt = new Date(desde);
+  const dt = diaArgentino(desde);
   let n = 0;
   while (n < dias) {
-    dt.setDate(dt.getDate() + 1);
-    const dow = dt.getDay();
-    if (dow !== 0 && dow !== 6 && !fer.has(isoDia(dt))) n++;
+    dt.setUTCDate(dt.getUTCDate() + 1);
+    const dow = dt.getUTCDay();
+    if (dow !== 0 && dow !== 6 && !fer.has(dt.toISOString().slice(0, 10))) n++;
   }
-  dt.setHours(23, 59, 59, 0);
-  return dt.getTime();
+  return finDelDiaArgentino(dt);
 }
 
 // ---------------------------------------------------------------------------
