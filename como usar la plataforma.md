@@ -31,6 +31,8 @@ Guía paso a paso para recorrer un acta de tránsito de punta a punta: desde que
 
 > **Alto contraste:** el botón con el ícono de medio círculo (◐ «Alto contraste») sube el contraste de textos, bordes, campos y foco, en tema claro y oscuro. En el sistema interno está en la barra lateral, arriba del botón de tema (y en el menú desplegado, fila «Contraste»); los inspectores lo tienen en la barra superior; en el portal, arriba a la derecha; y en el login, debajo del formulario. La elección queda guardada en el navegador; si nunca se eligió, se activa solo cuando el sistema operativo pide más contraste.
 
+> **Tamaño de texto:** hay tres tamaños: normal, grande y muy grande. En el menú desplegado del sistema interno, en el portal (arriba a la derecha) y en el login están los botones **A / A+ / A++**; en la barra lateral y en la barra del inspector hay un botón con el ícono de altura de texto que pasa al tamaño siguiente. Queda guardado en el navegador. Las hojas de los escritos, el ticket y las actas para imprimir no cambian de tamaño.
+
 ---
 
 ## 1. El inspector labra el acta

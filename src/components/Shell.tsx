@@ -10,6 +10,7 @@ import { inicioPara, inspectorForbidden } from '@/lib/role-guard';
 import { modulosDe, puede, ROL_ETIQUETA, tipoIdDe, tiposPermitidos, type Permiso } from '@/lib/dominio';
 import { useAuthUser } from '@/lib/use-auth-user';
 import { BotonContraste } from './BotonContraste';
+import { BotonTexto, ControlTexto } from './ControlTexto';
 
 interface MenuChild {
   titulo: string;
@@ -382,6 +383,10 @@ function ShellInner({ children }: { children: ReactNode }) {
           <span>Contraste</span>
           <BotonContraste className="sidebar-tema-btn" conTexto />
         </div>
+        <div className="sidebar-tema">
+          <span>Tamaño de texto</span>
+          <ControlTexto botonClase="sidebar-tema-btn" />
+        </div>
         <button type="button" className="sidebar-salir sidebar-salir-pie" onClick={() => logout()}>
           <i className="fa-solid fa-right-from-bracket" aria-hidden="true" />
           <span>Cerrar sesión</span>
@@ -406,6 +411,7 @@ function ShellInner({ children }: { children: ReactNode }) {
                 <i className="fa-solid fa-house" aria-hidden="true" /><span>Inicio</span>
               </button>
             ) : null}
+            <BotonTexto className="inspector-topbar-btn" />
             <BotonContraste className="inspector-topbar-btn" />
             <button type="button" className="inspector-topbar-btn" onClick={alternarTema} title="Cambiar tema" aria-label="Cambiar tema">
               <i className={`fa-solid ${tema === 'light' ? 'fa-sun' : 'fa-moon'}`} aria-hidden="true" />
@@ -511,6 +517,7 @@ function ShellInner({ children }: { children: ReactNode }) {
               )}
             </div>
             <div className="rail-pie">
+              <BotonTexto className="rail-btn" />
               <BotonContraste className="rail-btn" />
               <button type="button" className="rail-btn" title={tema === 'light' ? 'Tema claro' : 'Tema oscuro'} aria-label="Cambiar tema" onClick={alternarTema}>
                 <i className={`fa-solid ${tema === 'light' ? 'fa-sun' : 'fa-moon'}`} aria-hidden="true" />

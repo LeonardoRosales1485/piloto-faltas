@@ -64,7 +64,7 @@
 .resumen-acta, .ficha {
   display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 0.25rem 1.25rem; margin: 0;
   > div { padding: 0.45rem 0; border-bottom: 1px solid var(--bo-borde); }
-  dt { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--bo-texto-secundario); font-weight: 600; }
+  dt { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--bo-texto-secundario); font-weight: 600; }
   dd { margin: 0; font-weight: 500; word-break: break-word; }
 }
 
@@ -81,7 +81,7 @@
 .estado-externo { background: var(--bo-bg-celeste-100); color: var(--bo-tx-celeste-800); }
 .estado-archivo { background: var(--bo-bg-pizarra-200); color: var(--bo-tx-pizarra-700); }
 .estado-otro { background: var(--bo-bg-pizarra-100); color: var(--bo-tx-pizarra-600); }
-.medida-chip { display: inline-flex; align-items: center; gap: 0.3rem; background: var(--bo-bg-rojo-600); color: var(--bo-tx-blanco); border-radius: 999px; padding: 0.15rem 0.6rem; font-size: 0.72rem; font-weight: 700; white-space: nowrap; }
+.medida-chip { display: inline-flex; align-items: center; gap: 0.3rem; background: var(--bo-bg-rojo-600); color: var(--bo-tx-blanco); border-radius: 999px; padding: 0.15rem 0.6rem; font-size: 0.75rem; font-weight: 700; white-space: nowrap; }
 .plazo-chip { display: inline-flex; align-items: center; gap: 0.3rem; background: var(--bo-azul-claro); color: var(--bo-azul); border-radius: 999px; padding: 0.15rem 0.6rem; font-size: 0.75rem; font-weight: 600; white-space: nowrap; &.vencido { background: var(--bo-bg-rojo-100); color: var(--bo-tx-rojo-800); } }
 // Tema oscuro: #93c5fd sobre #1e3a8a = 5,74:1 (A11Y-006/paleta).
 [data-theme='dark'] .plazo-chip:not(.vencido) { color: var(--bo-dk-tx-azul-300); }
@@ -108,7 +108,7 @@
   border: 0; background: transparent; padding: 0.7rem 0.9rem; font-weight: 600; font-size: 0.88rem; color: var(--bo-texto-secundario);
   border-bottom: 3px solid transparent; white-space: nowrap;
   &.activa { color: var(--bo-azul); border-bottom-color: var(--bo-azul); }
-  .n { font-size: 0.72rem; background: var(--bo-fondo); border-radius: 999px; padding: 0 0.4rem; margin-left: 0.25rem; }
+  .n { font-size: 0.75rem; background: var(--bo-fondo); border-radius: 999px; padding: 0 0.4rem; margin-left: 0.25rem; }
 }
 .panel-acciones { position: sticky; top: 1rem; display: flex; flex-direction: column; gap: 0.75rem; }
 .acciones-lista { display: flex; flex-direction: column; gap: 0.45rem; }
@@ -192,7 +192,7 @@
 .login-rapido { margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid var(--bo-bd-gris-200); }
 .login-rapido-titulo { font-size: .8rem; text-transform: uppercase; letter-spacing: .05em; color: var(--bo-tx-gris-500); margin: 0 0 .6rem; text-align: center; }
 .login-rapido-area + .login-rapido-area { margin-top: .7rem; }
-.login-rapido-subtitulo { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--bo-tx-gris-500); margin: 0 0 .35rem; }
+.login-rapido-subtitulo { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--bo-tx-gris-500); margin: 0 0 .35rem; }
 .login-rapido-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; }
 .login-rapido-btn {
   display: flex; align-items: center; gap: .5rem; padding: .55rem .7rem; border: 1px solid var(--bo-bd-gris-300); border-radius: 8px;
@@ -214,7 +214,7 @@
   &.hecho:not(:last-child)::after { background: var(--bo-bg-verde-600); }
   .roadmap-punto { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: var(--bo-bg-gris-100); border: 2px solid var(--bo-bd-gris-200); font-size: .75rem; z-index: 1; }
   .roadmap-txt { margin-top: .3rem; font-weight: 600; white-space: nowrap; }
-  .roadmap-sub { font-size: .7rem; color: var(--bo-tx-azul-600); max-width: 130px; line-height: 1.15; }
+  .roadmap-sub { font-size: 0.75rem; color: var(--bo-tx-azul-600); max-width: 130px; line-height: 1.15; }
   &.hecho { color: var(--bo-tx-gris-700); .roadmap-punto { background: var(--bo-bg-verde-600); border-color: var(--bo-bd-verde-600); color: var(--bo-tx-blanco); } }
   &.final { color: var(--bo-tx-verde-700); .roadmap-txt { font-weight: 700; } .roadmap-punto { background: var(--bo-bg-verde-600); border-color: var(--bo-bd-verde-200); box-shadow: 0 0 0 4px rgba(22, 163, 74, .18); } }
   &.salteado { color: var(--bo-tx-gris-500); .roadmap-txt { font-weight: 500; } .roadmap-punto { background: var(--bo-bg-blanco); border-style: dashed; } }
@@ -287,7 +287,7 @@
 .filtros-menu { position: relative; }
 .btn-filtros {
   display: inline-flex; align-items: center; gap: .5rem; border: 1px solid var(--bo-bd-gris-300); background: var(--bo-bg-blanco); border-radius: 10px; padding: .5rem .9rem; font-weight: 600; color: var(--bo-tx-gris-800);
-  .n { background: var(--bo-bg-azul-600); color: var(--bo-tx-blanco); border-radius: 999px; font-size: .72rem; padding: 0 .45rem; }
+  .n { background: var(--bo-bg-azul-600); color: var(--bo-tx-blanco); border-radius: 999px; font-size: 0.75rem; padding: 0 .45rem; }
   .chev { font-size: .7rem; transition: transform .15s; }
   &:hover, &.abierto { border-color: var(--bo-bd-azul-300); background: var(--bo-bg-azul-50); }
   &.abierto .chev { transform: rotate(180deg); }
@@ -297,7 +297,7 @@
   background: var(--bo-bg-blanco); border: 1px solid var(--bo-bd-gris-200); border-radius: 14px; box-shadow: 0 18px 40px rgba(15, 23, 42, .16); padding: 1rem; animation: velo-entra .12s ease-out;
 }
 .filtros-seccion + .filtros-seccion { margin-top: .9rem; padding-top: .9rem; border-top: 1px solid var(--bo-bd-gris-100); }
-.filtros-titulo { font-size: .72rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--bo-tx-gris-500); margin-bottom: .5rem; }
+.filtros-titulo { font-size: 0.75rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--bo-tx-gris-500); margin-bottom: .5rem; }
 .filtros-chips { display: flex; flex-wrap: wrap; gap: .4rem; }
 .filtro-chip {
   border: 1px solid var(--bo-bd-gris-200); background: var(--bo-bg-gris-50); color: var(--bo-tx-gris-700); border-radius: 999px; padding: .3rem .75rem; font-size: .82rem; cursor: pointer;
@@ -432,7 +432,7 @@
   .n { width: 1.8rem; height: 1.8rem; flex-shrink: 0; display: grid; place-items: center; border-radius: 50%; border: 1.5px solid var(--bo-bd-gris-300); font-size: .8rem; font-weight: 700; }
   button.completado .n { background: var(--bo-bg-verde-600); border-color: var(--bo-bd-verde-600); color: var(--bo-tx-blanco); }
   button.activo { background: var(--bo-bg-azul-50); color: var(--bo-tx-azul-700); font-weight: 600; .n { background: var(--bo-bg-azul-600); border-color: var(--bo-bd-azul-600); color: var(--bo-tx-blanco); } }
-  .actual { margin-left: auto; font-size: .72rem; font-weight: 700; text-transform: uppercase; color: var(--bo-tx-azul-600); }
+  .actual { margin-left: auto; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: var(--bo-tx-azul-600); }
 }
 [data-theme='dark'] { .wizard-movil-barra, .wizard-movil-lista { background: var(--bo-dk-bg-gris-900); border-color: var(--bo-dk-bd-gris-700); color: var(--bo-dk-tx-gris-200); } .wizard-movil-lista button { color: var(--bo-dk-tx-gris-200); &:hover { background: var(--bo-dk-bg-gris-800); } } }
 
@@ -472,7 +472,7 @@
   &:hover { background: var(--bo-bg-gris-100); } &.activo { background: var(--bo-bg-azul-50); } }
 .gps-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
 .gps-nom { flex: 1; min-width: 0; strong { display: block; font-size: .9rem; } small { color: var(--bo-tx-gris-500); } }
-.gps-estado { font-size: .72rem; font-weight: 700; padding: .1rem .5rem; border-radius: 999px; &.on { background: var(--bo-bg-verde-100); color: var(--bo-tx-verde-800); } &.off { background: var(--bo-bg-gris-100); color: var(--bo-tx-gris-500); } }
+.gps-estado { font-size: 0.75rem; font-weight: 700; padding: .1rem .5rem; border-radius: 999px; &.on { background: var(--bo-bg-verde-100); color: var(--bo-tx-verde-800); } &.off { background: var(--bo-bg-gris-100); color: var(--bo-tx-gris-500); } }
 
 // Modo oscuro para tarjetas Bootstrap (.card) usadas en Valores y tarifas y otras vistas
 [data-theme='dark'] {
@@ -757,7 +757,7 @@ span.dato-subsanado { font-size: .75rem; padding: .1rem .45rem; font-weight: 600
     &::after { content: 'Ver detalle \203A'; position: absolute; right: 1rem; bottom: .7rem; font-size: .82rem; font-weight: 600; color: var(--bo-azul); }
   }
   td { display: block; text-align: right !important; border: 0 !important; border-bottom: 1px dashed rgba(148, 163, 184, .25) !important; padding: .4rem 0 !important; min-width: 0; word-break: break-word; background: transparent !important;
-    &::before { content: attr(data-label); float: left; margin-right: .75rem; font-size: .72rem; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--bo-texto-secundario); line-height: 1.9; }
+    &::before { content: attr(data-label); float: left; margin-right: .75rem; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--bo-texto-secundario); line-height: 1.9; }
     &[data-label='']::before { display: none; }
     &:last-child { border-bottom: 0 !important; }
     > div, .texto-ayuda { display: block; }
@@ -826,7 +826,7 @@ span.dato-subsanado { font-size: .75rem; padding: .1rem .45rem; font-weight: 600
   .estado-chip { white-space: normal; }
 }
 .pl-fila-apagada td { opacity: 0.6; }
-.pl-badge { display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.72rem; font-weight: 600; border-radius: 999px; padding: 0.1rem 0.55rem; background: var(--bo-fondo); color: var(--bo-texto-secundario); white-space: nowrap; }
+.pl-badge { display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.75rem; font-weight: 600; border-radius: 999px; padding: 0.1rem 0.55rem; background: var(--bo-fondo); color: var(--bo-texto-secundario); white-space: nowrap; }
 .pl-badge-sistema { background: var(--bo-bg-ambar-100); color: var(--bo-tx-ambar-800); }
 .pl-sit { display: inline-block; font-size: 0.78rem; font-weight: 600; border-radius: 999px; padding: 0.15rem 0.6rem; white-space: nowrap; }
 .pl-sit-ok { background: var(--bo-bg-verde-100); color: var(--bo-tx-verde-800); }
@@ -911,7 +911,7 @@ span.dato-subsanado { font-size: .75rem; padding: .1rem .45rem; font-weight: 600
   button { flex: 1 0 auto; border: 0; background: transparent; padding: 0.7rem 0.6rem; font-size: 0.82rem; font-weight: 600; color: var(--bo-texto-secundario); border-bottom: 3px solid transparent; white-space: nowrap; }
   button.activo { color: var(--bo-azul); border-bottom-color: var(--bo-azul); }
 }
-.pl-tab-n { display: inline-block; min-width: 1.2rem; margin-left: 0.25rem; padding: 0 0.35rem; border-radius: 999px; font-size: 0.72rem; background: var(--bo-bg-ambar-100); color: var(--bo-tx-ambar-800); &.error { background: var(--bo-bg-rojo-100); color: var(--bo-tx-rojo-800); } }
+.pl-tab-n { display: inline-block; min-width: 1.2rem; margin-left: 0.25rem; padding: 0 0.35rem; border-radius: 999px; font-size: 0.75rem; background: var(--bo-bg-ambar-100); color: var(--bo-tx-ambar-800); &.error { background: var(--bo-bg-rojo-100); color: var(--bo-tx-rojo-800); } }
 .pl-panel-cuerpo { padding: 0.9rem 1rem 1.1rem; overflow-y: auto; }
 
 .pl-config {
@@ -944,7 +944,7 @@ span.dato-subsanado { font-size: .75rem; padding: .1rem .45rem; font-weight: 600
   }
 }
 .pl-campo-nombre { font-size: 0.88rem; font-weight: 600; color: var(--bo-texto); }
-.pl-campo-ayuda { font-size: 0.74rem; color: var(--bo-texto-secundario); code { font-size: 0.72rem; color: inherit; } }
+.pl-campo-ayuda { font-size: 0.75rem; color: var(--bo-texto-secundario); code { font-size: 0.75rem; color: inherit; } }
 .pl-usado { color: var(--bo-tx-verde-600); margin-left: 0.35rem; font-size: 0.75rem; }
 .pl-campo-completar {
   width: 100%; text-align: left; display: flex; flex-direction: column; gap: 0.3rem; border: 2px dashed var(--bo-bd-amarillo-400); background: var(--bo-bg-amarillo-50); border-radius: var(--bo-radio); padding: 0.6rem 0.75rem;
@@ -1020,7 +1020,7 @@ span.dato-subsanado { font-size: .75rem; padding: .1rem .45rem; font-weight: 600
 .proximo-paso-texto { flex: 1 1 320px; min-width: 0; display: flex; flex-direction: column; gap: .15rem;
   strong { font-size: 1.05rem; }
 }
-.proximo-paso-etiqueta { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--bo-texto-secundario); }
+.proximo-paso-etiqueta { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--bo-texto-secundario); }
 .proximo-paso-detalle { font-size: .88rem; color: var(--bo-texto-secundario); }
 .proximo-paso-quien { font-size: .8rem; font-weight: 600; color: var(--bo-texto); margin-top: .15rem; i { margin-right: .25rem; } }
 .proximo-paso-acciones { display: flex; flex-wrap: wrap; gap: .5rem; }
@@ -1046,3 +1046,19 @@ span.dato-subsanado { font-size: .75rem; padding: .1rem .45rem; font-weight: 600
 .login-contraste { display: flex; justify-content: center; margin-top: .75rem; }
 .rail-btn.boton-contraste[aria-pressed='true'] { background: var(--bo-bg-azul-100); color: var(--bo-tx-azul-700); }
 [data-theme='dark'] .rail-btn.boton-contraste[aria-pressed='true'] { background: var(--bo-dk-bg-azul-900); color: #fff; }
+
+// ---------------------------------------------------------------------------
+//  A11Y paso 5: tamaño de texto. Escala el root (todo lo que está en rem).
+//  Las hojas A4, el ticket y las actas usan pt/mm/px fijos y no cambian;
+//  al imprimir se vuelve al 100 % para no alterar documentos.
+// ---------------------------------------------------------------------------
+html[data-text-size='grande'] { font-size: 112.5%; }
+html[data-text-size='muy-grande'] { font-size: 137.5%; }
+@media print { html[data-text-size] { font-size: 100% !important; } }
+
+.control-texto { display: inline-flex; gap: .25rem; }
+.control-texto-btn { min-width: 2.25rem; justify-content: center; font-weight: 700; line-height: 1; }
+.control-texto-btn[aria-pressed='true'] { background: var(--bo-btn-primary); border-color: var(--bo-btn-primary); color: #fff; }
+.boton-texto { position: relative; }
+.boton-texto-nivel { position: absolute; right: 4px; bottom: 2px; font-size: .75rem; font-weight: 800; line-height: 1; }
+.login-contraste { gap: .5rem; flex-wrap: wrap; }

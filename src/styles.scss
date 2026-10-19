@@ -282,7 +282,7 @@ body {
   }
 
   span {
-    font-size: 0.6875rem;
+    font-size: 0.75rem;
     color: var(--bo-texto-secundario);
     white-space: nowrap;
   }
@@ -323,7 +323,7 @@ body {
 }
 
 .sidebar-nav-titulo {
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -487,7 +487,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 0.125rem;
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   color: var(--bo-texto-secundario);
   text-align: center;
 }
@@ -558,7 +558,7 @@ body {
   }
 
   span {
-    font-size: 0.625rem;
+    font-size: 0.75rem;
     color: var(--bo-texto-secundario);
   }
 }
@@ -958,7 +958,7 @@ body {
 
   .form-label-v2 {
     margin-bottom: 0.2rem;
-    font-size: 0.7rem;
+    font-size: 0.75rem;
   }
 }
 
@@ -972,7 +972,7 @@ body {
   border-radius: 999px;
   background-color: var(--bo-btn-primary);
   color: var(--bo-tx-blanco);
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   font-weight: 700;
   line-height: 1;
 }
@@ -1820,7 +1820,7 @@ textarea.form-control {
   flex: 1;
   position: relative;
   color: var(--bo-texto-secundario);
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
 
   &:not(:last-child)::after {
     content: '';
@@ -1857,7 +1857,7 @@ textarea.form-control {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   position: relative;
   z-index: 1;
 }
@@ -1912,7 +1912,7 @@ textarea.form-control {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   font-weight: 700;
 }
 
@@ -1931,7 +1931,7 @@ textarea.form-control {
 }
 
 .paso-nombre {
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   text-align: center;
   line-height: 1.1;
 }
@@ -2757,7 +2757,7 @@ textarea.form-control {
   }
 
   .wizard-paso-label {
-    font-size: 0.65rem;
+    font-size: 0.75rem;
   }
 
   .card-step-body {
@@ -2878,7 +2878,7 @@ textarea.form-control {
       font-size: 1.05rem;
 
       span {
-        font-size: 0.68rem;
+        font-size: 0.75rem;
         font-weight: 600;
         line-height: 1.15;
         text-align: center;

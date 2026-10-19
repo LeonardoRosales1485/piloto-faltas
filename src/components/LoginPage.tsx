@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { login } from '@/lib/auth-client';
 import { BotonContraste } from './BotonContraste';
+import { ControlTexto } from './ControlTexto';
 
 type Acceso = { u: string; p: string; t: string; i: string };
 
@@ -139,6 +140,7 @@ export function LoginPage() {
           {versionPos ? <span>App POS v{versionPos}</span> : null}
         </div>
         <div className="login-contraste">
+          <ControlTexto botonClase="btn btn-sm btn-outline-secondary" />
           <BotonContraste className="btn btn-sm btn-outline-secondary" conTexto />
         </div>
         </div>

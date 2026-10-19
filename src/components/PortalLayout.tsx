@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useState, type ReactNode } from 'react';
 import { BotonContraste } from './BotonContraste';
+import { ControlTexto } from './ControlTexto';
 import { nombrePerfil, portalPerfil, portalToken, rutaPortalPrivada, salirPortal, type Perfil } from '@/lib/portal-client';
 
 /** Marco del portal de infractores: simple, legible en celular. */
@@ -43,6 +44,7 @@ export function PortalLayout({ children }: { children: ReactNode }) {
             <div><strong>Portal de Infractores</strong><span>Dirección de Faltas · Malvinas Argentinas</span></div>
           </Link>
           <div className="portal-header-acciones">
+          <ControlTexto botonClase="btn btn-sm btn-outline-secondary" />
           <BotonContraste className="btn btn-sm btn-outline-secondary" conTexto textoClase="d-none d-sm-inline" />
           {perfil ? (
             <div className="portal-usuario">
