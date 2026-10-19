@@ -84,6 +84,7 @@ Avance: **20 / 20**
 | QA UI-CONT-7: causa cerrada sin señales contradictorias: el roadmap resalta en verde la etapa final («Pagada», «Archivada»…), las etapas salteadas quedan tenues (también en tema oscuro, donde las cumplidas se veían oscuras y la salteada en blanco) y el plazo no se muestra en estados finales (causa, bandeja y presentaciones) | — |
 | QA UI-CONT-08: el portal encuentra las actas del infractor aunque el documento o CUIT tenga puntos, espacios o guiones (búsqueda tolerante); acta y cuenta del portal guardan el documento normalizado; `sql/026_documentos_normalizados.sql` corrige los datos existentes. Aplica igual a tránsito, contravención y sustancias | — |
 | QA UI-CONT-09: un descargo rechazado cuenta como presentado: no se puede presentar otro y, en tránsito, se pierde el pago voluntario y queda la boleta sin beneficio (100 %). En contravención el pago voluntario sigue disponible (RN-41 · PI-15), a confirmar con el cliente | — |
+| QA AUTH-CONT-10: portal del infractor con la misma protección de sesión que el back office: «Salir» no deja la pantalla en el historial, «Atrás», volver a la pestaña o salir en otra pestaña llevan al ingreso, un 401 cierra la sesión y las páginas del portal no se guardan en la caché del navegador | — |
 
 ## Fuera del alcance del prototipo
 

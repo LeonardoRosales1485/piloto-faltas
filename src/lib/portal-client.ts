@@ -27,9 +27,14 @@ export function guardarPerfil(perfil: Perfil) {
 }
 
 export function salirPortal() {
-  localStorage.removeItem(KEY);
-  localStorage.removeItem(PERFIL);
-  window.location.href = '/portal';
+  try { localStorage.removeItem(KEY); localStorage.removeItem(PERFIL); } catch { /* sin almacenamiento */ }
+  // replace: la pantalla con sesión no queda en el historial («Atrás» no vuelve a ella) (QA AUTH-CONT-10).
+  window.location.replace('/portal');
+}
+
+/** Pantallas del portal que necesitan sesión (fuera de ellas, /portal muestra el login). */
+export function rutaPortalPrivada(path: string) {
+  return /^\/portal\/(causa|documento|perfil)(\/|$)/.test(path);
 }
 
 async function req<T>(path: string, init: RequestInit = {}): Promise<T> {
@@ -38,7 +43,8 @@ async function req<T>(path: string, init: RequestInit = {}): Promise<T> {
   if (t) headers.Authorization = `Bearer ${t}`;
   const res = await fetch(path, { ...init, headers });
   const body = (await res.json()) as { data: T; message?: string };
-  if (res.status === 401 && t) { salirPortal(); }
+  // Sesión vencida o cerrada (también en otra pestaña): al ingreso, en lugar de dejar la pantalla con datos viejos.
+  if (res.status === 401 && !/^\/api\/portal\/(login|registro|verificar|recuperar|restablecer)/.test(path)) { salirPortal(); }
   if (!res.ok) throw new Error(body.message ?? `Error ${res.status}`);
   if (init.method === 'POST') avisarCambio(path);
   return body.data;
