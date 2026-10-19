@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import '@fortawesome/fontawesome-free/css/all.min.css';
 import '../styles.scss';
+import { AccesibilidadTeclado } from '@/components/AccesibilidadTeclado';
 import { AuthBootstrap } from '@/components/AuthBootstrap';
 import { NotifyProvider } from '@/components/NotifyProvider';
 
@@ -27,6 +28,7 @@ export default function RootLayout({
       <body>
         <NotifyProvider>
           <AuthBootstrap />
+          <AccesibilidadTeclado />
           {children}
         </NotifyProvider>
       </body>

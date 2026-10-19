@@ -27,6 +27,8 @@ Guía paso a paso para recorrer un acta de tránsito de punta a punta: desde que
 
 > Para probar el circuito completo con Valeria, cargá su **DNI 30111222** en el acta: así el acta le aparece sola en «Mis actas» del portal.
 
+> **Con teclado:** las ventanas emergentes (ver acta, confirmaciones, formularios) se cierran con **Escape**, igual que con un clic afuera, y al cerrarse el foco vuelve al botón que las abrió. Las tablas anchas se pueden recorrer con Tab y desplazar con las flechas.
+
 ---
 
 ## 1. El inspector labra el acta

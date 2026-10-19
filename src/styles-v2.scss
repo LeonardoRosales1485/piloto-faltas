@@ -1035,3 +1035,8 @@ span.dato-subsanado { font-size: .75rem; padding: .1rem .45rem; font-weight: 600
 // Número y fecha del escrito que asigna el sistema al firmar
 .doc-auto { display: inline-block; font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; font-size: .8em; font-weight: 600; background: #e0e7ff; color: #3730a3; border: 1px dashed #818cf8; border-radius: 4px; padding: 0 .35em; white-space: nowrap; }
 @media print { .doc-auto { background: none; border: 0; color: inherit; } }
+
+// A11Y paso 3: diálogos que reciben el foco en el contenedor (sin anillo alrededor de todo el modal)
+// y regiones de tabla scrolleables con el anillo de foco por dentro, para que el overflow no lo corte.
+[role='dialog'][tabindex='-1']:focus { outline: none; }
+.table-responsive[data-a11y-region]:focus-visible { outline-offset: -3px; }

@@ -960,7 +960,8 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
               </div>
               {imagenes.length < MAX_IMAGENES ? (
                 <div className="col-12">
-                  <label className="btn btn-outline-primary btn-subir-imagen" onClick={(e) => void onClickSubirImagen(e)}>
+                  {/* El input file va oculto: la etiqueta hace de botón y se activa también con Enter o Espacio (A11Y paso 3). */}
+                  <label className="btn btn-outline-primary btn-subir-imagen" role="button" tabIndex={0} onClick={(e) => void onClickSubirImagen(e)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.currentTarget.click(); } }}>
                     <i className="fa-solid fa-camera" aria-hidden="true" /> Tomar o subir imágenes
                     <input type="file" accept="image/*" capture="environment" multiple hidden onChange={onImagenes} />
                   </label>
