@@ -66,10 +66,10 @@ export function LoginPage() {
   }
 
   return (
-    <div className="login-page">
+    <main className="login-page">
       <div className="login-card login-card-doble">
         <div className="login-col-form">
-        <div className="login-brand">
+        <header className="login-brand">
           <div className="login-bo">
             <i className="fa-solid fa-building-columns" aria-hidden="true" />
           </div>
@@ -77,7 +77,7 @@ export function LoginPage() {
             <strong>BLUE OPENDATA</strong>
             <span>SISTEMA DE FALTAS</span>
           </h1>
-        </div>
+        </header>
         <form onSubmit={submit}>
           <div className="form-group">
             <label htmlFor="username">Usuario</label>
@@ -90,7 +90,9 @@ export function LoginPage() {
                 placeholder="Ingresa tu usuario"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
+                autoComplete="username"
                 required
+                aria-invalid={error ? true : undefined}
               />
             </div>
           </div>
@@ -108,6 +110,7 @@ export function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 autoComplete="current-password"
                 required
+                aria-invalid={error ? true : undefined}
               />
               <button type="button" className="btn-ojo" onClick={() => setVerPass((v) => !v)} aria-label={verPass ? 'Ocultar contraseña' : 'Mostrar contraseña'} title={verPass ? 'Ocultar contraseña' : 'Mostrar contraseña'} aria-pressed={verPass}>
                 <i className={`fa-solid ${verPass ? 'fa-eye-slash' : 'fa-eye'}`} aria-hidden="true" />
@@ -117,17 +120,17 @@ export function LoginPage() {
           <button type="submit" className="btn btn-primary btn-login" disabled={loading}>
             {loading ? (
               <>
-                <i className="fa-solid fa-spinner fa-spin" /> Ingresando...
+                <i className="fa-solid fa-spinner fa-spin" aria-hidden="true" /> Ingresando...
               </>
             ) : (
               <>
-                <i className="fa-solid fa-right-to-bracket" /> Ingresar
+                <i className="fa-solid fa-right-to-bracket" aria-hidden="true" /> Ingresar
               </>
             )}
           </button>
         </form>
         {aviso && !error ? <p className="err mt-2" role="status">{aviso}</p> : null}
-        {error ? <p className="err mt-2">{error}</p> : null}
+        {error ? <p className="err mt-2" role="alert">{error}</p> : null}
         <div className="login-footer">
           <span>Municipalidad de Malvinas Argentinas</span>
           <span>© {year} Blue Open Data</span>
@@ -135,7 +138,7 @@ export function LoginPage() {
           {versionPos ? <span>App POS v{versionPos}</span> : null}
         </div>
         </div>
-        <div className="login-rapido" aria-label="Acceso rápido">
+        <section className="login-rapido" aria-label="Acceso rápido">
           <p className="login-rapido-titulo">Acceso rápido (piloto)</p>
           {AREAS.map((a) => (
             <div key={a.area} className="login-rapido-area">
@@ -165,8 +168,8 @@ export function LoginPage() {
               </a>
             </div>
           </div>
-        </div>
+        </section>
       </div>
-    </div>
+    </main>
   );
 }

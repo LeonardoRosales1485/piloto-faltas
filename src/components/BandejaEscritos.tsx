@@ -39,6 +39,7 @@ export function BandejaEscritos() {
 
   return (
     <div className="pagina">
+      <h1 className="visually-hidden">Escritos y firma</h1>
       <div className="bandeja-tabs">
         {(puede(user?.rol, 'verPlantillas') || puede(user?.rol, 'plantillas')) ? <Link href="/private/plantillas" className="bandeja-tab ms-auto order-last" title="Consultar las plantillas de escritos"><i className="fa-solid fa-file-lines" aria-hidden="true" /> Plantillas</Link> : null}
         {ESTADOS.map((e) => <button key={e.v} type="button" className={`bandeja-tab ${estado === e.v ? 'activa' : ''}`} onClick={() => setEstado(e.v)}>{e.t} {e.v !== 'todos' ? <span className="n">{r?.conteos?.[e.v] ?? 0}</span> : null}</button>)}

@@ -68,6 +68,7 @@ export function CausasBandeja() {
 
   return (
     <div className="pagina">
+      <h1 className="visually-hidden">Causas</h1>
       <div className="filtros-barra mb-2">
         <div className="filtros-menu" ref={menuRef}>
           <button type="button" className={`btn btn-filtros ${menuAbierto ? 'abierto' : ''}`} aria-expanded={menuAbierto} onClick={() => setMenuAbierto((v) => !v)}>

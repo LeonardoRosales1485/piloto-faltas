@@ -47,9 +47,9 @@ function Login({ volver }: { volver: string | null }) {
       <h1>Ingresar</h1>
       <p className="texto-ayuda">Para consultar y gestionar sus actas necesita una cuenta. Si llegó escaneando el QR del ticket, ingrese y lo llevamos a su acta.</p>
       <form onSubmit={entrar}>
-        <div className="form-group mb-2"><label htmlFor="p-email">Correo electrónico</label><input id="p-email" type="email" className="form-control" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" /></div>
-        <div className="form-group mb-3"><label htmlFor="p-pass">Contraseña</label><InputClave id="p-pass" value={password} onChange={(e) => setPassword(e.target.value)} required autoComplete="current-password" /></div>
-        {error ? <div className="aviso aviso-peligro">{error}</div> : null}
+        <div className="form-group mb-2"><label htmlFor="p-email">Correo electrónico</label><input id="p-email" type="email" className="form-control" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" aria-invalid={error && !verificar ? true : undefined} /></div>
+        <div className="form-group mb-3"><label htmlFor="p-pass">Contraseña</label><InputClave id="p-pass" value={password} onChange={(e) => setPassword(e.target.value)} required autoComplete="current-password" aria-invalid={error && !verificar ? true : undefined} /></div>
+        {error ? <div className="aviso aviso-peligro" role="alert">{error}</div> : null}
         <button type="submit" className="btn btn-primary btn-lg w-100">Ingresar</button>
       </form>
       {verificar ? (
@@ -93,7 +93,7 @@ function Causas({ perfil }: { perfil: Perfil }) {
           <div className="col-5 col-md-3"><button type="submit" className="btn btn-primary btn-lg w-100">Buscar</button></div>
         </form>
       </div>
-      {error ? <div className="aviso aviso-peligro">{error}</div> : null}
+      {error ? <div className="aviso aviso-peligro" role="alert">{error}</div> : null}
       <div className="portal-card">
         <h2>{q ? 'Resultados' : 'Mis actas'}</h2>
         <ul className="lista-items">

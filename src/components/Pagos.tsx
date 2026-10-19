@@ -38,6 +38,7 @@ export function Pagos() {
   const total = items.reduce((a, b) => a + Number(b.monto), 0);
   return (
     <div className="pagina">
+      <h1 className="visually-hidden">Pagos</h1>
       <div className="bandeja-tabs">{FILTROS.map((f) => <button key={f.v} type="button" className={`bandeja-tab ${estado === f.v ? 'activa' : ''}`} onClick={() => setEstado(f.v)}>{f.t}</button>)}</div>
       <div className="card-step">
         <div className="card-step-header"><h2>Boletas</h2><p>{items.length} boleta(s) · {pesos(total)}</p></div>

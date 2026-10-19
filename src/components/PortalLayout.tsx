@@ -43,7 +43,7 @@ export function PortalLayout({ children }: { children: ReactNode }) {
           </Link>
           {perfil ? (
             <div className="portal-usuario">
-              <Link href="/portal/perfil" className="text-decoration-none"><i className="fa-solid fa-circle-user" aria-hidden="true" /> <span className="d-none d-sm-inline">{nombrePerfil(perfil)}</span></Link>
+              <Link href="/portal/perfil" className="text-decoration-none" aria-label={`Mi perfil (${nombrePerfil(perfil)})`}><i className="fa-solid fa-circle-user" aria-hidden="true" /> <span className="d-none d-sm-inline">{nombrePerfil(perfil)}</span></Link>
               <button type="button" className="btn btn-sm btn-outline-secondary" onClick={salirPortal}>Salir</button>
             </div>
           ) : null}
