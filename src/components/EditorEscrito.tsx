@@ -53,6 +53,8 @@ export function EditorEscrito() {
   const [valores, setValores] = useState<Record<string, string>>({});
   const [modo, setModo] = useState<'campos' | 'libre'>('campos');
   const [confirmarLibre, setConfirmarLibre] = useState(false);
+  // Campo con foco (panel u hoja): se resalta su par en el otro lado.
+  const [activo, setActivo] = useState<string | null>(null);
   const base = useRef('');
 
   const cargar = useCallback(() => {
@@ -90,6 +92,18 @@ export function EditorEscrito() {
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [d, modo, puedeEditar]);
+
+  // Resalta en la hoja el campo que se edita en el panel (y lleva la hoja hasta él).
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.querySelectorAll('input.campo-completar.resaltado').forEach((x) => x.classList.remove('resaltado'));
+    if (!activo) return;
+    const inp = el.querySelector<HTMLInputElement>(`input[data-k="${activo}"]`);
+    if (!inp) return;
+    inp.classList.add('resaltado');
+    if (document.activeElement !== inp) inp.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  }, [activo]);
 
   function onCampo(e: React.FormEvent<HTMLDivElement>) {
     const t = e.target as HTMLInputElement;
@@ -231,9 +245,9 @@ export function EditorEscrito() {
                 <div className="card-step-header"><h2>Datos del escrito</h2><p>{pendientes ? `Faltan ${pendientes} de ${campos.length}` : 'Todos los datos completos'} · los marcados «de la causa» vienen precargados y se pueden corregir solo para este escrito</p></div>
                 <div className="card-step-body">
                   {campos.map((c) => (
-                    <div key={c.k} className="mb-2">
+                    <div key={c.k} className={`mb-2 campo-panel ${activo === c.k ? 'activo' : ''}`}>
                       <label className="form-label-v2" htmlFor={`pc-${c.k}`}>{c.label}{precargados.has(c.k) ? <span className="badge text-bg-light border ms-1" title="Dato precargado desde la causa">de la causa</span> : null}</label>
-                      <input id={`pc-${c.k}`} className={`form-control form-control-sm ${(valores[c.k] ?? '').trim() ? '' : 'is-invalid'}`} type={c.tipo === 'fecha' ? 'date' : c.tipo === 'numero' || c.tipo === 'moneda' ? 'number' : 'text'} value={valores[c.k] ?? ''} onChange={(e) => setCampoPanel(c.k, e.target.value)} />
+                      <input id={`pc-${c.k}`} onFocus={() => setActivo(c.k)} onBlur={() => setActivo((a) => (a === c.k ? null : a))} className={`form-control form-control-sm ${(valores[c.k] ?? '').trim() ? '' : 'is-invalid'}`} type={c.tipo === 'fecha' ? 'date' : c.tipo === 'numero' || c.tipo === 'moneda' ? 'number' : 'text'} value={valores[c.k] ?? ''} onChange={(e) => setCampoPanel(c.k, e.target.value)} />
                     </div>
                   ))}
                 </div>
@@ -265,7 +279,10 @@ export function EditorEscrito() {
             <img src="/images/Municipio_malvinas_argentinas_logo.png" alt="" style={{ height: 44, display: 'block', margin: '0 auto 4px' }} />
             <strong>MUNICIPALIDAD DE MALVINAS ARGENTINAS</strong>DIRECCIÓN DE FALTAS
           </div>
-          <div ref={ref} data-paginar="" contentEditable={editable && modo === 'libre'} suppressContentEditableWarning onInput={onCampo} style={{ outline: 'none', minHeight: '40mm' }} aria-label="Texto del escrito" />
+          <div ref={ref} data-paginar="" contentEditable={editable && modo === 'libre'} suppressContentEditableWarning onInput={onCampo}
+            onFocus={(e) => { const k = (e.target as HTMLElement).dataset?.k; if (k) setActivo(k); }}
+            onBlur={(e) => { const k = (e.target as HTMLElement).dataset?.k; if (k) setActivo((a) => (a === k ? null : a)); }}
+            style={{ outline: 'none', minHeight: '40mm' }} aria-label="Texto del escrito" />
           {doc.firmado_por ? <div dangerouslySetInnerHTML={{ __html: firmaHtml(doc) }} /> : null}
         </HojasPaginadas>
       </div>

@@ -94,6 +94,7 @@ Avance: **20 / 20**
 | Labrado: «Municipio emisor» (y «Marca») ordenados alfabéticamente (QA) | — |
 | «Seguimiento GPS» oculto por defecto (no es requerimiento; el código queda). Se muestra desde «Configuración › Funciones opcionales» (administrador; clave `mostrar_seguimiento_gps`). Apagado, nadie tiene el permiso: sin menú, sin botón «GPS» en Inspectores y sin acceso a la pantalla ni a la API | — |
 | Escritos: todos los datos son campos del formulario. Las variables del sistema ([Acta:…], [Causa:…], [System:…], [Usuario:…]) y los campos a completar que la causa conoce se generan como inputs **precargados** (editables solo en ese escrito; vacíos y obligatorios si la causa no tiene el dato). [Documento:Numero/Fecha] siguen automáticos. Panel «Datos del escrito» con marca «de la causa». Vista previa de plantillas y compromisos de pago adaptados | — |
+| Editor de escritos: al enfocar un dato en el panel se resalta (en ámbar) su campo en la hoja y la hoja se desplaza hasta él; al enfocar un campo de la hoja se resalta su fila en el panel | — |
 
 ## Fuera del alcance del prototipo
 
