@@ -8,12 +8,15 @@ import { LoaderLogo } from './LoaderLogo';
 import { useNotify } from './NotifyProvider';
 
 type Info = Record<string, { creado_at: number; creado_por: string; actas: number }>;
-type Accion = { accion: 'borrar' | 'usuarios' | 'cargar' | 'guardar_foto'; origen?: 'default' | 'foto'; palabra: string; titulo: string; aviso: string };
+type Accion = { accion: 'restablecer' | 'borrar' | 'usuarios' | 'cargar' | 'guardar_foto'; origen?: 'default' | 'foto'; palabra: string; titulo: string; aviso: string };
 
 const ETIQUETA: Record<string, string> = {
   ciudadano: 'cuentas del portal', lote: 'lotes', infraccion: 'actas', infraccion_ley: 'artículos', infraccion_dependencia: 'dependencias', infraccion_imagen: 'imágenes',
   causa_historial: 'movimientos', presentacion: 'presentaciones', documento: 'escritos y documentos', boleta: 'boletas', notificacion: 'notificaciones', correo_saliente: 'correos',
   subsanacion: 'subsanaciones', memo: 'memos internos', causa_ley_ajuste: 'montos ajustados por artículo',
+  datos_borrados: 'registros de datos borrados', usuario: 'usuarios de prueba', plantilla: 'plantillas de escritos', plantilla_version: 'versiones de plantillas',
+  ley: 'artículos de ordenanzas', configuracion: 'valores y tarifas', feriado: 'feriados', texto_portal: 'textos del portal', catalogo: 'catálogos',
+  permiso_rol: 'permisos editados por tipo de usuario', vehiculo_marca: 'marcas de vehículos', vehiculo_modelo: 'modelos de vehículos',
 };
 
 /** Opciones sandbox (solo administrador): borrar datos, resetear usuarios y cargar datos dummy. */
@@ -56,7 +59,16 @@ export function OpcionesSandbox() {
       {cargando ? <div className="card-step"><LoaderLogo tam={56} /></div> : (
         <div className="sandbox-grid">
           <article className="card-step sandbox-card">
-            <div className="card-step-header"><h2><i className="fa-solid fa-trash-can" aria-hidden="true" /> Borrar todo</h2><p>Salvo usuarios y plantillas de escritos</p></div>
+            <div className="card-step-header"><h2><i className="fa-solid fa-rotate-left" aria-hidden="true" /> Restablecer piloto</h2><p>Como recién instalado</p></div>
+            <div className="card-step-body">
+              <p>Borra todas las actas y causas y vuelve todo al origen: solo los usuarios de prueba, las plantillas de escritos originales, ordenanzas, valores y tarifas, feriados, textos del portal, marcas y modelos y los permisos por defecto.</p>
+              <p className="texto-ayuda">Se pierden las ediciones de configuración. Después se pueden cargar datos dummy.</p>
+              <button type="button" className="btn btn-danger w-100" onClick={() => pedir({ accion: 'restablecer', palabra: 'RESTABLECER', titulo: 'Piloto restablecido', aviso: 'Se borrarán todos los datos y se perderán las ediciones de usuarios, plantillas y configuración: la base queda como recién instalada.' })}>Restablecer piloto</button>
+            </div>
+          </article>
+
+          <article className="card-step sandbox-card">
+            <div className="card-step-header"><h2><i className="fa-solid fa-trash-can" aria-hidden="true" /> Borrar todo</h2><p>Solo datos: conserva usuarios y configuración</p></div>
             <div className="card-step-body">
               <p>Elimina actas, causas, escritos, presentaciones, boletas, notificaciones, correos y cuentas del portal. Reinicia la numeración (la próxima acta de tránsito será T-001001).</p>
               <p className="texto-ayuda">Se conservan usuarios, plantillas, ordenanzas, valores y tarifas, feriados y textos del portal.</p>

@@ -10,9 +10,9 @@ export async function GET(req: NextRequest) {
   }, 'sandbox');
 }
 
-type Body = { accion: 'borrar' | 'usuarios' | 'cargar' | 'guardar_foto'; origen?: 'default' | 'foto'; confirmacion?: string };
+type Body = { accion: 'restablecer' | 'borrar' | 'usuarios' | 'cargar' | 'guardar_foto'; origen?: 'default' | 'foto'; confirmacion?: string };
 
-const PALABRA: Record<Body['accion'], string> = { borrar: 'BORRAR', usuarios: 'USUARIOS', cargar: 'CARGAR', guardar_foto: 'GUARDAR' };
+const PALABRA: Record<Body['accion'], string> = { restablecer: 'RESTABLECER', borrar: 'BORRAR', usuarios: 'USUARIOS', cargar: 'CARGAR', guardar_foto: 'GUARDAR' };
 
 /** Acciones sandbox. Cada una corre en la base como una única transacción. */
 export async function POST(req: NextRequest) {
@@ -21,12 +21,13 @@ export async function POST(req: NextRequest) {
     check(PALABRA[b.accion], 'Acción inválida');
     check((b.confirmacion ?? '').trim().toUpperCase() === PALABRA[b.accion], `Escriba ${PALABRA[b.accion]} para confirmar`);
     const llamada =
-      b.accion === 'borrar' ? db.rpc('sandbox_borrar')
+      b.accion === 'restablecer' ? db.rpc('sandbox_restablecer')
+        : b.accion === 'borrar' ? db.rpc('sandbox_borrar')
         : b.accion === 'usuarios' ? db.rpc('sandbox_resetear_usuarios')
           : b.accion === 'guardar_foto' ? db.rpc('sandbox_capturar', { p_nombre: 'foto', p_usuario: nombreUsuario(user) })
             : db.rpc('sandbox_cargar', { p_nombre: b.origen === 'foto' ? 'foto' : 'default' });
     const { data, error } = await llamada;
-    if (error) throw new Error(error.message);
+    if (error) throw new Error(/sandbox_restablecer/.test(error.message) ? 'Falta correr sql/029_sandbox_restablecer.sql en Supabase' : error.message);
     console.info(`[sandbox] ${user.username} ejecutó ${b.accion}${b.origen ? ` (${b.origen})` : ''}`);
     return { resultado: data };
   }, 'sandbox');

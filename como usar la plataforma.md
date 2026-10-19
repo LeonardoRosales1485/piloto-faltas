@@ -230,9 +230,10 @@ El PDF trae el remito del lote (número APR-AAAA-NNNN, listado y total con espac
 
 ## Opciones sandbox (Administrador, entorno de pruebas)
 
-En **Configuración → Opciones sandbox** hay tres acciones. Todas piden escribir una palabra para confirmar y **no se pueden deshacer**:
+En **Configuración → Opciones sandbox** hay cuatro acciones. Todas piden escribir una palabra para confirmar y **no se pueden deshacer**:
 
-- **Borrar todo:** elimina actas, causas, escritos, presentaciones, boletas, notificaciones, correos, memos, subsanaciones y cuentas del portal, y reinicia la numeración (la próxima acta de tránsito es T-001001). Se conservan usuarios, plantillas, ordenanzas, valores y tarifas, feriados y textos del portal.
+- **Restablecer piloto:** deja la base como recién instalada: sin actas ni causas, solo los usuarios de prueba y la configuración de origen (plantillas de escritos originales, ordenanzas, valores y tarifas, feriados, textos del portal, catálogos, marcas y modelos de vehículos y permisos por defecto). Se pierden las ediciones de usuarios, plantillas y configuración.
+- **Borrar todo:** solo datos; elimina actas, causas, escritos, presentaciones, boletas, notificaciones, correos, memos, subsanaciones y cuentas del portal, y reinicia la numeración (la próxima acta de tránsito es T-001001). Se conservan usuarios, plantillas, ordenanzas, valores y tarifas, feriados y textos del portal.
 - **Resetear usuarios:** deja solo los usuarios de prueba (admin, inspectores, Directora y Agente de tránsito, Responsable y Agente de contravenciones y de sustancias, Tributario y Becario) con sus contraseñas originales.
 - **Cargar datos dummy:** borra todo y carga un conjunto de prueba con las fechas corridas al día de hoy. **Datos de sistema** trae 26 actas en todas las bandejas (con fotos, firmas, escritos, pagos, memos, una subsanación y un monto ajustado); **Foto guardada** es el estado que el Administrador guardó con «Guardar estado actual como dummy» (hay una sola).
 
