@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { check, enviarCorreo, handlePublic, uuid } from '@/lib/srv';
+import { normalizarDocumento } from '@/lib/dominio';
 
 /** Registro de persona física (Anexo III) o jurídica, con validación de correo por código (PI-03, PI-04). */
 export async function POST(req: NextRequest) {
@@ -20,8 +21,8 @@ export async function POST(req: NextRequest) {
     const codigo = String(Math.floor(100000 + Math.random() * 900000));
     await db.from('ciudadano').insert({
       uuid: uuid(), tipo_persona: juridica ? 'juridica' : 'fisica', nombre: b.nombre?.trim() || null, apellido: b.apellido?.trim() || null,
-      documento_tipo: juridica ? 'CUIT' : (b.documentoTipo || 'DNI'), documento_numero: juridica ? null : b.documentoNumero?.trim(),
-      razon_social: juridica ? b.razonSocial.trim() : null, tipo_societario: juridica ? b.tipoSocietario : null, cuit: juridica ? b.cuit.trim() : null,
+      documento_tipo: juridica ? 'CUIT' : (b.documentoTipo || 'DNI'), documento_numero: juridica ? null : normalizarDocumento(b.documentoNumero),
+      razon_social: juridica ? b.razonSocial.trim() : null, tipo_societario: juridica ? b.tipoSocietario : null, cuit: juridica ? normalizarDocumento(b.cuit) : null,
       email, telefono: b.telefono?.trim() || null, domicilio: b.domicilio?.trim() || null, localidad: b.localidad?.trim() || null,
       password_hash: await bcrypt.hash(b.password, 10), email_verificado: 0, codigo_verificacion: codigo, date_created: Date.now(),
     });

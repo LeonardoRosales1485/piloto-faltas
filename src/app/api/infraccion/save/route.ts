@@ -4,6 +4,7 @@ import { syncInfraccionRelations } from '@/lib/infraccion-relations';
 import { loadInfraccionByUuid } from '@/lib/load-infraccion';
 import { infraccionToRow } from '@/lib/mappers';
 import { check, handle, HttpError, uuid as nuevoUuid } from '@/lib/srv';
+import { normalizarDocumento } from '@/lib/dominio';
 import type { Infraccion, InfraccionRow } from '@/lib/types';
 
 /** Campos que solo asigna el sistema: nunca se toman del cliente (numeración, fecha, firma, estado). */
@@ -29,6 +30,9 @@ export async function POST(req: NextRequest) {
 
     const row = infraccionToRow({ ...dto, uuid: existing.uuid }) as Record<string, unknown>;
     for (const k of PROTEGIDOS) delete row[k];
+    // Documento y CUIT sin puntos ni espacios: así el infractor encuentra el acta en el portal (QA UI-CONT-08).
+    if ('infractor_documento_numero' in row) row.infractor_documento_numero = normalizarDocumento(row.infractor_documento_numero as string | null);
+    if ('infractor_cuit' in row) row.infractor_cuit = normalizarDocumento(row.infractor_cuit as string | null);
     const { error } = await db.from('infraccion').update(row).eq('id', existing.id);
     if (error) throw new HttpError(500, error.message);
     await syncInfraccionRelations(db, existing.id, dto.leyesNombre, dto.dependenciasNombre);

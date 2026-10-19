@@ -377,3 +377,17 @@ export function modulosConPermisos(
     return base.includes(t) && permisos.includes(p);
   });
 }
+
+/**
+ * Documento o CUIT sin separadores (puntos, espacios, guiones) y en mayúsculas, para guardarlo y compararlo igual
+ * en el acta y en la cuenta del portal: «47.313.755 » y «47313755» son el mismo documento (QA UI-CONT-08).
+ */
+export function normalizarDocumento(v: string | null | undefined): string | null {
+  const s = String(v ?? '').toUpperCase().replace(/[\s.\-/]/g, '');
+  return s || null;
+}
+
+/** Patrón (regex de Postgres) que encuentra un número aunque esté guardado con puntos, espacios o guiones. */
+export function patronDocumento(digitos: string): string {
+  return `^[^0-9]*${digitos.split('').join('[^0-9]*')}[^0-9]*$`;
+}

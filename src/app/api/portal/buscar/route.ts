@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { infoEstado } from '@/lib/dominio';
+import { infoEstado, patronDocumento } from '@/lib/dominio';
 import { handlePortal } from '@/lib/portal-srv';
 
 const CAMPOS = 'uuid, legajo_numero_acta, legajo_number, legajo_anio, legajo_fecha, infraccion_tipo_nombre, estado_faltas, medida_vigente, vehiculo_numero_dominio, notificada_at, vence_plazo_at, domicilio_infraccion_calle, domicilio_infraccion_numero';
@@ -16,11 +16,13 @@ export async function GET(req: NextRequest) {
       const limpio = q.toUpperCase().replace(/\s|-/g, '');
       const num = q.replace(/\D/g, '');
       const ors = [`legajo_numero_acta.ilike.%${q.toUpperCase()}%`, `vehiculo_numero_dominio.ilike.${limpio}`];
-      if (num.length >= 6) ors.push(`infractor_documento_numero.eq.${num}`, `infractor_cuit.ilike.%${num}%`);
+      if (num.length >= 6) ors.push(`infractor_documento_numero.match.${patronDocumento(num)}`, `infractor_cuit.match.${patronDocumento(num)}`);
       query = query.or(ors.join(','));
     } else {
       const doc = String(ciu.cuit || ciu.documento_numero || '').replace(/\D/g, '');
-      query = query.or(`infractor_documento_numero.eq.${doc || '-'},infractor_cuit.ilike.%${doc || '-'}%`);
+      // Mismo documento aunque el acta lo tenga con puntos, espacios o guiones (QA UI-CONT-08).
+      if (!doc) return [];
+      query = query.or(`infractor_documento_numero.match.${patronDocumento(doc)},infractor_cuit.match.${patronDocumento(doc)}`);
     }
     const { data, error } = await query;
     if (error) throw new Error(error.message);
