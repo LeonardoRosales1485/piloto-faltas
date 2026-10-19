@@ -96,7 +96,7 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
   // Marcas y modelos administrables (Configuración → Marcas y modelos).
   const [marcas, setMarcas] = useState<{ nombre: string; modelos: { nombre: string; tipo_vehiculo: string | null }[] }[]>([]);
   useEffect(() => { http.get<typeof marcas>('/api/vehiculos').then(setMarcas).catch(() => setMarcas([])); }, []);
-  const opcMarcas = useMemo(() => [...marcas.map((m) => ({ v: m.nombre, t: m.nombre, sub: `${m.modelos.length} modelos` })), { v: NO_DESCRIBE, t: NO_DESCRIBE, sub: 'Marca y modelo no identificables' }], [marcas]);
+  const opcMarcas = useMemo(() => [...[...marcas].sort((a, b) => a.nombre.localeCompare(b.nombre, 'es')).map((m) => ({ v: m.nombre, t: m.nombre, sub: `${m.modelos.length} modelos` })), { v: NO_DESCRIBE, t: NO_DESCRIBE, sub: 'Marca y modelo no identificables' }], [marcas]);
   const opcModelos = useMemo(() => {
     const m = marcas.find((x) => x.nombre === form.metadata?.marca);
     // Se muestran todos los modelos de la marca (coincide con «N modelos»); los del tipo de vehículo elegido van primero.
@@ -108,7 +108,8 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
   const partidosLoc = partidosDe(form.infractorLocalidadNombre ?? '');
   const opcMunicipios = useMemo(() => {
     const base = (cat.municipio ?? []).length ? (cat.municipio ?? []).map((m) => m.nombre) : PARTIDOS;
-    return base.map((n) => ({ v: n, t: n }));
+    // Orden alfabético (el catálogo viene en orden de carga).
+    return [...new Set(base)].sort((a, b) => a.localeCompare(b, 'es')).map((n) => ({ v: n, t: n }));
   }, [cat.municipio]);
   const patchMeta = (k: string, v: string) => setForm((prev) => ({ ...prev, metadata: { ...(prev.metadata ?? {}), [k]: v } }));
 

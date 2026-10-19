@@ -91,6 +91,7 @@ Avance: **20 / 20**
 | Plazos calculados en día argentino: antes el servidor (UTC) corría un día los vencimientos de las notificaciones posteriores a las 21 h. Vencen a las 23:59 hora argentina (QA) | — |
 | PDF de contravención y sustancias con modelo propio (antes salía el de tránsito: Ley 24.449, alcoholímetro). Todas las actas traen QR de verificación (RN 2.u; apunta a la verificación pública del acta hasta que se defina la URL oficial, A8). El PDF de tránsito muestra el sentido de circulación (QA) | — |
 | Inspector: navegación de vuelta más clara. «Inicio» conserva el texto en el POS; la barra de sección pasa a ser «← Inicio › Acta de …» (Inicio es botón, la sección solo título); en la pantalla final, «Ver acta», «Imprimir ticket» y «Listo, volver al inicio» van arriba del resumen y se oculta la barra de sección (QA) | — |
+| Labrado: «Municipio emisor» (y «Marca») ordenados alfabéticamente (QA) | — |
 
 ## Fuera del alcance del prototipo
 
