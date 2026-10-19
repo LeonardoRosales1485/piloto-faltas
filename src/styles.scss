@@ -5,16 +5,26 @@
   --bo-azul: #2563eb;
   --bo-azul-oscuro: #1d4ed8;
   --bo-azul-claro: #eff6ff;
+  // Fondo sólido de botones/elementos activos con texto blanco (A11Y-001).
+  // En claro coincide con --bo-azul; en oscuro se separa porque el azul de texto se aclara.
+  --bo-btn-primary: #2563eb;
+  --bo-btn-primary-hover: #1d4ed8;
   --bo-exito: #22c55e;
-  --bo-peligro: #ef4444;
+  // Rojo de texto/borde (6,47:1 sobre blanco, A11Y-009) y rojo de fondo con texto blanco.
+  --bo-peligro: #b91c1c;
+  --bo-peligro-fondo: #b91c1c;
   --bo-advertencia: #f59e0b;
   --bo-info: #0ea5e9;
   --bo-fondo: #f3f4f6;
   --bo-card: #ffffff;
   --bo-card-header: #ffffff;
   --bo-texto: #1f2937;
-  --bo-texto-secundario: #6b7280;
+  --bo-texto-secundario: #4b5563;
   --bo-borde: rgba(0, 0, 0, 0.06);
+  // Borde de campos de formulario: ≥3:1 contra el fondo (WCAG 1.4.11, A11Y-003).
+  --bo-borde-input: #878787;
+  // Anillo de foco visible (A11Y-012).
+  --bo-foco: #2563eb;
   --bo-radio: 0.625rem;
   --bo-radio-lg: 1rem;
   --bo-sombra-card: 0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 12px rgba(0, 0, 0, 0.04);
@@ -26,9 +36,23 @@
 }
 
 [data-theme='dark'] {
-  --bo-azul: #3b82f6;
+  // Azul de texto/acento: 5,75:1 sobre la card #1e293b (A11Y-002).
+  --bo-azul: #60a5fa;
   --bo-azul-oscuro: #2563eb;
   --bo-azul-claro: #1e3a8a;
+  // Botón primario: blanco sobre #2563eb = 5,17:1 (A11Y-001).
+  --bo-btn-primary: #2563eb;
+  --bo-btn-primary-hover: #1d4ed8;
+  // Rojo de texto legible sobre fondos oscuros (5,29:1 sobre la card); el fondo sólido sigue oscuro.
+  --bo-peligro: #f87171;
+  --bo-peligro-fondo: #b91c1c;
+  --bo-borde-input: #8b8b8b;
+  --bo-foco: #93c5fd;
+  // Links Bootstrap sin clase propia (A11Y-005): 6,06:1 sobre la card.
+  --bs-link-color: #6ea8fe;
+  --bs-link-color-rgb: 110, 168, 254;
+  --bs-link-hover-color: #9ec5fe;
+  --bs-link-hover-color-rgb: 158, 197, 254;
   --bo-fondo: #0f172a;
   --bo-card: #1e293b;
   --bo-card-header: #1e293b;
@@ -183,7 +207,7 @@ body {
   transition: all 0.15s ease;
 
   &:hover {
-    background-color: var(--bo-azul);
+    background-color: var(--bo-btn-primary);
     color: #fff;
   }
 
@@ -722,8 +746,8 @@ body {
   color: var(--bo-azul);
 
   .wizard-paso-num {
-    border-color: var(--bo-azul);
-    background: var(--bo-azul);
+    border-color: var(--bo-btn-primary);
+    background: var(--bo-btn-primary);
     color: #fff;
   }
 }
@@ -944,7 +968,7 @@ body {
   height: 1.15rem;
   padding: 0 0.3rem;
   border-radius: 999px;
-  background-color: var(--bo-azul);
+  background-color: var(--bo-btn-primary);
   color: #fff;
   font-size: 0.7rem;
   font-weight: 700;
@@ -980,7 +1004,7 @@ body {
 .form-select {
   min-height: var(--bo-altura-input);
   font-size: 0.9375rem;
-  border-color: #ced4da;
+  border-color: var(--bo-borde-input);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
 
   &:focus {
@@ -1084,13 +1108,42 @@ textarea.form-control {
 }
 
 .btn-primary {
-  background-color: var(--bo-azul);
-  border-color: var(--bo-azul);
+  background-color: var(--bo-btn-primary);
+  border-color: var(--bo-btn-primary);
+  color: #fff;
 
   &:hover {
-    background-color: var(--bo-azul-oscuro);
-    border-color: var(--bo-azul-oscuro);
+    background-color: var(--bo-btn-primary-hover);
+    border-color: var(--bo-btn-primary-hover);
+    color: #fff;
   }
+}
+
+// ---------------------------------------------------------------------------
+//  Foco visible global (A11Y-012): anillo de 3px ≥3:1 en ambos temas.
+//  Bootstrap pone outline: 0 en .btn/.form-control con foco; acá se reemplaza.
+//  .pl-pagina mantiene su propio patrón (styles-v2 se importa después).
+// ---------------------------------------------------------------------------
+:focus-visible {
+  outline: 3px solid var(--bo-foco);
+  outline-offset: 2px;
+}
+
+.btn:focus-visible,
+.btn-check:focus-visible + .btn {
+  outline: 3px solid var(--bo-foco);
+  outline-offset: 2px;
+}
+
+.form-control:focus-visible,
+.form-select:focus-visible,
+.form-check-input:focus-visible {
+  outline: 3px solid var(--bo-foco);
+  outline-offset: 1px;
+}
+
+.form-check-input {
+  border-color: var(--bo-borde-input);
 }
 
 .btn-sm {
@@ -1353,11 +1406,11 @@ textarea.form-control {
 }
 
 .btn-accion-editar {
-  background-color: var(--bo-azul);
+  background-color: var(--bo-btn-primary);
 }
 
 .btn-accion-eliminar {
-  background-color: var(--bo-peligro);
+  background-color: var(--bo-peligro-fondo);
 }
 
 .btn-accion-pdf {
@@ -1485,8 +1538,8 @@ textarea.form-control {
 }
 
 .paginado-activo {
-  background-color: var(--bo-azul);
-  border-color: var(--bo-azul);
+  background-color: var(--bo-btn-primary);
+  border-color: var(--bo-btn-primary);
   color: #fff;
 
   &:hover {
@@ -1651,7 +1704,7 @@ textarea.form-control {
   width: 64px;
   height: 64px;
   border-radius: 50%;
-  background-color: var(--bo-azul);
+  background-color: var(--bo-btn-primary);
   color: #fff;
   display: flex;
   align-items: center;
@@ -1808,7 +1861,7 @@ textarea.form-control {
 }
 
 .movil-progreso-paso.activo .movil-progreso-icono {
-  background-color: var(--bo-azul);
+  background-color: var(--bo-btn-primary);
   color: #fff;
 }
 
@@ -1862,7 +1915,7 @@ textarea.form-control {
 }
 
 .paso-activo .paso-numero {
-  background-color: var(--bo-azul);
+  background-color: var(--bo-btn-primary);
   color: #fff;
 }
 
@@ -2352,7 +2405,7 @@ textarea.form-control {
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  background-color: var(--bo-azul);
+  background-color: var(--bo-btn-primary);
   color: #fff;
   display: flex;
   align-items: center;
@@ -2424,7 +2477,7 @@ textarea.form-control {
   .form-select {
     background-color: #334155;
     color: #f1f5f9;
-    border-color: #475569;
+    border-color: var(--bo-borde-input);
 
     &:focus {
       border-color: var(--bo-azul);
@@ -2445,7 +2498,7 @@ textarea.form-control {
   .input-group-text {
     background-color: #334155;
     color: #f1f5f9;
-    border-color: #475569;
+    border-color: var(--bo-borde-input);
   }
 
   .custom-table td {
@@ -2478,8 +2531,8 @@ textarea.form-control {
   }
 
   .paginado-activo {
-    background-color: var(--bo-azul);
-    border-color: var(--bo-azul);
+    background-color: var(--bo-btn-primary);
+    border-color: var(--bo-btn-primary);
     color: #fff;
   }
 
@@ -2513,7 +2566,8 @@ textarea.form-control {
 
     &.active {
       background-color: var(--bo-azul-claro);
-      color: var(--bo-azul);
+      // #93c5fd sobre #1e3a8a = 5,74:1 (el azul de texto daría 4,07:1).
+      color: #93c5fd;
     }
   }
 
@@ -2533,7 +2587,8 @@ textarea.form-control {
 
     &.active {
       background-color: var(--bo-azul-claro);
-      color: var(--bo-azul);
+      // #93c5fd sobre #1e3a8a = 5,74:1 (el azul de texto daría 4,07:1).
+      color: #93c5fd;
     }
   }
 
@@ -2575,7 +2630,7 @@ textarea.form-control {
     }
 
     &--is-selected {
-      background-color: var(--bo-azul);
+      background-color: var(--bo-btn-primary);
     }
   }
 

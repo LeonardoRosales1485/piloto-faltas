@@ -83,6 +83,8 @@
 .estado-otro { background: #f1f5f9; color: #475569; }
 .medida-chip { display: inline-flex; align-items: center; gap: 0.3rem; background: #dc2626; color: #fff; border-radius: 999px; padding: 0.15rem 0.6rem; font-size: 0.72rem; font-weight: 700; white-space: nowrap; }
 .plazo-chip { display: inline-flex; align-items: center; gap: 0.3rem; background: var(--bo-azul-claro); color: var(--bo-azul); border-radius: 999px; padding: 0.15rem 0.6rem; font-size: 0.75rem; font-weight: 600; white-space: nowrap; &.vencido { background: #fee2e2; color: #991b1b; } }
+// Tema oscuro: #93c5fd sobre #1e3a8a = 5,74:1 (A11Y-006/paleta).
+[data-theme='dark'] .plazo-chip:not(.vencido) { color: #93c5fd; }
 
 // Bandejas: contadores
 .bandeja-tabs { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 0.75rem; }
@@ -90,7 +92,7 @@
   display: inline-flex; align-items: center; gap: 0.4rem; border: 1px solid var(--bo-borde); background: var(--bo-card);
   border-radius: 999px; padding: 0.35rem 0.85rem; font-size: 0.82rem; font-weight: 600; color: var(--bo-texto); cursor: pointer;
   .n { background: var(--bo-fondo); border-radius: 999px; padding: 0 0.45rem; font-size: 0.75rem; }
-  &.activa { background: var(--bo-azul); color: #fff; border-color: var(--bo-azul); .n { background: rgba(255,255,255,.25); } }
+  &.activa { background: var(--bo-btn-primary); color: #fff; border-color: var(--bo-btn-primary); .n { background: rgba(255,255,255,.25); } }
 }
 
 // Causa digital
@@ -207,7 +209,7 @@
 .roadmap-pasos { display: flex; list-style: none; margin: 0; padding: 0; }
 .roadmap-paso {
   position: relative; display: flex; flex-direction: column; align-items: center; min-width: 92px; padding: 0 .25rem;
-  font-size: .78rem; color: #9ca3af; text-align: center;
+  font-size: .78rem; color: #6b7280; text-align: center;
   &:not(:last-child)::after { content: ''; position: absolute; top: 14px; left: calc(50% + 16px); right: calc(-50% + 16px); height: 2px; background: #e5e7eb; }
   &.hecho:not(:last-child)::after { background: #16a34a; }
   .roadmap-punto { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: #f3f4f6; border: 2px solid #e5e7eb; font-size: .75rem; z-index: 1; }
@@ -215,7 +217,7 @@
   .roadmap-sub { font-size: .7rem; color: #2563eb; max-width: 130px; line-height: 1.15; }
   &.hecho { color: #374151; .roadmap-punto { background: #16a34a; border-color: #16a34a; color: #fff; } }
   &.final { color: #15803d; .roadmap-txt { font-weight: 700; } .roadmap-punto { background: #16a34a; border-color: #bbf7d0; box-shadow: 0 0 0 4px rgba(22, 163, 74, .18); } }
-  &.salteado { color: #c0c4cc; .roadmap-txt { font-weight: 500; } .roadmap-punto { background: #fff; border-style: dashed; } }
+  &.salteado { color: #6b7280; .roadmap-txt { font-weight: 500; } .roadmap-punto { background: #fff; border-style: dashed; } }
   &.actual { color: #1d4ed8; .roadmap-punto { background: #2563eb; border-color: #bfdbfe; color: #fff; box-shadow: 0 0 0 4px rgba(37, 99, 235, .15); } }
 }
 .roadmap-medida { flex-shrink: 0; font-size: .75rem; font-weight: 600; color: #b45309; background: #fef3c7; border: 1px solid #fcd34d; border-radius: 999px; padding: .2rem .6rem; white-space: nowrap; }
@@ -223,9 +225,9 @@
 @media (max-width: 1280px) { .roadmap-pasos, .roadmap-medida { display: none; } .roadmap-compacto { display: inline; } }
 // Tema oscuro: solo las etapas futuras y salteadas van oscuras; las cumplidas siguen verdes y legibles.
 [data-theme='dark'] .roadmap-paso {
-  color: #64748b;
+  color: #94a3b8;
   &.futuro .roadmap-punto, &.salteado .roadmap-punto { background: #1f2937; border-color: #374151; }
-  &.salteado { color: #4b5563; }
+  &.salteado { color: #8492a6; }
   &.hecho { color: #cbd5e1; }
   &.final { color: #4ade80; .roadmap-punto { border-color: #14532d; box-shadow: 0 0 0 4px rgba(74, 222, 128, .18); } }
   &.actual { color: #93c5fd; }
@@ -306,7 +308,7 @@
 .filtros-aplicados { display: flex; gap: .4rem; flex-wrap: wrap; align-items: center; }
 .filtro-aplicado {
   display: inline-flex; align-items: center; gap: .35rem; border: 1px solid #bfdbfe; background: #eff6ff; color: #1d4ed8; border-radius: 999px; padding: .25rem .7rem; font-size: .82rem; font-weight: 600;
-  &.fijo { cursor: default; } .n { color: #1e40af; opacity: .75; }
+  &.fijo { cursor: default; } .n { color: #1e40af; }
   i { font-size: .75rem; } &:not(.fijo):hover { background: #dbeafe; }
 }
 .filtros-busqueda { position: relative; flex: 1; min-width: 240px; i { position: absolute; left: .8rem; top: 50%; transform: translateY(-50%); color: #9ca3af; } input { padding-left: 2.2rem; } }
@@ -341,6 +343,13 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .sidebar-flotante, .sidebar-flotante.cerrando, .sidebar-velo, .sidebar-velo.cerrando { animation-duration: .01s !important; }
+  // A11Y-014: sin transiciones de UI (rail, botones, chips, cambio de tema) ni entradas animadas propias.
+  // El loader conserva su animación lenta (ver .loader-orbita) para seguir indicando que algo carga.
+  *, *::before, *::after { transition-duration: 0s !important; transition-delay: 0s !important; }
+  .tema-transicion, .tema-transicion *, .tema-transicion *::before, .tema-transicion *::after { transition: none !important; }
+  ::view-transition-old(root), ::view-transition-new(root) { animation: none !important; }
+  .filtros-panel, .sidebar-velo-x, .inicio-inspector-boton { animation: none !important; transform: none !important; }
+  html { scroll-behavior: auto !important; }
 }
 
 // Buscador de opciones (reemplaza dropdowns largos)
@@ -550,7 +559,7 @@
 .selector-acta { display: grid; grid-template-columns: 1fr 1fr; gap: 0; margin-bottom: .9rem; border: 1px solid var(--bo-borde); border-radius: var(--bo-radio); overflow: hidden;
   button { border: 0; background: transparent; padding: .65rem; font-weight: 600; color: inherit; display: flex; align-items: center; justify-content: center; gap: .45rem; cursor: pointer; }
   button + button { border-left: 1px solid var(--bo-borde); }
-  button.activa { background: var(--bo-azul); color: #fff; }
+  button.activa { background: var(--bo-btn-primary); color: #fff; }
 }
 .dato-subsanado { background: rgba(245, 158, 11, .12); border-radius: 6px; padding-left: .6rem !important; box-shadow: inset 3px 0 0 #f59e0b; cursor: help; }
 span.dato-subsanado { font-size: .75rem; padding: .1rem .45rem; font-weight: 600; color: #b45309; box-shadow: none; }
@@ -603,7 +612,7 @@ span.dato-subsanado { font-size: .75rem; padding: .1rem .45rem; font-weight: 600
   small { font-size: .9rem; font-weight: 500; opacity: .75; }
   &:active { transform: scale(.98); }
   &:hover { border-color: var(--bo-azul); }
-  &.principal { background: var(--bo-azul); border-color: var(--bo-azul); color: #fff; i { color: #fff; } }
+  &.principal { background: var(--bo-btn-primary); border-color: var(--bo-btn-primary); color: #fff; i { color: #fff; } }
 }
 .inicio-inspector-volver { align-self: center; border: 0; background: transparent; color: inherit; font-weight: 600; padding: .6rem 1rem; cursor: pointer; opacity: .8; }
 
@@ -732,7 +741,7 @@ span.dato-subsanado { font-size: .75rem; padding: .1rem .45rem; font-weight: 600
 .tabla-vista-barra { display: flex; justify-content: flex-end; padding: .5rem 1rem 0; margin-bottom: .5rem; }
 .selector-vista { display: inline-flex; border: 1px solid rgba(148, 163, 184, .5); border-radius: 999px; overflow: hidden; background: var(--bs-body-bg, #fff);
   button { border: 0; background: transparent; padding: .35rem .9rem; font-size: .85rem; color: var(--bo-texto-secundario); display: inline-flex; align-items: center; gap: .4rem; cursor: pointer;
-    &.activo { background: var(--bo-azul); color: #fff; }
+    &.activo { background: var(--bo-btn-primary); color: #fff; }
     &:not(.activo):hover { background: rgba(148, 163, 184, .15); }
   }
 }
@@ -800,7 +809,7 @@ span.dato-subsanado { font-size: .75rem; padding: .1rem .45rem; font-weight: 600
 .pl-segmentado {
   display: inline-flex; border: 1px solid rgba(148, 163, 184, .5); border-radius: 999px; overflow: hidden;
   button { border: 0; background: transparent; padding: 0.4rem 0.9rem; font-size: 0.85rem; font-weight: 600; color: var(--bo-texto-secundario); }
-  button.activo { background: var(--bo-azul); color: #fff; }
+  button.activo { background: var(--bo-btn-primary); color: #fff; }
 }
 .pl-filtros { display: flex; flex-wrap: wrap; gap: 0.6rem 0.9rem; align-items: flex-end; padding: 0.9rem 1.1rem; }
 .pl-filtro {
@@ -966,7 +975,7 @@ span.dato-subsanado { font-size: .75rem; padding: .1rem .45rem; font-weight: 600
   ul { list-style: none; margin: 0.35rem 0 0; padding: 0; max-height: 260px; overflow-y: auto; }
   li { display: flex; justify-content: space-between; gap: 0.5rem; padding: 0.35rem 0.5rem; border-radius: 6px; cursor: pointer; font-size: 0.88rem;
     small { color: var(--bo-texto-secundario); white-space: nowrap; }
-    &.activo { background: var(--bo-azul); color: #fff; small { color: rgba(255,255,255,.85); } } }
+    &.activo { background: var(--bo-btn-primary); color: #fff; small { color: rgba(255,255,255,.85); } } }
 }
 
 // Login en dos columnas (escritorio): formulario a la izquierda y acceso rápido a la derecha, sin scroll.
