@@ -226,6 +226,9 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
   async function irA(n: number) {
     const next = Math.min(pasos.length - 1, Math.max(0, n));
     if (next !== idx) setVisitados((v) => new Set(v).add(paso.id));
+    // Al dejar un paso incompleto se avisa qué falta (QA STEPS); el paso queda marcado y se puede completar después.
+    const faltan = faltantes[paso.id] ?? [];
+    if (next !== idx && !soloLectura && paso.id !== 'firma' && faltan.length) notify.warning(`${paso.titulo}: faltan datos`, faltan.join(', '));
     if (!soloLectura && next !== idx) void guardarBorrador();
     setIdx(next);
     // La barra «Acta de tránsito» queda visible en todos los pasos (lleva el estado del borrador).
@@ -449,7 +452,8 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
   }
 
   // ---------------------------------------------------------------- wizard
-  const faltaEn = (p: { id: Paso['id'] }) => ((intentoFirma || visitados.has(p.id)) && p.id !== 'firma' ? faltantes[p.id] ?? [] : []);
+  // Un paso se marca en rojo después de dejarlo incompleto; mientras se está en él, no (vuelve a marcarse al salir si sigue incompleto).
+  const faltaEn = (p: { id: Paso['id'] }) => ((intentoFirma || visitados.has(p.id)) && p.id !== 'firma' && p.id !== paso.id ? faltantes[p.id] ?? [] : []);
   const hayRojo = pasos.some((p) => faltaEn(p).length);
   const pendientesFirma = pasos.filter((p) => p.id !== 'firma' && faltantes[p.id]?.length);
   const nav = (
