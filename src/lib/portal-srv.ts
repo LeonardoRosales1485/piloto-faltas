@@ -62,6 +62,10 @@ export function accionesDisponibles(c: CausaRow, pres: Presentacion[], boletasAc
   const vigentes = pres.filter((p) => p.estado !== 'rechazada');
   const tiene = (t: string) => vigentes.some((p) => p.tipo === t);
   const pendiente = (t: string) => pres.some((p) => p.tipo === t && p.estado === 'pendiente');
+  // El descargo cuenta como presentado aunque se haya rechazado (QA UI-CONT-09): no se puede volver a presentar y,
+  // en tránsito, ya no hay pago voluntario. Un pedido de pago rechazado, en cambio, se puede volver a pedir.
+  const presentoDescargo = pres.some((p) => p.tipo === 'descargo');
+  const descargoRechazado = pres.some((p) => p.tipo === 'descargo' && p.estado === 'rechazada');
   const enPlazo = Boolean(c.vence_plazo_at) && ahora <= Number(c.vence_plazo_at);
   const out: Record<string, { ok: boolean; motivo?: string }> = {};
   const no = (motivo: string) => ({ ok: false, motivo });
@@ -78,13 +82,13 @@ export function accionesDisponibles(c: CausaRow, pres: Presentacion[], boletasAc
   if (!preFallo) out.pago_voluntario = no('Ya no corresponde en este estado de la causa.');
   else if (!enPlazo) out.pago_voluntario = no('Venció el plazo del pago voluntario.');
   else if (conBoletas || tiene('pago_voluntario') || tiene('cuotas')) out.pago_voluntario = no('Ya tiene una solicitud de pago.');
-  else if (transito && tiene('descargo')) out.pago_voluntario = no('En tránsito no puede pedir pago voluntario si presentó descargo.');
+  else if (transito && presentoDescargo) out.pago_voluntario = no('En tránsito no puede pedir pago voluntario si presentó descargo.');
   else out.pago_voluntario = si;
 
   // Descargo
   if (!preFallo || e === 'Descargo') out.descargo = no(e === 'Descargo' ? 'Su descargo está en análisis.' : 'Ya no corresponde en este estado de la causa.');
   else if (e === 'Causa observada') out.descargo = no('Use «Reenviar descargo».');
-  else if (tiene('descargo')) out.descargo = no('Ya presentó un descargo.');
+  else if (presentoDescargo) out.descargo = no(descargoRechazado ? 'Su descargo fue rechazado: no se puede presentar otro.' : 'Ya presentó un descargo.');
   else if (transito && (tiene('pago_voluntario') || conBoletas)) out.descargo = no('En tránsito no puede presentar descargo si pidió el pago voluntario.');
   else out.descargo = si;
 
@@ -97,6 +101,8 @@ export function accionesDisponibles(c: CausaRow, pres: Presentacion[], boletasAc
   if (conBoletas) out.boleta = no('Ya tiene boletas emitidas.');
   else if (pendiente('boleta')) out.boleta = no('Ya pidió la boleta.');
   else if (posFallo || (preFallo && !enPlazo && e !== 'Descargo')) out.boleta = si;
+  // Tránsito con descargo presentado: pierde el 50 % y le queda la boleta sin beneficio (RN-40 · PI-F22).
+  else if (transito && preFallo && presentoDescargo && e !== 'Descargo') out.boleta = si;
   else out.boleta = no(preFallo ? 'Mientras esté en plazo puede pedir el pago voluntario.' : 'No corresponde en este estado.');
 
   // Plan de cuotas

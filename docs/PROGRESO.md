@@ -83,6 +83,7 @@ Avance: **20 / 20**
 | QA CONT-6: en el editor de escritos, «PDF» y «Word» quedan deshabilitados mientras haya cambios sin guardar y, en un borrador con campos a completar, hasta que se guarde al menos una vez (salen de lo guardado y se veían vacíos), con aviso | — |
 | QA UI-CONT-7: causa cerrada sin señales contradictorias: el roadmap resalta en verde la etapa final («Pagada», «Archivada»…), las etapas salteadas quedan tenues (también en tema oscuro, donde las cumplidas se veían oscuras y la salteada en blanco) y el plazo no se muestra en estados finales (causa, bandeja y presentaciones) | — |
 | QA UI-CONT-08: el portal encuentra las actas del infractor aunque el documento o CUIT tenga puntos, espacios o guiones (búsqueda tolerante); acta y cuenta del portal guardan el documento normalizado; `sql/026_documentos_normalizados.sql` corrige los datos existentes. Aplica igual a tránsito, contravención y sustancias | — |
+| QA UI-CONT-09: un descargo rechazado cuenta como presentado: no se puede presentar otro y, en tránsito, se pierde el pago voluntario y queda la boleta sin beneficio (100 %). En contravención el pago voluntario sigue disponible (RN-41 · PI-15), a confirmar con el cliente | — |
 
 ## Fuera del alcance del prototipo
 
