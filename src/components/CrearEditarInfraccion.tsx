@@ -39,7 +39,7 @@ function Campo({ id, label, children, req }: { id: string; label: string; childr
 }
 
 // Lugar de infracción precargado entre actas del mismo operativo (por inspector, en este dispositivo).
-const SENTIDOS_CIRCULACION = ['Norte a Sur', 'Sur a Norte', 'Este a Oeste', 'Oeste a Este'];
+const SENTIDOS_CIRCULACION = ['Mano', 'Contramano'];
 const CAMPOS_LUGAR = ['domicilioInfraccionCalle', 'domicilioInfraccionNumero', 'domicilioInfraccionLocalidadNombre', 'entreCalle1', 'entreCalle2', 'ejido', 'gpsLat', 'gpsLng', 'nomenclaturaCatastral'] as const;
 const claveLugar = (u?: string | null) => `faltas-piloto:ultimo-lugar:${u ?? ''}`;
 function leerUltimoLugar(usuario?: string | null): Partial<Infraccion> {
