@@ -1,0 +1,147 @@
+// ---------------------------------------------------------------------------
+//  Paleta en variables (A11Y paso 4)
+//  Cada color repetido de styles.scss / styles-v2.scss pasó a una variable con el
+//  mismo valor, así el aspecto no cambia y el modo alto contraste puede subirlos.
+//  Nombre: --bo-[dk-]<uso>-<color>-<nivel>
+//    uso: tx = texto, bg = fondo, bd = borde/contorno
+//    dk-: el color se usa en reglas del tema oscuro ([data-theme='dark'])
+//  Las hojas A4, el ticket, la firma, el visor de fotos y el loader quedan con
+//  colores fijos a propósito (son documentos o superficies de color propio).
+// ---------------------------------------------------------------------------
+:root {
+  // Texto
+  --bo-tx-amarillo-900: #713f12;
+  --bo-tx-ambar-600: #d97706;
+  --bo-tx-ambar-700: #b45309;
+  --bo-tx-ambar-800: #92400e;
+  --bo-tx-ambar-900: #78350f;
+  --bo-tx-azul-100: #dbeafe;
+  --bo-tx-azul-600: #2563eb;
+  --bo-tx-azul-700: #1d4ed8;
+  --bo-tx-azul-800: #1e40af;
+  --bo-tx-azul-900: #1e3a8a;
+  --bo-tx-blanco: #ffffff;
+  --bo-tx-celeste-700: #0369a1;
+  --bo-tx-celeste-800: #075985;
+  --bo-tx-gris-400: #9ca3af;
+  --bo-tx-gris-500: #6b7280;
+  --bo-tx-gris-600: #4b5563;
+  --bo-tx-gris-700: #374151;
+  --bo-tx-gris-800: #1f2937;
+  --bo-tx-indigo-800: #3730a3;
+  --bo-tx-negro-suave: #111111;
+  --bo-tx-pizarra-500: #64748b;
+  --bo-tx-pizarra-600: #475569;
+  --bo-tx-pizarra-700: #334155;
+  --bo-tx-rojo-600: #dc2626;
+  --bo-tx-rojo-800: #991b1b;
+  --bo-tx-rojo-900: #7f1d1d;
+  --bo-tx-verde-600: #16a34a;
+  --bo-tx-verde-700: #15803d;
+  --bo-tx-verde-800: #166534;
+  --bo-tx-verde-900: #14532d;
+  --bo-tx-violeta-800: #5b21b6;
+  // Fondos
+  --bo-bg-amarillo-50: #fefce8;
+  --bo-bg-amarillo-100: #fef9c3;
+  --bo-bg-amarillo-200: #fef08a;
+  --bo-bg-ambar-50: #fffbeb;
+  --bo-bg-ambar-100: #fef3c7;
+  --bo-bg-ambar-200: #fde68a;
+  --bo-bg-azul-50: #eff6ff;
+  --bo-bg-azul-100: #dbeafe;
+  --bo-bg-azul-600: #2563eb;
+  --bo-bg-blanco: #ffffff;
+  --bo-bg-bs-gris-100: #f8f9fa;
+  --bo-bg-bs-gris-200: #e9ecef;
+  --bo-bg-celeste-100: #e0f2fe;
+  --bo-bg-esmeralda-100: #d1fae5;
+  --bo-bg-gris-50: #f9fafb;
+  --bo-bg-gris-100: #f3f4f6;
+  --bo-bg-gris-200: #e5e7eb;
+  --bo-bg-gris-600: #4b5563;
+  --bo-bg-indigo-100: #e0e7ff;
+  --bo-bg-negro: #000000;
+  --bo-bg-pizarra-50: #f8fafc;
+  --bo-bg-pizarra-100: #f1f5f9;
+  --bo-bg-pizarra-200: #e2e8f0;
+  --bo-bg-rojo-50: #fef2f2;
+  --bo-bg-rojo-100: #fee2e2;
+  --bo-bg-rojo-200: #fecaca;
+  --bo-bg-rojo-600: #dc2626;
+  --bo-bg-verde-50: #f0fdf4;
+  --bo-bg-verde-100: #dcfce7;
+  --bo-bg-verde-200: #bbf7d0;
+  --bo-bg-verde-600: #16a34a;
+  --bo-bg-violeta-100: #ede9fe;
+  // Bordes
+  --bo-bd-amarillo-400: #facc15;
+  --bo-bd-amarillo-600: #ca8a04;
+  --bo-bd-ambar-200: #fde68a;
+  --bo-bd-ambar-300: #fcd34d;
+  --bo-bd-ambar-500: #f59e0b;
+  --bo-bd-azul-200: #bfdbfe;
+  --bo-bd-azul-300: #93c5fd;
+  --bo-bd-azul-600: #2563eb;
+  --bo-bd-blanco: #ffffff;
+  --bo-bd-bs-gris-200: #e9ecef;
+  --bo-bd-bs-gris-400: #ced4da;
+  --bo-bd-gris-100: #f3f4f6;
+  --bo-bd-gris-200: #e5e7eb;
+  --bo-bd-gris-300: #d1d5db;
+  --bo-bd-pizarra-100: #f1f5f9;
+  --bo-bd-pizarra-200: #e2e8f0;
+  --bo-bd-pizarra-400: #94a3b8;
+  --bo-bd-rojo-200: #fecaca;
+  --bo-bd-rojo-400: #f87171;
+  --bo-bd-rojo-600: #dc2626;
+  --bo-bd-verde-200: #bbf7d0;
+  --bo-bd-verde-600: #16a34a;
+  // Texto (tema oscuro)
+  --bo-dk-tx-ambar-200: #fde68a;
+  --bo-dk-tx-ambar-400: #fbbf24;
+  --bo-dk-tx-azul-200: #bfdbfe;
+  --bo-dk-tx-azul-300: #93c5fd;
+  --bo-dk-tx-blanco: #ffffff;
+  --bo-dk-tx-gris-200: #e5e7eb;
+  --bo-dk-tx-gris-400: #9ca3af;
+  --bo-dk-tx-indigo-200: #c7d2fe;
+  --bo-dk-tx-pizarra-100: #f1f5f9;
+  --bo-dk-tx-pizarra-200: #e2e8f0;
+  --bo-dk-tx-pizarra-300: #cbd5e1;
+  --bo-dk-tx-pizarra-400: #94a3b8;
+  --bo-dk-tx-pizarra-450: #8492a6;
+  --bo-dk-tx-rojo-200: #fecaca;
+  --bo-dk-tx-rojo-300: #fca5a5;
+  --bo-dk-tx-rojo-400: #f87171;
+  --bo-dk-tx-verde-200: #bbf7d0;
+  --bo-dk-tx-verde-300: #86efac;
+  --bo-dk-tx-verde-400: #4ade80;
+  // Fondos (tema oscuro)
+  --bo-dk-bg-amarillo-950: #422006;
+  --bo-dk-bg-ambar-950: #451a03;
+  --bo-dk-bg-azul-900: #1e3a8a;
+  --bo-dk-bg-azul-950: #172554;
+  --bo-dk-bg-gris-700: #374151;
+  --bo-dk-bg-gris-800: #1f2937;
+  --bo-dk-bg-gris-900: #111827;
+  --bo-dk-bg-indigo-950: #1e1b4b;
+  --bo-dk-bg-pizarra-600: #475569;
+  --bo-dk-bg-pizarra-700: #334155;
+  --bo-dk-bg-pizarra-800: #1e293b;
+  --bo-dk-bg-rojo-950: #450a0a;
+  --bo-dk-bg-verde-600: #16a34a;
+  --bo-dk-bg-verde-950: #052e16;
+  // Bordes (tema oscuro)
+  --bo-dk-bd-ambar-800: #92400e;
+  --bo-dk-bd-azul-700: #1d4ed8;
+  --bo-dk-bd-azul-800: #1e40af;
+  --bo-dk-bd-gris-700: #374151;
+  --bo-dk-bd-gris-800: #1f2937;
+  --bo-dk-bd-pizarra-600: #475569;
+  --bo-dk-bd-pizarra-700: #334155;
+  --bo-dk-bd-rojo-400: #f87171;
+  --bo-dk-bd-rojo-800: #991b1b;
+  --bo-dk-bd-verde-800: #166534;
+  --bo-dk-bd-verde-900: #14532d;
+}

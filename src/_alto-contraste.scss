@@ -1,0 +1,196 @@
+// ---------------------------------------------------------------------------
+//  Modo alto contraste (A11Y paso 4)
+//  Se activa con <html data-contrast="high"> (botón «Alto contraste»; por defecto
+//  sigue a prefers-contrast: more si el usuario no eligió). Combina con el tema:
+//  claro + alto contraste y oscuro + alto contraste.
+// ---------------------------------------------------------------------------
+[data-contrast='high'] body:not([data-theme='dark']) {
+  --bo-fondo: #ffffff;
+  --bo-card: #ffffff;
+  --bo-card-header: #ffffff;
+  --bo-texto: #111827;
+  --bo-texto-secundario: #1f2937;
+  --bo-borde: #6b7280;
+  --bo-borde-input: #374151;
+  --bo-azul: #1d4ed8;
+  --bo-azul-oscuro: #1e3a8a;
+  --bo-btn-primary: #1d4ed8;
+  --bo-btn-primary-hover: #1e3a8a;
+  --bo-peligro: #991b1b;
+  --bo-peligro-fondo: #991b1b;
+  --bo-foco: #000000;
+  --bo-foco-halo: #ffffff;
+  --bo-placeholder: #4b5563;
+  --bs-link-color: #1e40af;
+  --bs-link-color-rgb: 30, 64, 175;
+  --bs-link-hover-color: #1e3a8a;
+  --bs-link-hover-color-rgb: 30, 58, 138;
+  --bs-body-color: #111827;
+  --bs-secondary-color: #1f2937;
+  // Texto: grises y pizarras pasan a gris 700-900
+  --bo-tx-gris-400: #374151;
+  --bo-tx-gris-500: #374151;
+  --bo-tx-gris-600: #374151;
+  --bo-tx-pizarra-500: #374151;
+  --bo-tx-pizarra-600: #374151;
+  --bo-tx-gris-700: #1f2937;
+  --bo-tx-pizarra-700: #1f2937;
+  --bo-tx-gris-800: #111827;
+  // Texto de estados: el tono más oscuro de cada familia
+  --bo-tx-azul-600: #1d4ed8;
+  --bo-tx-azul-700: #1e40af;
+  --bo-tx-verde-600: #166534;
+  --bo-tx-verde-700: #166534;
+  --bo-tx-verde-800: #14532d;
+  --bo-tx-rojo-600: #991b1b;
+  --bo-tx-rojo-800: #7f1d1d;
+  --bo-tx-ambar-600: #78350f;
+  --bo-tx-ambar-700: #78350f;
+  --bo-tx-ambar-800: #78350f;
+  --bo-tx-celeste-700: #075985;
+  // Bordes: visibles (≥3:1 contra blanco)
+  --bo-bd-bs-gris-200: #6b7280;
+  --bo-bd-gris-100: #6b7280;
+  --bo-bd-gris-200: #6b7280;
+  --bo-bd-gris-300: #6b7280;
+  --bo-bd-pizarra-100: #6b7280;
+  --bo-bd-pizarra-200: #6b7280;
+  --bo-bd-bs-gris-400: #4b5563;
+  --bo-bd-pizarra-400: #4b5563;
+  --bo-bd-azul-200: #1d4ed8;
+  --bo-bd-azul-300: #1d4ed8;
+  --bo-bd-verde-200: #15803d;
+  --bo-bd-rojo-200: #b91c1c;
+  --bo-bd-rojo-400: #b91c1c;
+  --bo-bd-ambar-200: #b45309;
+  --bo-bd-ambar-300: #b45309;
+  --bo-bd-ambar-500: #b45309;
+  --bo-bd-amarillo-400: #a16207;
+  --bo-bd-amarillo-600: #a16207;
+}
+
+[data-contrast='high'] body[data-theme='dark'] {
+  --bo-fondo: #000000;
+  --bo-card: #0b1120;
+  --bo-card-header: #0b1120;
+  --bo-texto: #ffffff;
+  --bo-texto-secundario: #e5e7eb;
+  --bo-borde: #94a3b8;
+  --bo-borde-input: #e5e7eb;
+  --bo-azul: #93c5fd;
+  --bo-btn-primary: #1d4ed8;
+  --bo-btn-primary-hover: #1e40af;
+  --bo-peligro: #fca5a5;
+  --bo-peligro-fondo: #991b1b;
+  --bo-foco: #fde047;
+  --bo-foco-halo: #000000;
+  --bo-placeholder: #cbd5e1;
+  --bs-link-color: #9ec5fe;
+  --bs-link-color-rgb: 158, 197, 254;
+  --bs-link-hover-color: #cfe2ff;
+  --bs-link-hover-color-rgb: 207, 226, 255;
+  // Texto (tema oscuro): grises claros casi blancos
+  --bo-dk-tx-gris-400: #f1f5f9;
+  --bo-dk-tx-pizarra-300: #f1f5f9;
+  --bo-dk-tx-pizarra-400: #f1f5f9;
+  --bo-dk-tx-pizarra-450: #f1f5f9;
+  --bo-dk-tx-azul-200: #bfdbfe;
+  --bo-dk-tx-azul-300: #bfdbfe;
+  --bo-dk-tx-verde-200: #bbf7d0;
+  --bo-dk-tx-verde-300: #bbf7d0;
+  --bo-dk-tx-verde-400: #bbf7d0;
+  --bo-dk-tx-rojo-200: #fecaca;
+  --bo-dk-tx-rojo-300: #fecaca;
+  --bo-dk-tx-rojo-400: #fecaca;
+  --bo-dk-tx-ambar-200: #fde68a;
+  --bo-dk-tx-ambar-400: #fde68a;
+  // Bordes (tema oscuro): grises medios bien visibles sobre el fondo
+  --bo-dk-bd-gris-700: #94a3b8;
+  --bo-dk-bd-gris-800: #94a3b8;
+  --bo-dk-bd-pizarra-600: #94a3b8;
+  --bo-dk-bd-pizarra-700: #94a3b8;
+  --bo-dk-bd-azul-700: #60a5fa;
+  --bo-dk-bd-azul-800: #60a5fa;
+  --bo-dk-bd-verde-800: #4ade80;
+  --bo-dk-bd-verde-900: #4ade80;
+  --bo-dk-bd-rojo-800: #f87171;
+  --bo-dk-bd-ambar-800: #fbbf24;
+}
+
+[data-contrast='high'] {
+  // Campos: borde de 2px con el color fuerte del modo.
+  .form-control,
+  .form-select,
+  .input-group-text {
+    border-width: 2px;
+    border-color: var(--bo-borde-input);
+  }
+  .form-check-input {
+    border-width: 2px;
+    border-color: var(--bo-borde-input);
+  }
+  .form-control::placeholder {
+    color: var(--bo-placeholder);
+    opacity: 1;
+  }
+
+  // Foco: anillo de 4px + halo del color de fondo, para que se vea sobre cualquier superficie.
+  :focus-visible,
+  .btn:focus-visible,
+  .form-control:focus-visible,
+  .form-select:focus-visible,
+  .form-check-input:focus-visible,
+  .pl-pagina :focus-visible {
+    outline: 4px solid var(--bo-foco);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 7px var(--bo-foco-halo);
+  }
+
+  // Superficies con borde visible (en modo normal se separan solo con sombra).
+  .card-step,
+  .card-seccion,
+  .portal-card,
+  .filtros-card,
+  .filtros-barra,
+  .modal-fake,
+  .top-navbar,
+  .sidebar-rail {
+    border: 1px solid var(--bo-borde);
+  }
+
+  // Chips, pestañas y botones sin borde propio: contorno con el color del texto.
+  .estado-chip,
+  .medida-chip,
+  .plazo-chip,
+  .bandeja-tab,
+  .filtro-chip,
+  .filtro-aplicado,
+  .roadmap-medida,
+  .btn-light,
+  .btn-outline-secondary {
+    border: 1px solid currentColor;
+  }
+
+  // Enlaces dentro del contenido: siempre subrayados (no depender solo del color).
+  .portal-main a:not(.btn),
+  .card-step-body a:not(.btn),
+  .aviso a,
+  .texto-ayuda a,
+  .acta-link a {
+    text-decoration: underline;
+  }
+
+  // Deshabilitados un poco más legibles que el 0,65 de Bootstrap.
+  .btn:disabled,
+  .btn.disabled {
+    opacity: 0.8;
+  }
+
+}
+
+// Botón «Alto contraste» activo (en cualquier modo).
+.boton-contraste[aria-pressed='true'] {
+  background: var(--bo-btn-primary);
+  border-color: var(--bo-btn-primary);
+  color: #fff;
+}

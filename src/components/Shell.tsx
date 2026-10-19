@@ -9,6 +9,7 @@ import { LayoutProvider, useLayout } from '@/lib/layout-context';
 import { inicioPara, inspectorForbidden } from '@/lib/role-guard';
 import { modulosDe, puede, ROL_ETIQUETA, tipoIdDe, tiposPermitidos, type Permiso } from '@/lib/dominio';
 import { useAuthUser } from '@/lib/use-auth-user';
+import { BotonContraste } from './BotonContraste';
 
 interface MenuChild {
   titulo: string;
@@ -377,6 +378,10 @@ function ShellInner({ children }: { children: ReactNode }) {
             )}
           </button>
         </div>
+        <div className="sidebar-tema">
+          <span>Contraste</span>
+          <BotonContraste className="sidebar-tema-btn" conTexto />
+        </div>
         <button type="button" className="sidebar-salir sidebar-salir-pie" onClick={() => logout()}>
           <i className="fa-solid fa-right-from-bracket" aria-hidden="true" />
           <span>Cerrar sesión</span>
@@ -401,6 +406,7 @@ function ShellInner({ children }: { children: ReactNode }) {
                 <i className="fa-solid fa-house" aria-hidden="true" /><span>Inicio</span>
               </button>
             ) : null}
+            <BotonContraste className="inspector-topbar-btn" />
             <button type="button" className="inspector-topbar-btn" onClick={alternarTema} title="Cambiar tema" aria-label="Cambiar tema">
               <i className={`fa-solid ${tema === 'light' ? 'fa-sun' : 'fa-moon'}`} aria-hidden="true" />
             </button>
@@ -505,6 +511,7 @@ function ShellInner({ children }: { children: ReactNode }) {
               )}
             </div>
             <div className="rail-pie">
+              <BotonContraste className="rail-btn" />
               <button type="button" className="rail-btn" title={tema === 'light' ? 'Tema claro' : 'Tema oscuro'} aria-label="Cambiar tema" onClick={alternarTema}>
                 <i className={`fa-solid ${tema === 'light' ? 'fa-sun' : 'fa-moon'}`} aria-hidden="true" />
               </button>

@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useState, type ReactNode } from 'react';
+import { BotonContraste } from './BotonContraste';
 import { nombrePerfil, portalPerfil, portalToken, rutaPortalPrivada, salirPortal, type Perfil } from '@/lib/portal-client';
 
 /** Marco del portal de infractores: simple, legible en celular. */
@@ -41,12 +42,15 @@ export function PortalLayout({ children }: { children: ReactNode }) {
             <img src="/images/Municipio_malvinas_argentinas_logo.png" alt="Municipalidad de Malvinas Argentinas" />
             <div><strong>Portal de Infractores</strong><span>Dirección de Faltas · Malvinas Argentinas</span></div>
           </Link>
+          <div className="portal-header-acciones">
+          <BotonContraste className="btn btn-sm btn-outline-secondary" conTexto textoClase="d-none d-sm-inline" />
           {perfil ? (
             <div className="portal-usuario">
               <Link href="/portal/perfil" className="text-decoration-none" aria-label={`Mi perfil (${nombrePerfil(perfil)})`}><i className="fa-solid fa-circle-user" aria-hidden="true" /> <span className="d-none d-sm-inline">{nombrePerfil(perfil)}</span></Link>
               <button type="button" className="btn btn-sm btn-outline-secondary" onClick={salirPortal}>Salir</button>
             </div>
           ) : null}
+          </div>
         </div>
       </header>
       <main className="portal-main">{children}</main>

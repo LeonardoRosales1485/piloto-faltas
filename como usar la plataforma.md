@@ -29,6 +29,8 @@ Guía paso a paso para recorrer un acta de tránsito de punta a punta: desde que
 
 > **Con teclado:** las ventanas emergentes (ver acta, confirmaciones, formularios) se cierran con **Escape**, igual que con un clic afuera, y al cerrarse el foco vuelve al botón que las abrió. Las tablas anchas se pueden recorrer con Tab y desplazar con las flechas.
 
+> **Alto contraste:** el botón con el ícono de medio círculo (◐ «Alto contraste») sube el contraste de textos, bordes, campos y foco, en tema claro y oscuro. En el sistema interno está en la barra lateral, arriba del botón de tema (y en el menú desplegado, fila «Contraste»); los inspectores lo tienen en la barra superior; en el portal, arriba a la derecha; y en el login, debajo del formulario. La elección queda guardada en el navegador; si nunca se eligió, se activa solo cuando el sistema operativo pide más contraste.
+
 ---
 
 ## 1. El inspector labra el acta

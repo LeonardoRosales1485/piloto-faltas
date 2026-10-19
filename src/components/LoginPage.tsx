@@ -4,6 +4,7 @@ import { inicioPara } from '@/lib/role-guard';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { login } from '@/lib/auth-client';
+import { BotonContraste } from './BotonContraste';
 
 type Acceso = { u: string; p: string; t: string; i: string };
 
@@ -136,6 +137,9 @@ export function LoginPage() {
           <span>© {year} Blue Open Data</span>
           <span>V:1.0.0</span>
           {versionPos ? <span>App POS v{versionPos}</span> : null}
+        </div>
+        <div className="login-contraste">
+          <BotonContraste className="btn btn-sm btn-outline-secondary" conTexto />
         </div>
         </div>
         <section className="login-rapido" aria-label="Acceso rápido">
