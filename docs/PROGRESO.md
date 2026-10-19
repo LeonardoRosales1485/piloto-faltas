@@ -87,6 +87,7 @@ Avance: **20 / 20**
 | QA AUTH-CONT-10: portal del infractor con la misma protección de sesión que el back office: «Salir» no deja la pantalla en el historial, «Atrás», volver a la pestaña o salir en otra pestaña llevan al ingreso, un 401 cierra la sesión y las páginas del portal no se guardan en la caché del navegador | — |
 | QA STEPS (labrado): al dejar un paso incompleto aparece un aviso con lo que falta; el paso en el que se está no se marca en rojo (vuelve a marcarse al salir si sigue incompleto) | — |
 | Acta de contravención y sustancias (PDF): la casilla «Ejido urbano» muestra «[X] Dentro / [ ] Fuera» según la ubicación GPS (antes quedaba vacía; el acta de tránsito ya lo tenía) | — |
+| Acta de tránsito: nuevo campo obligatorio «Sentido de circulación» (Norte a Sur / Sur a Norte / Este a Oeste / Oeste a Este) en el paso «Lugar de infracción», validado en el wizard y al firmar; sale en el PDF. La celda «Intersección o esquina» del PDF se completa con las entre calles (QA XT02) | — |
 
 ## Fuera del alcance del prototipo
 

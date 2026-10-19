@@ -457,7 +457,7 @@ export function actaOficialHtml(infraccion: Infraccion, extras: ActaExtras = {})
             <td class="acta-cell-4"><span class="acta-label">Sentido de Circulación</span><span class="acta-value">${m('sentidoCirculacion')}</span></td>
           </tr>
           <tr>
-            <td class="acta-cell-4"><span class="acta-label">Intersección o Esquina</span><span class="acta-value">${m('interseccion')}</span></td>
+            <td class="acta-cell-4"><span class="acta-label">Intersección o Esquina</span><span class="acta-value">${m('interseccion') || escapeHtml([infraccion.entreCalle1, infraccion.entreCalle2].filter(Boolean).join(' y '))}</span></td>
             <td class="acta-cell-4"><span class="acta-label">Localidad</span><span class="acta-value">${escapeHtml(infraccion.domicilioInfraccionLocalidadNombre || infraccion.infractorLocalidadNombre || '')}</span></td>
             <td class="acta-cell-4"><span class="acta-label">Código Postal</span><span class="acta-value">${escapeHtml(infraccion.infractorCodigoPostal || '')}</span></td>
           </tr>

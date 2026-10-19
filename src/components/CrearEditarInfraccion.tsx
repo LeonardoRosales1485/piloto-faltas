@@ -39,6 +39,7 @@ function Campo({ id, label, children, req }: { id: string; label: string; childr
 }
 
 // Lugar de infracción precargado entre actas del mismo operativo (por inspector, en este dispositivo).
+const SENTIDOS_CIRCULACION = ['Norte a Sur', 'Sur a Norte', 'Este a Oeste', 'Oeste a Este'];
 const CAMPOS_LUGAR = ['domicilioInfraccionCalle', 'domicilioInfraccionNumero', 'domicilioInfraccionLocalidadNombre', 'entreCalle1', 'entreCalle2', 'ejido', 'gpsLat', 'gpsLng', 'nomenclaturaCatastral'] as const;
 const claveLugar = (u?: string | null) => `faltas-piloto:ultimo-lugar:${u ?? ''}`;
 function leerUltimoLugar(usuario?: string | null): Partial<Infraccion> {
@@ -613,6 +614,16 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
                   {sel(cat.localidad, form.domicilioInfraccionLocalidadNombre, (v) => patch({ domicilioInfraccionLocalidadNombre: v }), 'domicilioInfraccionLocalidadNombre')}
                 </Campo>
               </div>
+              {tipo === 'multas' ? (
+                <div className="col-12 col-md-5">
+                  <Campo id="sentidoCirculacion" label="Sentido de circulación" req>
+                    <select id="sentidoCirculacion" className="form-select" disabled={!habilitado} value={form.metadata?.sentidoCirculacion ?? ''} onChange={(e) => patchMeta('sentidoCirculacion', e.target.value)}>
+                      <option value="">Seleccionar...</option>
+                      {SENTIDOS_CIRCULACION.map((o) => <option key={o} value={o}>{o}</option>)}
+                    </select>
+                  </Campo>
+                </div>
+              ) : null}
               <div className="col-6">
                 <Campo id="entreCalle1" label="Entre calle (opcional)">
                   {inp('entreCalle1')}

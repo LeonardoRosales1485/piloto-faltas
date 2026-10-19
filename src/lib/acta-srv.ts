@@ -78,6 +78,7 @@ export async function firmarActa(d: Db, user: UsuarioRow, uuidActa: string, firm
       const meta = (() => { try { return JSON.parse(String(c.metadata_json ?? '{}')) as Record<string, string>; } catch { return {}; } })();
       check(String(meta.marca ?? '').trim(), 'Complete la marca del vehículo');
       check(String(meta.modelo ?? '').trim(), 'Complete el modelo del vehículo');
+      check(String(meta.sentidoCirculacion ?? '').trim(), 'Complete el sentido de circulación');
     }
   }
   const { count: fotos } = await d.from('infraccion_imagen').select('*', { count: 'exact', head: true }).eq('infraccion_id', c.id);

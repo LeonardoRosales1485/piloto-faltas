@@ -129,6 +129,7 @@ export function faltantesPorPaso(form: Partial<Infraccion>, firma: string | null
   const sit = form.situacionInfractor ?? '';
   if (!sit) add('acta', 'situación del infractor');
   if (!txt(form.domicilioInfraccionCalle)) add('lugar', 'calle del lugar de infracción');
+  if (form.infraccionTipoNombre === 'multas' && !txt(form.metadata?.sentidoCirculacion)) add('lugar', 'sentido de circulación');
   if (sit !== 'nn') {
     // Ausente: nombre y documento pueden no conocerse en el momento; se cargan si se pueden constatar.
     if (sit !== 'ausente' && !txt(form.infractorNombre) && !txt(form.infractorRazonSocial)) add('infractor', 'nombre o razón social');
