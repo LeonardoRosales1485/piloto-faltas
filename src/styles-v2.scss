@@ -563,7 +563,21 @@ span.dato-subsanado { font-size: .75rem; padding: .1rem .45rem; font-weight: 600
 .inspector-topbar-btn { display: inline-flex; align-items: center; gap: .4rem; min-height: 40px; padding: 0 .75rem; border: 1px solid var(--bo-borde); border-radius: 10px; background: transparent; color: inherit; font-weight: 600; font-size: .88rem; cursor: pointer;
   &.salir { color: #dc2626; border-color: rgba(220, 38, 38, .4); }
 }
-@media (max-width: 480px) { .inspector-topbar-btn span { display: none; } }
+// En el POS solo «Salir» queda como ícono: «Inicio» conserva el texto (la casita sola no se entendía).
+@media (max-width: 480px) { .inspector-topbar-btn:not(.inicio) span { display: none; } }
+.inspector-topbar-btn.inicio { color: var(--bo-azul); border-color: var(--bo-azul); }
+
+// Migas del inspector: «‹ Inicio › Acta de tránsito»
+.top-navbar-migas { display: flex; align-items: center; gap: .5rem; min-width: 0; font-size: 1rem;
+  button { display: inline-flex; align-items: center; gap: .35rem; min-height: 40px; padding: 0 .75rem; border: 1px solid var(--bo-azul); border-radius: 10px; background: transparent; color: var(--bo-azul); font-weight: 600; cursor: pointer; flex-shrink: 0; }
+  .separador { font-size: .7rem; opacity: .5; }
+  span { font-weight: 700; color: var(--bo-texto); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+}
+
+// Confirmación del acta: acciones arriba del resumen
+.acta-confirmada-acciones { display: flex; flex-direction: column; gap: .75rem; padding-bottom: 1rem; margin-bottom: 1rem; border-bottom: 1px solid var(--bo-borde);
+  .botonera { margin: 0; }
+}
 .inspector-contenido { flex: 1; margin-left: 0 !important; width: 100%; max-width: 1200px; margin: 0 auto !important; padding: 1rem; }
 .inspector-contenido.en-inicio { max-width: none; padding: 0; display: flex; }
 

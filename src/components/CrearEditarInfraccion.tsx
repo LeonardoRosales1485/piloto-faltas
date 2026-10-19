@@ -113,6 +113,8 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
   const patchMeta = (k: string, v: string) => setForm((prev) => ({ ...prev, metadata: { ...(prev.metadata ?? {}), [k]: v } }));
 
   useEffect(() => () => setOcultarTopbar(false), [setOcultarTopbar]);
+  // Confirmación final: sin la barra «Acta de …» (no es navegable y confundía); las acciones están en la tarjeta.
+  useEffect(() => { if (recienFirmada) setOcultarTopbar(true); }, [recienFirmada, setOcultarTopbar]);
 
   useEffect(() => {
     apiClient.constantes().then((c) => {
@@ -345,6 +347,17 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
             </div>
           </div>
           <div className="card-step-body">
+            <div className="acta-confirmada-acciones">
+            <div className="botonera">
+              <BotonVerActa acta={form as Infraccion} imagenes={imagenes.map((x) => x.previewRaw ?? '').filter(Boolean)} texto="Ver acta" className="btn btn-outline-primary btn-lg" />
+              <button type="button" className="btn btn-outline-primary btn-lg" onClick={() => void printTicket(form)}>
+                <i className="fa-solid fa-print" aria-hidden="true" /> Imprimir ticket
+              </button>
+            </div>
+            <button type="button" className="btn btn-success btn-lg w-100 acta-confirmada-ok" onClick={() => setConfirmarSalida(true)}>
+              <i className="fa-solid fa-check" aria-hidden="true" /> Listo, volver al inicio
+            </button>
+            </div>
             <h3 className="subtitulo-paso">Resumen de lo cargado</h3>
             <dl className="ficha">
               {fila('Fecha y hora', String(form.legajoFecha ?? '').replace('T', ' '))}
@@ -376,15 +389,6 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
               {form.firmaInfractor ? <img src={form.firmaInfractor} alt="Firma del infractor" style={{ height: 70, background: '#fff', borderRadius: 6 }} /> : <span className="texto-ayuda">{form.situacionInfractor === 'se_niega' ? 'El infractor se negó a firmar.' : 'Sin firma del infractor.'}</span>}
               <span className="texto-ayuda"><i className="fa-solid fa-user-shield" aria-hidden="true" /> Firma digital de {form.inspectorNombre}</span>
             </div>
-            <div className="botonera">
-              <BotonVerActa acta={form as Infraccion} imagenes={imagenes.map((x) => x.previewRaw ?? '').filter(Boolean)} texto="Ver acta" className="btn btn-outline-primary btn-lg" />
-              <button type="button" className="btn btn-outline-primary btn-lg" onClick={() => void printTicket(form)}>
-                <i className="fa-solid fa-print" aria-hidden="true" /> Imprimir ticket
-              </button>
-            </div>
-            <button type="button" className="btn btn-success btn-lg w-100 mt-3 acta-confirmada-ok" onClick={() => setConfirmarSalida(true)}>
-              <i className="fa-solid fa-check" aria-hidden="true" /> Listo, volver al inicio
-            </button>
           </div>
         </article>
         {confirmarSalida ? (

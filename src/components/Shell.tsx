@@ -395,7 +395,7 @@ function ShellInner({ children }: { children: ReactNode }) {
           </button>
           <div className="inspector-topbar-acciones">
             {!enInicio ? (
-              <button type="button" className="inspector-topbar-btn" onClick={() => router.push('/private/inicio')} title="Inicio" aria-label="Inicio">
+              <button type="button" className="inspector-topbar-btn inicio" onClick={() => router.push('/private/inicio')} title="Volver al inicio" aria-label="Volver al inicio">
                 <i className="fa-solid fa-house" aria-hidden="true" /><span>Inicio</span>
               </button>
             ) : null}
@@ -410,10 +410,14 @@ function ShellInner({ children }: { children: ReactNode }) {
         <main className={`layout-contenido inspector-contenido ${enCrearEditar && layout.isMobile ? 'topbar-al-pie' : ''} ${enInicio ? 'en-inicio' : ''}`}>
           {!enInicio && !layout.ocultarTopbar ? (
             <header className={`top-navbar ${layout.isMobile ? 'top-navbar-movil' : ''}`}>
-              <div className="top-navbar-titulo">
-                <i className="fa-solid fa-file-invoice" aria-hidden="true" />
-                <span>{titulo()}</span>
-              </div>
+              {/* Migas: «Inicio» es el único elemento navegable; la sección es solo un título. */}
+              <nav className="top-navbar-migas" aria-label="Ubicación">
+                <button type="button" onClick={() => router.push('/private/inicio')}>
+                  <i className="fa-solid fa-arrow-left" aria-hidden="true" /> Inicio
+                </button>
+                <i className="fa-solid fa-chevron-right separador" aria-hidden="true" />
+                <span aria-current="page">{titulo()}</span>
+              </nav>
               <div id="topbar-extra" className="top-navbar-extra" />
               <div className="top-navbar-acciones">
                 {tipo && !enCrearEditar ? (
