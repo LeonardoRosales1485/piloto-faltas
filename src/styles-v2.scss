@@ -315,10 +315,18 @@
 // Editor de escritos: campos a la izquierda, hoja a la derecha
 .editor-split { display: grid; grid-template-columns: minmax(280px, 360px) minmax(0, 1fr); gap: 1.25rem; align-items: start; }
 .editor-split.sin-panel { grid-template-columns: minmax(0, 1fr); }
-.editor-panel { position: sticky; top: 1rem; max-height: calc(100vh - 2rem); overflow-y: auto; }
+.editor-panel { min-width: 0; }
+// Escritorio: dos paneles del alto de la pantalla, cada uno con su scroll (datos a la izquierda, hoja a la derecha).
+// Antes el panel era «sticky» con alto máximo fijo: tenía scroll propio aunque sobrara espacio y, al llegar al final
+// de la hoja, quedaba empujado hacia arriba dejando un hueco en blanco debajo.
+@media (min-width: 1101px) {
+  .editor-split:not(.sin-panel) { height: calc(100dvh - 2rem); align-items: stretch;
+    > .editor-panel, > .editor-escrito-wrap { height: 100%; overflow-y: auto; }
+  }
+}
 .editor-split .editor-escrito-wrap { margin-top: 0; min-width: 0; overflow-x: auto; }
-@media (max-width: 1100px) { .editor-split { grid-template-columns: minmax(0, 1fr); } .editor-panel { position: static; max-height: none; } }
-@media print { .editor-split { display: block; } }
+@media (max-width: 1100px) { .editor-split { grid-template-columns: minmax(0, 1fr); } }
+@media print { .editor-split, .editor-split:not(.sin-panel) { display: block; height: auto; > .editor-panel, > .editor-escrito-wrap { height: auto; overflow: visible; } } }
 
 // Cierre animado del menú flotante
 .sidebar-flotante.cerrando { animation: sidebar-sale .2s ease-in forwards; }
