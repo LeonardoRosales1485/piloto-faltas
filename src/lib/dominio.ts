@@ -167,6 +167,14 @@ export type Overrides = Partial<Record<Permiso, boolean>>;
  * (si el administrador lo cambió) sobre el valor por defecto de PERMISOS. El Administrador nunca pierde «Configuración»
  * (para no quedar sin acceso al ABM).
  */
+/**
+ * Funciones fuera del alcance del piloto: el código queda, pero la pantalla se oculta salvo que el administrador
+ * la active en «Configuración › Funciones opcionales» (clave en `configuracion`, valor «1» = visible).
+ */
+export const FUNCIONES_OPCIONALES: readonly { llave: string; permiso: Permiso; titulo: string; detalle: string }[] = [
+  { llave: 'mostrar_seguimiento_gps', permiso: 'seguimientoGps', titulo: 'Seguimiento GPS', detalle: 'Mapa con la posición y el recorrido de los inspectores (datos simulados). No es requerimiento del piloto.' },
+];
+
 export function permisosEfectivos(rol: string, delRol: Overrides = {}, delUsuario: Overrides = {}): Permiso[] {
   return (Object.keys(PERMISOS) as Permiso[]).filter((p) => {
     if (rol === 'Administrador' && p === 'parametrizar') return true;

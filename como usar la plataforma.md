@@ -158,6 +158,7 @@ Arriba de cada causa, el recuadro **«Próximo paso»** dice qué falta, a quié
 - **Valores y tarifas** (usuario tributario): unidad fija, estadía, acarreo, etc.
 - **Configuración** (admin): plantillas de escritos, ordenanzas, textos del portal y feriados.
 - **Usuarios** (admin, en Configuración): alta, edición, cambio de contraseña y baja de usuarios. Las bajas no borran: el usuario queda inactivo.
+- **Funciones opcionales** (admin, en Configuración): funciones que no son requerimiento del piloto y están ocultas por defecto. Hoy: **Seguimiento GPS** (mapa de inspectores). Al activarla aparece en el menú y el botón «GPS» en Inspectores; la página se recarga para aplicar el cambio.
 - **Roadmap de la causa**: arriba a la derecha, en el detalle de cada causa, se ve en qué etapa está (labrada, notificación, descargo/pago, fallo, cierre).
 - **Auditoría** (Directora y admin): quién hizo qué y cuándo.
 

@@ -3,7 +3,8 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { http } from '@/lib/api-client';
-import { fechaHora, MODULOS_ACTA, modulosDe } from '@/lib/dominio';
+import { fechaHora, MODULOS_ACTA, modulosDe, puede } from '@/lib/dominio';
+import { useAuthUser } from '@/lib/use-auth-user';
 import { useCarga } from '@/lib/use-carga';
 import { LoaderLogo } from './LoaderLogo';
 import { ModalForm, type CampoModal } from './ModalForm';
@@ -18,6 +19,7 @@ const DEPENDENCIAS = ['Inspección de Tránsito', 'Inspecciones Generales', 'Bro
 
 /** ABM de inspectores: legajo, dependencia, terminal asignada y firma digital activa o inactiva. */
 export function AdminInspectores() {
+  const user = useAuthUser();
   const notify = useNotify();
   const [items, setItems] = useState<I[]>([]);
   const [cargando, seguir] = useCarga();
@@ -93,7 +95,7 @@ export function AdminInspectores() {
                         <button type="button" className={`btn btn-sm ${i.firma_activa !== false ? 'btn-outline-warning' : 'btn-outline-success'}`} onClick={() => void guardar({ ...i, firma_activa: i.firma_activa === false }, i.firma_activa !== false ? 'Firma desactivada' : 'Firma activada')}>
                           <i className="fa-solid fa-signature" aria-hidden="true" /> {i.firma_activa !== false ? 'Desactivar firma' : 'Activar firma'}
                         </button>
-                        <Link className="btn btn-sm btn-outline-secondary" href={`/private/seguimiento-gps?inspector=${i.username}`}><i className="fa-solid fa-location-dot" aria-hidden="true" /> GPS</Link>
+                        {puede(user, 'seguimientoGps') ? <Link className="btn btn-sm btn-outline-secondary" href={`/private/seguimiento-gps?inspector=${i.username}`}><i className="fa-solid fa-location-dot" aria-hidden="true" /> GPS</Link> : null}
                         <button type="button" className="btn btn-sm btn-outline-danger" onClick={() => void guardar({ ...i, activo: false }, 'Inspector dado de baja')}>Dar de baja</button>
                       </>
                     )}

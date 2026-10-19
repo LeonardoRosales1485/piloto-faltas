@@ -92,6 +92,7 @@ Avance: **20 / 20**
 | PDF de contravención y sustancias con modelo propio (antes salía el de tránsito: Ley 24.449, alcoholímetro). Todas las actas traen QR de verificación (RN 2.u; apunta a la verificación pública del acta hasta que se defina la URL oficial, A8). El PDF de tránsito muestra el sentido de circulación (QA) | — |
 | Inspector: navegación de vuelta más clara. «Inicio» conserva el texto en el POS; la barra de sección pasa a ser «← Inicio › Acta de …» (Inicio es botón, la sección solo título); en la pantalla final, «Ver acta», «Imprimir ticket» y «Listo, volver al inicio» van arriba del resumen y se oculta la barra de sección (QA) | — |
 | Labrado: «Municipio emisor» (y «Marca») ordenados alfabéticamente (QA) | — |
+| «Seguimiento GPS» oculto por defecto (no es requerimiento; el código queda). Se muestra desde «Configuración › Funciones opcionales» (administrador; clave `mostrar_seguimiento_gps`). Apagado, nadie tiene el permiso: sin menú, sin botón «GPS» en Inspectores y sin acceso a la pantalla ni a la API | — |
 
 ## Fuera del alcance del prototipo
 
