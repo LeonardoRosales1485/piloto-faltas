@@ -72,20 +72,21 @@ export function EditorEscrito() {
   const docEstado = d?.documento?.estado;
   const puedeEditar = Boolean(d) && d!.documento.tipo === 'escrito' && (['borrador', 'devuelto'].includes(docEstado) || (docEstado === 'en_revision' && puede(user?.rol, 'firmar'))) && puede(user?.rol, 'redactarEscritos');
 
-  // Pinta la hoja: en modo «campos» el texto queda fijo y cada [Completar:...] es un campo; en «libre» se edita todo.
+  // Pinta la hoja: en modo «campos» el texto queda fijo y cada dato es un input (precargado o vacío); en «libre» se edita todo.
   useEffect(() => {
     const el = ref.current;
     if (!el || !d) return;
     if (!puedeEditar) { el.innerHTML = mostrarDocumento(base.current, 'chip'); return; }
     if (modo === 'libre') { el.innerHTML = mostrarDocumento(aplicarValores(base.current, valores), 'chip'); return; }
     let i = 0;
+    const precargadosIni = new Set(String(valores._precargados ?? '').split(',').filter(Boolean));
     el.innerHTML = mostrarDocumento(base.current, 'chip').replace(RE_COMPLETAR, (_m, label: string, tipo?: string) => {
       i += 1;
       const k = `c${i}`;
       const t = tipo === 'fecha' ? 'date' : tipo === 'numero' || tipo === 'moneda' ? 'number' : 'text';
       const lab = String(label).replace(/"/g, '&quot;');
       const val = String(valores[k] ?? '').replace(/"/g, '&quot;');
-      return `<input class="campo-completar${val ? '' : ' vacio'}" data-k="${k}" type="${t}" ${tipo === 'moneda' ? 'step="0.01"' : ''} placeholder="${lab}" title="${lab}" aria-label="${lab}" value="${val}" style="width:${anchoCampo(String(label), String(valores[k] ?? ''), t)}ch"/>`;
+      return `<input class="campo-completar${val ? '' : ' vacio'}${precargadosIni.has(k) ? ' precargado' : ''}" data-k="${k}" type="${t}" ${tipo === 'moneda' ? 'step="0.01"' : ''} placeholder="${lab}" title="${lab}" aria-label="${lab}" value="${val}" style="width:${anchoCampo(String(label), String(valores[k] ?? ''), t)}ch"/>`;
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [d, modo, puedeEditar]);
@@ -114,6 +115,7 @@ export function EditorEscrito() {
   const editable = puedeEditar;
   const campos = modo === 'campos' && editable ? camposCompletar(base.current) : [];
   const pendientes = campos.filter((c) => !(valores[c.k] ?? '').trim()).length;
+  const precargados = new Set(String(valores._precargados ?? '').split(',').filter(Boolean));
   const payload = () => (modo === 'libre' ? { modo, valores, html: restaurarDocumento(sinSaltos(ref.current?.innerHTML ?? '')) } : { modo, valores });
   const requiereRevision = Number(doc.plantilla?.requiere_revision ?? 0) === 1;
   // PDF y Word salen de lo guardado (QA CONT-6): se bloquean con cambios sin guardar y, en un borrador con campos
@@ -226,11 +228,11 @@ export function EditorEscrito() {
           <aside className="editor-panel no-print">
             {campos.length ? (
               <div className="card-step">
-                <div className="card-step-header"><h2>Campos a completar</h2><p>{pendientes ? `Faltan ${pendientes} de ${campos.length}` : 'Todos los campos completos'}</p></div>
+                <div className="card-step-header"><h2>Datos del escrito</h2><p>{pendientes ? `Faltan ${pendientes} de ${campos.length}` : 'Todos los datos completos'} · los marcados «de la causa» vienen precargados y se pueden corregir solo para este escrito</p></div>
                 <div className="card-step-body">
                   {campos.map((c) => (
                     <div key={c.k} className="mb-2">
-                      <label className="form-label-v2" htmlFor={`pc-${c.k}`}>{c.label}</label>
+                      <label className="form-label-v2" htmlFor={`pc-${c.k}`}>{c.label}{precargados.has(c.k) ? <span className="badge text-bg-light border ms-1" title="Dato precargado desde la causa">de la causa</span> : null}</label>
                       <input id={`pc-${c.k}`} className={`form-control form-control-sm ${(valores[c.k] ?? '').trim() ? '' : 'is-invalid'}`} type={c.tipo === 'fecha' ? 'date' : c.tipo === 'numero' || c.tipo === 'moneda' ? 'number' : 'text'} value={valores[c.k] ?? ''} onChange={(e) => setCampoPanel(c.k, e.target.value)} />
                     </div>
                   ))}
@@ -239,7 +241,7 @@ export function EditorEscrito() {
             ) : null}
             {editable && modo === 'campos' ? (
               <div className="aviso aviso-info mt-3 mb-0">
-                <p className="mb-2"><i className="fa-solid fa-lock" aria-hidden="true" /> El texto de la plantilla está bloqueado. {campos.length ? `Complete los campos (${campos.length - pendientes} de ${campos.length} completos).` : 'Esta plantilla no tiene campos a completar.'}</p>
+                <p className="mb-2"><i className="fa-solid fa-lock" aria-hidden="true" /> El texto de la plantilla está bloqueado. {campos.length ? `Revise y complete los datos (${campos.length - pendientes} de ${campos.length} completos).` : 'Esta plantilla no tiene datos para completar.'}</p>
                 <button type="button" className="btn btn-sm btn-outline-secondary w-100" onClick={() => setConfirmarLibre(true)}><i className="fa-solid fa-pen" aria-hidden="true" /> Editar todo el texto</button>
               </div>
             ) : null}

@@ -712,11 +712,11 @@ function PanelCampos({ usados, onInsertar, onCompletar, deshabilitado }: { usado
       {deshabilitado ? <div className="aviso aviso-info">Vuelva a editar para insertar campos.</div> : null}
       <button type="button" className="pl-campo-completar" disabled={deshabilitado} onMouseDown={(e) => e.preventDefault()} onClick={onCompletar}>
         <span className="pl-tk pl-tk-completar">✎ Campo a completar</span>
-        <span>Un dato que escribe quien redacta (monto, fecha, número de expediente…)</span>
+        <span>Un dato vacío que escribe quien redacta (fundamentos, fecha de audiencia, n° de expediente judicial…)</span>
       </button>
-      <label className="pl-label" htmlFor="pl-buscar-campo">Campos que se completan solos</label>
+      <label className="pl-label" htmlFor="pl-buscar-campo">Campos precargados con datos de la causa</label>
       <input id="pl-buscar-campo" className="form-control form-control-sm" placeholder="Buscar campo (ej.: dominio, fecha)" value={q} onChange={(e) => setQ(e.target.value)} />
-      <p className="texto-ayuda">Haga clic para insertarlo donde está el cursor, o escriba <kbd>[</kbd> en la hoja.</p>
+      <p className="texto-ayuda">Al redactar aparecen como campos ya completos y editables. Haga clic para insertarlo donde está el cursor, o escriba <kbd>[</kbd> en la hoja.</p>
       {grupos.map((g) => (
         <details key={g.g} open className="pl-grupo">
           <summary><i className={g.i} aria-hidden="true" /> {g.g} <span className="texto-ayuda">({g.campos.length})</span></summary>
@@ -733,7 +733,7 @@ function PanelCampos({ usados, onInsertar, onCompletar, deshabilitado }: { usado
         </details>
       ))}
       {!grupos.length ? <p className="texto-ayuda">No hay campos con ese nombre.</p> : null}
-      <div className="pl-leyenda"><span className="pl-tk pl-tk-auto">Automático</span><span className="pl-tk pl-tk-completar">✎ Lo completa quien redacta</span><span className="pl-tk pl-tk-error">Desconocido</span></div>
+      <div className="pl-leyenda"><span className="pl-tk pl-tk-auto">Precargado (editable)</span><span className="pl-tk pl-tk-completar">✎ Vacío: lo completa quien redacta</span><span className="pl-tk pl-tk-error">Desconocido</span></div>
     </div>
   );
 }

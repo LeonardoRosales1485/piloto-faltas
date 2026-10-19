@@ -11,6 +11,7 @@ import {
 } from './srv';
 import { reservar } from './acta-srv';
 import { normalizarHtml } from './campos';
+import { infoMarcador } from './plantillas';
 import type { UsuarioRow } from './types';
 
 export const PLAZO_TRANSITO = 30;
@@ -165,15 +166,6 @@ const ETIQUETA_AUTO: Record<string, string> = {
   'Causa:Vencimiento': 'Vencimiento', 'Acta:Infracciones': 'Infracciones',
 };
 
-export function aplicarCampos(html: string, campos: Record<string, unknown>) {
-  return html.replace(/\[((?:Acta|System|Causa|Usuario):[^\]]+)\]/g, (m, k: string) => {
-    if (!(k in campos)) return m;
-    const val = campos[k];
-    // Dato automático que el acta no tiene: pasa a ser un campo a completar por quien redacta.
-    if (val === null || val === undefined || val === '') return `[Completar:${ETIQUETA_AUTO[k] ?? k.split(':')[1].replace(/[._]/g, ' ')}]`;
-    return esc(val);
-  });
-}
 
 // ---------------------------------------------------------------------------
 // Notificación (fase 1: portal y domicilio electrónico; sin notificación en persona)
@@ -272,57 +264,95 @@ export async function notificarPendientesAlVer(d: Db, c: CausaRow, documentoId: 
 // ---------------------------------------------------------------------------
 // Escritos
 // ---------------------------------------------------------------------------
-/**
- * Precarga los campos [Completar:…] que la causa ya conoce (N° de acta, titular, dominio, montos, números de
- * fallo/resolución…). Quedan como texto común del escrito, editable como siempre; los que no se conocen siguen
- * como campos a completar.
- */
-export async function precargarCompletar(d: Db, c0: CausaRow, html: string) {
+type Conocido = { txt: string; num?: string; iso?: string };
+
+/** Datos que la causa ya conoce para precargar campos por su etiqueta (N° de acta, titular, montos, n° de fallo…). */
+async function datosConocidos(d: Db, c0: CausaRow): Promise<Record<string, Conocido>> {
   const c = await causaVigente(d, c0);
   const v = await valorizacion(d, c);
   const descuento = await configNum(d, 'descuento_pago_voluntario', 50);
   let meta: Record<string, string> = {};
   try { meta = JSON.parse(String(c.metadata_json ?? '{}')) as Record<string, string>; } catch { /* sin metadata */ }
-  const moneda = (n: number) => n.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const moneda = (n: number): Conocido => ({ txt: n.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }), num: n.toFixed(2) });
+  const fecha = (ms: number): Conocido => { const a = ahoraArgentina(ms); return { txt: fechaCorta(ms), iso: `${a.anio}-${String(a.mes).padStart(2, '0')}-${String(a.dia).padStart(2, '0')}` }; };
+  const txt = (x: unknown): Conocido => ({ txt: String(x ?? '') });
   const { data: docs } = await d.from('documento').select('numero, date_created, plantilla(categoria)').eq('infraccion_id', c.id).not('numero', 'is', null).order('date_created', { ascending: false });
-  const numeroDe = (cat: string) => ((docs ?? []) as { numero: string; plantilla: { categoria?: string } | null }[]).find((x) => x.plantilla?.categoria === cat)?.numero ?? '';
+  const numeroDe = (cat: string) => txt(((docs ?? []) as { numero: string; plantilla: { categoria?: string } | null }[]).find((x) => x.plantilla?.categoria === cat)?.numero ?? '');
   const { data: cuotas } = await d.from('presentacion').select('cuotas_otorgadas').eq('infraccion_id', c.id).eq('tipo', 'cuotas').eq('estado', 'aceptada').maybeSingle();
   const acarreo = Number(c.acarreo) === 1 ? await tarifaAcarreo(d, claseVehiculo(c.vehiculo_tipo_nombre as string | null)) : 0;
-  const norm = (x: string) => x.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/nº/g, 'n°').replace(/\s+/g, ' ').trim();
-  const valores: Record<string, string> = {
-    'n° de acta': String(c.legajo_numero_acta ?? ''),
-    'nombre y apellido': String(c.infractor_razon_social || c.infractor_nombre || ''),
-    'n° de legajo': `${c.legajo_number ?? ''}/${c.legajo_anio ?? ''}`,
-    'n° de expediente': `${c.legajo_number ?? ''}/${c.legajo_anio ?? ''}`,
-    'n° de licencia': String(c.vehiculo_numero_licencia ?? ''),
-    'tipo marca modelo': [c.vehiculo_tipo_nombre, meta.marca, meta.modelo].filter(Boolean).join(' '),
+  const nCuotas = cuotas ? String((cuotas as { cuotas_otorgadas: number | null }).cuotas_otorgadas ?? '') : '';
+  return {
+    'n° de acta': txt(c.legajo_numero_acta),
+    'nombre y apellido': txt(c.infractor_razon_social || c.infractor_nombre),
+    'n° de legajo': txt(`${c.legajo_number ?? ''}/${c.legajo_anio ?? ''}`),
+    'n° de expediente': txt(`${c.legajo_number ?? ''}/${c.legajo_anio ?? ''}`),
+    'n° de licencia': txt(c.vehiculo_numero_licencia),
+    'tipo marca modelo': txt([c.vehiculo_tipo_nombre, meta.marca, meta.modelo].filter(Boolean).join(' ')),
     monto: moneda(v.multa),
     'monto pago voluntario': moneda(v.multa * (1 - descuento / 100)),
-    'monto acarreo': acarreo ? moneda(acarreo) : '',
-    'fecha de vencimiento': c.vence_plazo_at ? fechaCorta(Number(c.vence_plazo_at)) : '',
-    municipalidad: 'Malvinas Argentinas',
+    'monto acarreo': acarreo ? moneda(acarreo) : txt(''),
+    'fecha de vencimiento': c.vence_plazo_at ? fecha(Number(c.vence_plazo_at)) : txt(''),
+    municipalidad: txt('Malvinas Argentinas'),
     'n° de fallo': numeroDe('Fallo'),
     'n° de resolucion': numeroDe('Resolución'),
     'n° de disposicion': numeroDe('Disposición'),
-    'cantidad de cuotas': cuotas ? String((cuotas as { cuotas_otorgadas: number | null }).cuotas_otorgadas ?? '') : '',
+    'cantidad de cuotas': { txt: nCuotas, num: nCuotas },
   };
-  return html.replace(/\[Completar:([^\]:]+)(?::(?:texto|numero|fecha|moneda))?\]/g, (m, label: string, off: number, todo: string) => {
-    const k = norm(label);
+}
+
+const normEtiqueta = (x: string) => x.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/nº/g, 'n°').replace(/\s+/g, ' ').trim();
+
+/** Nombre del campo para un dato del sistema (sin «:», «[» ni «]», que rompen el marcador). */
+function etiquetaDato(k: string) {
+  const info = infoMarcador(k);
+  return (info.clase === 'auto' ? info.label : ETIQUETA_AUTO[k] ?? k.split(':')[1].replace(/[._]/g, ' ')).replace(/[:[\]]/g, ' ').trim();
+}
+
+/**
+ * Prepara un escrito desde una plantilla: todos los datos son campos del formulario (inputs en la hoja).
+ * - Los datos del sistema ([Acta:…], [Causa:…], [System:…], [Usuario:…]) pasan a ser campos precargados con su valor,
+ *   editables solo en este escrito. Si la causa no tiene el dato, el campo queda vacío y es obligatorio.
+ * - Los campos a completar que la causa ya conoce (monto, n° de fallo…) también quedan precargados.
+ * - [Documento:Numero] y [Documento:Fecha] siguen automáticos: se asignan al quedar definitivo o firmado.
+ * Devuelve el HTML con marcadores [Completar:…] y los valores (c1, c2…); `_precargados` lista los que vinieron de la causa.
+ */
+export async function prepararEscrito(d: Db, c: CausaRow, user: UsuarioRow | undefined, htmlPlantilla: string) {
+  const [auto, conocidos] = await Promise.all([camposDeCausa(d, c, user), datosConocidos(d, c)]);
+  const valores: Record<string, string> = {};
+  const precargados: string[] = [];
+  let i = 0;
+  const RE = /\[(?:((?:Acta|System|Causa|Usuario):[^\]]+)|Completar:([^\]:]+)(?::(texto|numero|fecha|moneda))?)\]/g;
+  const html = normalizarHtml(htmlPlantilla).replace(RE, (m, dato: string | undefined, label: string | undefined, tipo: string | undefined, off: number, todo: string) => {
+    if (dato) {
+      if (!(dato in auto)) return m; // desconocido: queda visible para corregir la plantilla
+      if (dato === 'Acta:Actividad') return ''; // Anexo V: se eliminó «actividad económica»
+      i += 1;
+      const val = String(auto[dato] ?? '').trim();
+      if (val) { valores[`c${i}`] = val; precargados.push(`c${i}`); }
+      return `[Completar:${etiquetaDato(dato)}]`;
+    }
+    i += 1;
+    const k = normEtiqueta(String(label));
     // «Técnico / Ingeniero [Nombre y apellido]» es quien hizo la medición, no el infractor.
-    if (k === 'nombre y apellido' && /(ingenier|tecnic|técnic|perito)[^<\[]{0,15}$/i.test(todo.slice(Math.max(0, off - 40), off).replace(/<[^>]*>/g, ''))) return m;
-    const val = valores[k];
-    return val ? esc(val) : m;
+    if (k === 'nombre y apellido' && /(ingenier|tecnic|técnic|perito)[^<[]{0,15}$/i.test(todo.slice(Math.max(0, off - 40), off).replace(/<[^>]*>/g, ''))) return m;
+    const p = conocidos[k];
+    const t = tipo ?? 'texto';
+    const val = !p ? '' : t === 'moneda' || t === 'numero' ? (p.num ?? (/^\d+$/.test(p.txt) ? p.txt : '')) : t === 'fecha' ? (p.iso ?? '') : p.txt;
+    if (val) { valores[`c${i}`] = val; precargados.push(`c${i}`); }
+    return m;
   });
+  if (precargados.length) valores._precargados = precargados.join(',');
+  return { html, valores };
 }
 
 export async function generarEscrito(d: Db, user: UsuarioRow, c: CausaRow, plantillaId: number) {
   const { data: p } = await d.from('plantilla').select('*').eq('id', plantillaId).maybeSingle();
   check(p, 'Plantilla inexistente', 404);
   const pl = p as Record<string, unknown>;
-  const html = await precargarCompletar(d, c, aplicarCampos(normalizarHtml(String(pl.contenido_html)), await camposDeCausa(d, c, user)));
+  const { html, valores } = await prepararEscrito(d, c, user, String(pl.contenido_html));
   const row = {
     uuid: uuid(), infraccion_id: c.id, tipo: 'escrito', plantilla_id: plantillaId, titulo: String(pl.titulo),
-    contenido_html: html, estado: 'borrador', creado_por: nombreUsuario(user), date_created: Date.now(), date_updated: Date.now(),
+    contenido_html: html, valores_json: JSON.stringify(valores), estado: 'borrador', creado_por: nombreUsuario(user), date_created: Date.now(), date_updated: Date.now(),
   };
   const { data, error } = await d.from('documento').insert(row).select('uuid').single();
   if (error) throw new HttpError(500, error.message);

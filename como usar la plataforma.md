@@ -135,8 +135,8 @@ Arriba de cada causa, el recuadro **«Próximo paso»** dice qué falta, a quié
 
 ## Los escritos
 
-- **Desde la causa**, con **«Generar escrito»**, se elige una plantilla. El escrito se abre en una hoja A4 con los datos del acta ya completados.
-- **Por defecto el texto de la plantilla está bloqueado** y solo se completan los **campos resaltados**, por ejemplo un número de expediente o un monto. Arriba de la hoja hay un panel con esos mismos campos, que indica cuántos faltan.
+- **Desde la causa**, con **«Generar escrito»**, se elige una plantilla. El escrito se abre en una hoja A4 donde **todos los datos son campos**: los que la causa ya conoce (titular, DNI, domicilio, N° de acta, montos, fechas…) vienen **precargados** (subrayado punteado, marcados «de la causa» en el panel) y se pueden corregir **solo para ese escrito** (el acta no cambia); los que la causa no tiene quedan **vacíos** (en amarillo) y son obligatorios. El número y la fecha del escrito los asigna el sistema al firmar o dejar definitivo.
+- **Por defecto el texto de la plantilla está bloqueado** y solo se editan los **campos**. Al lado de la hoja, el panel «Datos del escrito» muestra todos los campos e indica cuántos faltan.
 - **Si hace falta cambiar el texto** en un caso puntual, el botón **«Editar todo el texto»** habilita la edición completa de **ese** escrito. Queda registrado en el historial y la plantilla no cambia.
 - **Escritos que requieren revisión** (fallos, resoluciones, disposiciones): se envían a la Directora, que los firma. Los demás se dejan **definitivos** directamente.
 - **Descarga:** cualquier escrito se descarga en **PDF** o en **Word (editable)**. El Word se abre con Word, LibreOffice o Google Docs; con el Bloc de notas se ven caracteres raros. Desde la causa también se descarga el **legajo completo en PDF**.
@@ -202,7 +202,7 @@ El Administrador conserva siempre «Configuración» para no quedarse sin acceso
 ## Montos por artículo y escritos
 
 - En la causa, sección «Artículos y valorización», **Editar montos por artículo** permite cambiar el múltiplo de cada artículo o marcar **Manual** y fijar un subtotal para esa causa. El catálogo de ordenanzas no cambia y queda constancia en el historial.
-- Al generar un escrito desde plantilla, los datos que la causa ya tiene (N° de acta, titular, legajo, montos, vencimiento, números de fallo/resolución) se completan solos; el resto queda para completar y todo se puede editar.
+- Al generar un escrito desde plantilla, los datos que la causa ya tiene (N° de acta, titular, legajo, montos, vencimiento, números de fallo/resolución) quedan precargados en sus campos; el resto queda vacío para completar, y todo se puede corregir. Si después se subsana el acta, los escritos ya generados conservan lo cargado.
 - En «Escritos y documentos», el botón de papelera quita un escrito en borrador o un adjunto cargado por error. Los firmados, los notificados y los que llegaron con una presentación del infractor no se pueden quitar.
 - Imprimir el ticket pide confirmación antes de imprimir.
 

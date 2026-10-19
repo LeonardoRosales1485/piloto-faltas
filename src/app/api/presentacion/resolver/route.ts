@@ -36,11 +36,14 @@ export async function POST(req: NextRequest) {
         if (pl) {
           const g = await generarEscrito(db, user, c, (pl as { id: number }).id);
           // Prellena los campos conocidos del compromiso; si queda alguno sin dato, queda en borrador para el agente.
-          const { data: dd } = await db.from('documento').select('id, contenido_html').eq('uuid', g.uuid).single();
+          const { data: dd } = await db.from('documento').select('id, contenido_html, valores_json').eq('uuid', g.uuid).single();
           const html = String((dd as { contenido_html: string }).contenido_html);
+          // Parte de lo ya precargado desde la causa y completa con los datos del pago recién emitido.
+          let previos: Record<string, string> = {};
+          try { previos = JSON.parse(String((dd as { valores_json: string | null }).valores_json ?? '{}')); } catch { previos = {}; }
           const { data: fallo } = await db.from('documento').select('numero, fecha_numero, plantilla!inner(codigo)').eq('infraccion_id', c.id).eq('plantilla.codigo', 'FALLO_CONDENATORIO').not('numero', 'is', null).maybeSingle();
           const f = fallo as { numero: string; fecha_numero: number } | null;
-          const valores: Record<string, string> = {};
+          const valores: Record<string, string> = { ...previos };
           for (const campo of camposCompletar(html)) {
             const l = campo.label.toLowerCase();
             if (campo.tipo === 'moneda' && /estad/.test(l)) valores[campo.k] = '0';

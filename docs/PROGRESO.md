@@ -93,6 +93,7 @@ Avance: **20 / 20**
 | Inspector: navegación de vuelta más clara. «Inicio» conserva el texto en el POS; la barra de sección pasa a ser «← Inicio › Acta de …» (Inicio es botón, la sección solo título); en la pantalla final, «Ver acta», «Imprimir ticket» y «Listo, volver al inicio» van arriba del resumen y se oculta la barra de sección (QA) | — |
 | Labrado: «Municipio emisor» (y «Marca») ordenados alfabéticamente (QA) | — |
 | «Seguimiento GPS» oculto por defecto (no es requerimiento; el código queda). Se muestra desde «Configuración › Funciones opcionales» (administrador; clave `mostrar_seguimiento_gps`). Apagado, nadie tiene el permiso: sin menú, sin botón «GPS» en Inspectores y sin acceso a la pantalla ni a la API | — |
+| Escritos: todos los datos son campos del formulario. Las variables del sistema ([Acta:…], [Causa:…], [System:…], [Usuario:…]) y los campos a completar que la causa conoce se generan como inputs **precargados** (editables solo en ese escrito; vacíos y obligatorios si la causa no tiene el dato). [Documento:Numero/Fecha] siguen automáticos. Panel «Datos del escrito» con marca «de la causa». Vista previa de plantillas y compromisos de pago adaptados | — |
 
 ## Fuera del alcance del prototipo
 

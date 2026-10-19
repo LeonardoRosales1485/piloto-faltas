@@ -1,8 +1,8 @@
 import { NextRequest } from 'next/server';
 import { puede, tipoActa, tipoVisible } from '@/lib/dominio';
 import { check, causaPorId, handle } from '@/lib/srv';
-import { normalizarHtml } from '@/lib/campos';
-import { aplicarCampos, camposDeCausa, precargarCompletar } from '@/lib/causa-srv';
+import { aplicarValores } from '@/lib/campos';
+import { prepararEscrito } from '@/lib/causa-srv';
 import { tiposDePlantilla } from '@/lib/plantillas';
 
 type Fila = { id: number; legajo_numero_acta: string; infraccion_tipo_nombre: string | null; infraccion_tipo_id: number | null };
@@ -27,7 +27,9 @@ export async function POST(req: NextRequest) {
       : filas.find((f) => tipos.includes(tipoActa(f.infraccion_tipo_nombre))) ?? filas[0];
     check(elegida, acta ? `No se encontró el acta «${acta}»` : 'No hay causas para la vista previa');
     const c = await causaPorId(db, elegida.id);
-    const html = await precargarCompletar(db, c, aplicarCampos(normalizarHtml(String(b.html)), await camposDeCausa(db, c, user)));
+    // Igual que al generar el escrito: los datos precargados se muestran con su valor y los vacíos como campo a completar.
+    const prep = await prepararEscrito(db, c, user, String(b.html));
+    const html = aplicarValores(prep.html, prep.valores);
     return {
       html,
       causa: { uuid: c.uuid, acta: c.legajo_numero_acta, titular: c.infractor_razon_social || c.infractor_nombre || 'NN', estado: c.estado_faltas, tipo: tipoActa(c.infraccion_tipo_nombre) },
