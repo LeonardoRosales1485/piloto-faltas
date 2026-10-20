@@ -44,7 +44,7 @@ Guía paso a paso para recorrer un acta de tránsito de punta a punta: desde que
    - **Lugar de infracción:** en un operativo, queda precargado el lugar de la última acta firmada (se puede cambiar). El botón **«Usar mi ubicación (GPS)»** completa la dirección y calcula solo si el lugar está dentro o fuera del ejido urbano (las coordenadas no se muestran y el inspector no lo cambia; si no hay GPS, lo determina Faltas desde la causa con **«Corregir»**). En actas de tránsito, el **sentido de circulación** («Mano» o «Contramano») es obligatorio. Las entre calles son opcionales.
    - **Infractor:** si está presente, nombre, documento y domicilio son obligatorios. Si es una empresa, se elige **Persona jurídica** y se cargan razón social y CUIT. Primero se elige la localidad y después el partido (si no está en la lista, se escribe libre). El correo no va en el acta: lo puede agregar Faltas desde la causa. En tránsito, acá también va el **N.° de licencia de conducir** y, opcionalmente, sus **categorías** (A.1.1 a G.3, como figuran en la licencia nacional; se marcan todas las que tenga). Las categorías salen en el resumen antes de firmar, en el acta y en el detalle de la causa.
    - **Vehículo:** dominio, tipo, marca y modelo son obligatorios (marca y modelo, si no están en la lista, se escriben libres). También el municipio emisor de la licencia.
-   - **Artículos:** con **«Agregar artículo»** se busca por artículo o nombre y se toca **«Agregar»** en cada uno (queda «Agregado»; no se repite). Se quitan con la papelera de la tabla. El inspector no ve unidades ni importes: la valorización la hace Faltas. Abajo se marcan las medidas: retención de licencia o de vehículo, acarreo y alcoholemia.
+   - **Artículos:** con **«Agregar artículo»** se busca por artículo o nombre y se toca **«Agregar»** en cada uno (queda «Agregado»; no se repite). Se quitan con la papelera de la tabla. El inspector no ve unidades ni importes: la valorización la hace Faltas. Abajo se marcan las medidas: retención de licencia o de vehículo y alcoholemia (el acarreo y la estadía los cobra Faltas al liberar el vehículo).
    - **Fotos:** al menos 1 y hasta 5, más las observaciones.
    - **Firma:** se revisa el resumen y se toca **«Abrir pad de firma»**: toda la pantalla queda para que el infractor firme con el dedo, con los botones **Borrar** y **Listo** abajo. Si se niega, se marca **«El infractor se niega a firmar»** (el botón del pad queda en gris). Después se presiona **«Firmar y confirmar»**.
 
@@ -126,7 +126,7 @@ Para cualquier opción debe adjuntar el **DNI de frente y de dorso**, y el **est
 
 1. La causa aparece en **«Medidas a resolver»**. El agente toca **«Resolución de medida preventiva»**, completa el escrito y lo envía a la Directora para que lo firme.
 2. La medida sigue vigente **aunque el infractor pague**: la causa no se archiva.
-3. Para levantarla, el agente genera la **«Disposición de levantamiento»** y la Directora la firma. Ahí la medida se levanta y, si ya estaba todo pago, la causa se archiva sola.
+3. Para levantarla, el agente genera la **«Disposición de levantamiento»** y la Directora la firma. Ahí la medida se levanta y, si ya estaba todo pago, la causa se archiva sola. Si además había un vehículo retenido, después se registra su liberación en **Retenciones**.
 
 ### C. Plan de cuotas
 
@@ -138,6 +138,8 @@ Para cualquier opción debe adjuntar el **DNI de frente y de dorso**, y el **est
 ## Próximo paso de la causa
 
 Arriba de cada causa, el recuadro **«Próximo paso»** dice qué falta, a quién le toca (agente, Directora o Responsable, infractor u organismo externo) y tiene el botón para avanzar. Por ejemplo: con el fallo firmado, **Notificar el fallo**; si el infractor no lo abre en el portal, **Considerar notificado** (empieza a correr el plazo para pagar o apelar); con el plazo vencido, **Derivar a Apremios**.
+
+Si la multa ya está paga o la causa está cerrada pero el **vehículo sigue retenido**, el recuadro no dice «cerrada»: indica **«Liberar el vehículo»** y el paso que falta (emitir la boleta de acarreo y estadía en Retenciones, esperar el pago, dictar y firmar la disposición de levantamiento, registrar la liberación). Mientras el vehículo esté retenido, la causa sigue mostrando **«Boleta de estadía»** aunque esté cerrada (hasta que se emita la boleta de liberación).
 
 ## Los escritos
 
@@ -189,7 +191,10 @@ Arriba de cada causa, el recuadro **«Próximo paso»** dice qué falta, a quié
 ## Memos, retenciones, tarifas y evidencia (actualizado)
 
 - **Memos internos:** en la causa, la pestaña **«Memos internos»** (o la acción «Memo interno») guarda notas del personal de Faltas. No cambian el estado y no se ven en el portal; sí en el legajo completo interno. El estado «Espera respuesta» queda disponible desde «Cambiar estado».
-- **Retenciones:** menú **«Retenciones»**: estadísticas (retenidos, liberados, montos pendiente y recaudado), filtro por fechas y listado de vehículos retenidos. **«Liberar»** muestra el total a pagar (acarreo según el tipo de vehículo + estadía según los días en depósito), emite la boleta y, si la retención era la medida vigente, deja la disposición de levantamiento en borrador.
+- **Retenciones:** menú **«Retenciones»**: estadísticas (retenidos, liberados, montos pendiente y recaudado), filtro por fechas y listado de vehículos retenidos. La liberación va en el orden del Informe: **pago → disposición de levantamiento → liberación**.
+  1. **«Emitir boleta»** muestra el total a pagar (acarreo según el tipo de vehículo + estadía según los días en depósito) y emite la boleta. El vehículo **sigue retenido**. Si la retención era la medida vigente, deja la disposición de levantamiento en borrador.
+  2. La columna Estado muestra en qué va: **Boleta emitida** (falta el pago), **Falta disposición** (pagado, falta la firma de la Directora), **Listo para liberar**.
+  3. Con la boleta acreditada y la disposición firmada, **«Registrar liberación»** marca el vehículo como liberado (con un detalle opcional, por ejemplo quién lo retiró). Si no corresponde cobrar acarreo y estadía, con la disposición firmada se puede **liberar sin boleta** (pide confirmación).
 - **Valores y tarifas:** como en el sistema anterior: Unidad Tributaria, Acarreo (autos, motos, camiones), Medio Salario, Derecho de Oficina y Estadías por tipo de vehículo (3 a 7 días, 8 a 30 días y +31 por día). Se editan todos juntos con **«Editar»**.
 - **Registro de correos:** ya no aparece en el menú general; el Administrador lo ve en Configuración → «Registro de correos».
 - **Evidencia en el acta:** junto a «Ver acta» está el interruptor **«Mostrar evidencia»** para imprimir el acta con o sin las fotos (se recuerda en el equipo). Las fotos se pueden ver ampliadas tocándolas, también en el portal del infractor.

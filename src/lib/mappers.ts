@@ -94,6 +94,7 @@ export function infraccionFromRow(
     acarreo: i.acarreo ?? 0,
     medidasPreventivas: readList(i.medidas_preventivas),
     medidaVigente: i.medida_vigente ?? 0,
+    vehiculoLiberadoAt: i.vehiculo_liberado_at == null ? null : Number(i.vehiculo_liberado_at),
     sustanciasDescripcion: i.sustancias_descripcion ?? undefined,
     inspectorUsername: i.inspector_username ?? undefined,
     inspectorNombre: i.inspector_nombre ?? undefined,

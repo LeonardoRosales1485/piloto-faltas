@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { tipoVisible } from '@/lib/dominio';
+import { esBoletaLiberacion, tipoVisible } from '@/lib/dominio';
 import { handle } from '@/lib/srv';
 import { calculoLiberacion } from '@/lib/tarifas';
 
@@ -9,7 +9,10 @@ type Fila = {
   vehiculo_liberacion_json: string | null; infractor_nombre: string | null; infractor_razon_social: string | null; estado_faltas: string;
 };
 
-/** Retenciones de vehículos (como stg): listado, estadísticas y total estimado para liberar. Filtro por fecha de ingreso. */
+/**
+ * Retenciones de vehículos (como stg): listado, estadísticas y total estimado para liberar. Filtro por fecha de ingreso.
+ * Fases (Informe 6.c): retenido → boleta de acarreo y estadía emitida → pagada → disposición de levantamiento firmada → liberado.
+ */
 export async function GET(req: NextRequest) {
   const desde = Number(req.nextUrl.searchParams.get('desde') || 0);
   const hasta = Number(req.nextUrl.searchParams.get('hasta') || 0);
@@ -23,17 +26,24 @@ export async function GET(req: NextRequest) {
       .filter((f) => (!desde || f.ingreso >= desde) && (!hasta || f.ingreso <= hasta));
     const ids = filas.map((f) => f.id);
     const { data: bol } = ids.length ? await db.from('boleta').select('infraccion_id, monto, estado, detalle_json').in('infraccion_id', ids).neq('estado', 'anulada') : { data: [] };
-    const boletasLib = ((bol ?? []) as { infraccion_id: number; monto: number; estado: string; detalle_json: string | null }[]).filter((b) => String(b.detalle_json ?? '').includes('"liberacion":true'));
+    const boletasLib = ((bol ?? []) as { infraccion_id: number; monto: number; estado: string; detalle_json: string | null }[]).filter((b) => esBoletaLiberacion(b));
+    const { data: disp } = ids.length ? await db.from('documento').select('infraccion_id, estado, plantilla!inner(codigo)').in('infraccion_id', ids).eq('plantilla.codigo', 'DISPOSICION_LEVANTAMIENTO') : { data: [] };
+    const disposiciones = (disp ?? []) as { infraccion_id: number; estado: string }[];
     const lista = await Promise.all(filas.map(async (f) => {
       const liberado = Boolean(f.vehiculo_liberado_at);
-      let calc: Awaited<ReturnType<typeof calculoLiberacion>>;
-      if (liberado && f.vehiculo_liberacion_json) calc = JSON.parse(f.vehiculo_liberacion_json);
-      else calc = await calculoLiberacion(db, f.vehiculo_tipo_nombre, f.ingreso);
       const b = boletasLib.filter((x) => x.infraccion_id === f.id);
+      let calc: Awaited<ReturnType<typeof calculoLiberacion>>;
+      // Con la boleta emitida (o ya liberado) el cálculo queda fijo; si no, es el estimado a hoy.
+      if ((liberado || b.length) && f.vehiculo_liberacion_json) calc = JSON.parse(f.vehiculo_liberacion_json);
+      else calc = await calculoLiberacion(db, f.vehiculo_tipo_nombre, f.ingreso);
+      const pagado = b.length > 0 && b.every((x) => x.estado === 'definitiva');
+      const ds = disposiciones.filter((x) => x.infraccion_id === f.id);
+      const disposicion = ds.some((x) => ['firmado', 'definitivo'].includes(x.estado)) ? 'firmada' : ds.length ? 'en_curso' : null;
+      const fase = liberado ? 'liberado' : !b.length ? 'retenido' : !pagado ? 'boleta' : disposicion !== 'firmada' ? 'disposicion' : 'listo';
       return {
         uuid: f.uuid, acta: f.legajo_numero_acta, dominio: f.vehiculo_numero_dominio, tipoVehiculo: f.vehiculo_tipo_nombre, clase: calc.claseNombre,
         infractor: f.infractor_razon_social || f.infractor_nombre, ingreso: f.ingreso, liberadoAt: f.vehiculo_liberado_at, dias: calc.dias,
-        estado: liberado ? 'Liberado' : 'Retenido', calculo: calc, pagado: b.some((x) => x.estado === 'definitiva'),
+        estado: liberado ? 'Liberado' : 'Retenido', fase, disposicion, boletaEmitida: b.length > 0, calculo: calc, pagado,
       };
     }));
     const pendiente = lista.filter((x) => x.estado === 'Retenido' || !x.pagado).reduce((a, x) => a + x.calculo.total, 0);

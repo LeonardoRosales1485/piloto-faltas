@@ -69,6 +69,8 @@ export type Infraccion = {
   acarreo?: number;
   medidasPreventivas?: string[];
   medidaVigente?: number;
+  /** Liberación efectiva del vehículo retenido (sql/016); se registra desde Retenciones. Solo lectura. */
+  vehiculoLiberadoAt?: number | null;
   sustanciasDescripcion?: string;
   inspectorUsername?: string;
   inspectorNombre?: string;
@@ -256,6 +258,7 @@ export type InfraccionRow = {
   acarreo: number | null;
   medidas_preventivas: string | null;
   medida_vigente: number | null;
+  vehiculo_liberado_at?: number | null;
   sustancias_descripcion: string | null;
   inspector_username: string | null;
   inspector_nombre: string | null;

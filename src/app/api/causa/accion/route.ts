@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { efectoNotificacionPositiva, emitirBoletas, evaluarArchivoPorPago, generarEscrito, notificarActa, notificarDocumento, valorizacion, valoresVigentes } from '@/lib/causa-srv';
-import { ESTADOS, estadoFinal, puede, pesos } from '@/lib/dominio';
+import { ESTADOS, esBoletaLiberacion, estadoFinal, puede, pesos } from '@/lib/dominio';
 import { descargoPendiente } from '@/lib/camino';
 import { calculoLiberacion, claseVehiculo, diasEnDeposito, tarifaEstadia } from '@/lib/tarifas';
 import { CAMPOS_SUBSANABLES, subsanacionDe, valorDe } from '@/lib/subsanacion';
@@ -289,10 +289,14 @@ export async function POST(req: NextRequest) {
         await historial(db, c.id, quien, 'Memo interno agregado', texto.length > 60 ? `${texto.slice(0, 60)}…` : texto);
         return { ok: true };
       }
+      // Liberación del vehículo en dos pasos (Informe 6.c y Anexo V): 1) boleta de acarreo y estadía, que se cobra al retirar;
+      // 2) con esa boleta paga y la disposición de levantamiento firmada por la Directora, se registra la liberación efectiva.
       case 'liberar_vehiculo': {
         check(puede(user.rol, 'retenciones'), 'Sin permiso', 403);
         check(Number(c.retencion_de_vehiculo) === 1, 'El acta no tiene retención de vehículo');
         check(!c.vehiculo_liberado_at, 'El vehículo ya fue liberado', 409);
+        const { data: bolLib } = await db.from('boleta').select('id, detalle_json').eq('infraccion_id', c.id).neq('estado', 'anulada');
+        check(!((bolLib ?? []) as { detalle_json: string | null }[]).some((b) => esBoletaLiberacion(b)), 'La boleta de acarreo y estadía ya fue emitida', 409);
         const ingreso = Number(d.ingresoAt) || Number(c.estadia_ingreso_at) || Number(c.firmada_at);
         check(ingreso > 0, 'Indique la fecha de ingreso al depósito');
         const calc = await calculoLiberacion(db, c.vehiculo_tipo_nombre as string | null, ingreso);
@@ -300,8 +304,9 @@ export async function POST(req: NextRequest) {
         const num = await reservar(db, `BOL-${new Date().getFullYear()}`);
         const aNombre = txt('aNombre') || String(c.infractor_razon_social || c.infractor_nombre || '');
         await db.from('boleta').insert({ uuid: uuid(), infraccion_id: c.id, numero: `M2000-${String(num).padStart(7, '0')}`, concepto: `Liberación de vehículo: acarreo y estadía (${calc.dias} días) · Acta ${c.legajo_numero_acta}`, detalle_json: JSON.stringify({ liberacion: true, ...calc }), monto: calc.total, vencimiento: Date.now() + 5 * 86400000, a_nombre_de: aNombre, estado: 'emitida', date_created: Date.now() });
-        await db.from('infraccion').update({ estadia_ingreso_at: ingreso, vehiculo_liberado_at: Date.now(), vehiculo_liberacion_json: JSON.stringify(calc) }).eq('id', c.id);
-        await historial(db, c.id, quien, 'Vehículo liberado', `${calc.claseNombre} · ${calc.dias} días · acarreo ${pesos(calc.acarreo)} + estadía ${pesos(calc.estadia)} (${calc.tramo}) = ${pesos(calc.total)}`);
+        // La liberación todavía no se registra: falta el pago de esta boleta y la disposición de levantamiento firmada.
+        await db.from('infraccion').update({ estadia_ingreso_at: ingreso, vehiculo_liberacion_json: JSON.stringify(calc) }).eq('id', c.id);
+        await historial(db, c.id, quien, 'Boleta de acarreo y estadía emitida', `${calc.claseNombre} · ${calc.dias} días · acarreo ${pesos(calc.acarreo)} + estadía ${pesos(calc.estadia)} (${calc.tramo}) = ${pesos(calc.total)}. La liberación se registra con la boleta paga y la disposición de levantamiento firmada.`);
         // Si la retención es la medida vigente, queda la disposición de levantamiento en borrador para revisión y firma.
         let disposicion: string | null = null;
         if (Number(c.medida_vigente) === 1) {
@@ -310,6 +315,21 @@ export async function POST(req: NextRequest) {
           if (pl && !(ya ?? []).length) disposicion = (await generarEscrito(db, user, c, (pl as { id: number }).id)).uuid;
         }
         return { ...calc, disposicion };
+      }
+      case 'registrar_liberacion': {
+        check(puede(user.rol, 'retenciones'), 'Sin permiso', 403);
+        check(Number(c.retencion_de_vehiculo) === 1, 'El acta no tiene retención de vehículo');
+        check(!c.vehiculo_liberado_at, 'El vehículo ya fue liberado', 409);
+        const { data: disp } = await db.from('documento').select('id, numero, plantilla!inner(codigo)').eq('infraccion_id', c.id).eq('plantilla.codigo', 'DISPOSICION_LEVANTAMIENTO').in('estado', ['firmado', 'definitivo']).limit(1);
+        check((disp ?? []).length > 0, 'Falta la disposición de levantamiento firmada por la Directora', 409);
+        const { data: bolLib } = await db.from('boleta').select('estado, detalle_json').eq('infraccion_id', c.id).neq('estado', 'anulada');
+        const lib = ((bolLib ?? []) as { estado: string; detalle_json: string | null }[]).filter((b) => esBoletaLiberacion(b));
+        if (lib.length) check(lib.every((b) => b.estado === 'definitiva'), 'La boleta de acarreo y estadía todavía no está acreditada', 409);
+        else check(d.sinBoleta === true, 'No se emitió la boleta de acarreo y estadía: confirme que se libera sin cobrarla', 409);
+        const n = (disp as { numero: string | null }[])[0].numero;
+        await db.from('infraccion').update({ vehiculo_liberado_at: Date.now() }).eq('id', c.id);
+        await historial(db, c.id, quien, 'Vehículo liberado', `Disposición de levantamiento${n ? ` N° ${n}` : ''}${lib.length ? ' · acarreo y estadía pagos' : ' · sin boleta de acarreo y estadía'}${txt('detalle') ? ` · ${txt('detalle')}` : ''}`);
+        return { ok: true };
       }
       case 'correo_infractor': {
         check(gestion, 'Sin permiso', 403);

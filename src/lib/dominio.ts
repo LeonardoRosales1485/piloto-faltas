@@ -310,6 +310,16 @@ export function ordenarCategoriasLicencia(lista?: string[] | null): string[] {
   return [...new Set(lista ?? [])].sort((a, b) => pos(a) - pos(b) || a.localeCompare(b));
 }
 
+type BoletaLike = { concepto?: string | null; detalle_json?: string | null };
+/** Boleta de acarreo y estadía emitida desde Retenciones al liberar el vehículo. */
+export function esBoletaLiberacion(b: BoletaLike): boolean {
+  return String(b.detalle_json ?? '').includes('"liberacion":true');
+}
+/** Boletas de depósito (liberación o estadía sola): se cobran al retirar el vehículo, aparte de la multa (Anexo V). */
+export function esBoletaDeposito(b: BoletaLike): boolean {
+  return esBoletaLiberacion(b) || String(b.concepto ?? '').startsWith('Estadía en depósito');
+}
+
 export const SITUACIONES = [
   { v: 'presente', t: 'Presente' },
   { v: 'ausente', t: 'Ausente' },

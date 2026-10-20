@@ -2,7 +2,7 @@
  * «Próximo paso» de la causa: qué falta, quién tiene que actuar y con qué acción se avanza. Es una lectura del
  * estado y de los escritos, notificaciones, presentaciones y boletas; no cambia nada por sí misma.
  */
-import { estadoFinal, fechaCorta, infoEstado } from './dominio';
+import { esBoletaDeposito, esBoletaLiberacion, estadoFinal, fechaCorta, infoEstado } from './dominio';
 
 type R = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 
@@ -35,11 +35,62 @@ type Ctx = {
   cuotasVencidas: boolean;
   /** Botones visibles del panel (títulos), para no sugerir algo que el usuario no puede hacer. */
   botones: string[];
+  /** Retención de vehículo del acta y si el vehículo ya se entregó. */
+  retencionVehiculo?: boolean;
+  vehiculoLiberado?: boolean;
+  /** Permiso de Retenciones (boleta de acarreo y estadía, registrar la liberación). */
+  puedeRetenciones?: boolean;
   ahora?: number;
 };
 
 const CAT_NOTIFICABLE = ['Fallo', 'Resolución', 'Disposición'];
 const QUE: Record<string, string> = { Fallo: 'el fallo', Resolución: 'la resolución', Disposición: 'la disposición' };
+
+const ESCRITO_EN_CURSO = ['borrador', 'devuelto', 'en_revision'];
+
+/**
+ * Vehículo todavía retenido cuando la multa ya está paga o la causa resuelta. Orden del Informe (6.c, 2.s y 3.b):
+ * pago (multa, acarreo y estadía) → disposición de levantamiento firmada → liberación.
+ */
+function pendienteRetencion(x: Ctx, cerrada: boolean): ProximoPaso | null {
+  const vehiculo = Boolean(x.retencionVehiculo && !x.vehiculoLiberado);
+  const disp = x.documentos.filter((d) => d.plantilla?.codigo === 'DISPOSICION_LEVANTAMIENTO');
+  const dispFirmada = disp.some((d) => ['firmado', 'definitivo'].includes(d.estado));
+  if (!vehiculo) return null;
+
+  const pre = cerrada ? `Causa cerrada (${x.estado}), pero ` : 'Multa paga, pero ';
+  const pendientes = `${pre}el vehículo sigue retenido. Pendiente: boleta de acarreo y estadía → pago → disposición de levantamiento → registrar la liberación en Retenciones.`;
+  const sinPermiso = x.puedeRetenciones ? '' : ' Lo hace un usuario con permiso de Retenciones.';
+  const retenciones = (t: string): AccionPaso[] => (x.puedeRetenciones ? [{ tipo: 'link', href: '/private/retenciones', t }] : []);
+  const enCurso = disp.find((d) => ESCRITO_EN_CURSO.includes(d.estado));
+  const pasoDisposicion = (titulo: string): ProximoPaso => enCurso
+    ? enCurso.estado === 'en_revision'
+      ? { titulo: `Firmar la disposición de levantamiento`, detalle: `${pendientes} Está en la bandeja «Escritos y firma».`, quien: 'Directora / Responsable', tono: 'espera', acciones: [{ tipo: 'link', href: `/private/escrito/${enCurso.uuid}`, t: 'Abrir la disposición' }] }
+      : { titulo: `Terminar la disposición de levantamiento`, detalle: `${pendientes} ${enCurso.estado === 'devuelto' ? 'La Directora la devolvió: corríjala y' : 'Complétela y'} envíela a firma.`, quien: 'Agente', tono: 'accion', acciones: [{ tipo: 'link', href: `/private/escrito/${enCurso.uuid}`, t: 'Abrir la disposición' }] }
+    : { titulo, detalle: `${pendientes} La firma la Directora.`, quien: 'Agente', tono: 'accion', acciones: boton(x, 'Disposición de levantamiento', 'Dictar la disposición de levantamiento') };
+
+  const libBol = x.boletas.filter((b) => b.estado !== 'anulada' && esBoletaLiberacion(b));
+  if (!libBol.length && !dispFirmada) {
+    return {
+      titulo: 'Liberar el vehículo: emitir la boleta de acarreo y estadía',
+      detalle: `${pendientes} Se emite en Retenciones (acarreo según el tipo de vehículo y estadía según los días en depósito, con las tarifas vigentes), si corresponde cobrarla.${sinPermiso}`,
+      quien: 'Agente', tono: 'accion', acciones: retenciones('Ir a Retenciones'),
+    };
+  }
+  if (libBol.length && !libBol.every((b) => b.estado === 'definitiva')) {
+    return { titulo: 'Liberar el vehículo: esperando el pago de acarreo y estadía', detalle: `${pendientes} Cuando Malvinas 2000 acredite la boleta, sigue la disposición de levantamiento.`, quien: 'Infractor', tono: 'espera', acciones: [{ tipo: 'tab', tab: 'pagos', t: 'Ver boletas y pagos' }] };
+  }
+  if (!dispFirmada) return pasoDisposicion('Liberar el vehículo: dictar la disposición de levantamiento');
+  return {
+    titulo: 'Liberar el vehículo',
+    detalle: `${pre}el vehículo sigue en el depósito. ${libBol.length ? 'Acarreo y estadía pagos' : 'Sin boleta de acarreo y estadía'} y disposición de levantamiento firmada: registre la entrega en Retenciones.${sinPermiso}`,
+    quien: 'Agente', tono: 'accion', acciones: retenciones('Registrar la liberación'),
+  };
+}
+
+function boton(x: Ctx, b: string, t?: string): AccionPaso[] {
+  return x.botones.includes(b) ? [{ tipo: 'boton', boton: b, t }] : [];
+}
 
 function dias(desde: number, ahora: number) {
   return Math.max(0, Math.floor((ahora - desde) / 86_400_000));
@@ -52,7 +103,12 @@ export function proximoPaso(x: Ctx): ProximoPaso {
   const vencido = Boolean(x.vencePlazoAt && x.vencePlazoAt < ahora);
   const plazoTxt = x.vencePlazoAt ? (vencido ? `El plazo venció el ${fechaCorta(x.vencePlazoAt)}.` : `El plazo vence el ${fechaCorta(x.vencePlazoAt)}.`) : '';
 
-  if (estadoFinal(x.estado)) {
+  const cerrada = estadoFinal(x.estado);
+  const multa = x.boletas.filter((b) => b.estado !== 'anulada' && !esBoletaDeposito(b));
+  const multaPaga = multa.length > 0 && multa.every((b) => b.estado === 'definitiva');
+  if (cerrada) {
+    const ret = pendienteRetencion(x, true);
+    if (ret) return ret;
     return { titulo: `Causa cerrada: ${x.estado}`, detalle: 'No hay pasos pendientes. Si hace falta, se puede reingresar.', quien: 'Nadie', tono: 'fin', acciones: boton('Reingresar') };
   }
 
@@ -64,6 +120,12 @@ export function proximoPaso(x: Ctx): ProximoPaso {
       detalle: 'Acéptela, obsérvela o recházela. Hasta resolverla no se puede dictar el fallo.',
       quien: 'Agente', tono: 'accion', acciones: [{ tipo: 'tab', tab: 'presentaciones', t: 'Ver presentaciones' }],
     };
+  }
+
+  // 1 bis. Multa paga con el vehículo todavía retenido: pago → disposición → liberación.
+  if (multaPaga) {
+    const ret = pendienteRetencion(x, false);
+    if (ret) return ret;
   }
 
   // 2. Escritos de fallo, resolución o disposición: en revisión, en borrador, sin notificar o esperando al infractor.
@@ -127,7 +189,7 @@ export function proximoPaso(x: Ctx): ProximoPaso {
     case 'Causa observada':
       return { titulo: 'Esperando que el infractor corrija su descargo', detalle: plazoTxt || 'Se le pidió que lo reenvíe.', quien: 'Infractor', tono: vencido ? 'alerta' : 'espera', acciones: vencido ? boton('Dictar fallo') : [] };
     case 'Esp. Acreditar Pago':
-      return { titulo: 'Esperando la acreditación del pago', detalle: 'Cuando Malvinas 2000 confirme el pago, la causa se archiva sola (si no hay medida vigente).', quien: 'Organismo externo', tono: 'espera', acciones: [{ tipo: 'tab', tab: 'pagos', t: 'Ver boletas y pagos' }] };
+      return { titulo: 'Esperando la acreditación del pago', detalle: `Cuando Malvinas 2000 confirme el pago, la causa se archiva sola (si no hay medida vigente).${x.retencionVehiculo && !x.vehiculoLiberado ? ' Después queda liberar el vehículo (acarreo y estadía, disposición de levantamiento y entrega).' : ''}`, quien: 'Organismo externo', tono: 'espera', acciones: [{ tipo: 'tab', tab: 'pagos', t: 'Ver boletas y pagos' }] };
     case 'Cuotas':
       return x.cuotasVencidas
         ? { titulo: 'Hay cuotas vencidas sin pagar', detalle: 'Corresponde continuar el procedimiento (fallo o Apremios).', quien: 'Agente', tono: 'alerta', acciones: boton('Continuar procedimiento') }

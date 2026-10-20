@@ -9,7 +9,7 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { http } from '@/lib/api-client';
 import { printTicket } from '@/lib/print';
-import { ESTADOS_CAUSA, TIPOS_ACTA, claveLey, estadoFinal, fechaCorta, fechaHora, infoEstado, ordenarCategoriasLicencia, pesos, puede, tipoActa } from '@/lib/dominio';
+import { ESTADOS_CAUSA, TIPOS_ACTA, claveLey, esBoletaLiberacion, estadoFinal, fechaCorta, fechaHora, infoEstado, ordenarCategoriasLicencia, pesos, puede, tipoActa } from '@/lib/dominio';
 import { useAuthUser } from '@/lib/use-auth-user';
 import type { Infraccion } from '@/lib/types';
 import { RoadmapCausa } from './RoadmapCausa';
@@ -149,6 +149,9 @@ export function CausaDetalle() {
     const r = await accion('generar_escrito', { plantillaId: pl.id }, 'Escrito generado');
     if (r?.uuid) router.push(`/private/escrito/${r.uuid}`);
   };
+  // El vehículo sigue en el depósito hasta que se registra la liberación (aunque la causa esté cerrada).
+  const vehiculoRetenido = c.retencionDeVehiculo === 1 && !c.vehiculoLiberadoAt;
+  const hayBoletaLiberacion = d.boletas.some((b) => b.estado !== 'anulada' && esBoletaLiberacion(b));
   const tieneEscrito = (codigo: string) => d.documentos.some((x) => x.plantilla?.codigo === codigo);
 
   const presT = d.presentaciones as { tipo: string; estado: string; date_created?: number }[];
@@ -177,7 +180,7 @@ export function CausaDetalle() {
       aviso: 'Considera usted que el infractor tuvo el tiempo suficiente de acceder al sitio web de infractores para visualizar su acta digital, por lo tanto, se lo considera notificado y procederá a trabajar en la causa, ¿decide proceder?',
     }) },
     { t: 'Resolución de medida preventiva', rec: true, i: 'fa-solid fa-gavel', ver: gestion && c.medidaVigente === 1 && !tieneEscrito('RESOLUCION_MEDIDA_PREVENTIVA') && !final, destacado: true, on: () => void generarDesde('RESOLUCION_MEDIDA_PREVENTIVA') },
-    { t: 'Disposición de levantamiento', rec: true, i: 'fa-solid fa-lock-open', ver: gestion && c.medidaVigente === 1 && !tieneEscrito('DISPOSICION_LEVANTAMIENTO'), on: () => void generarDesde('DISPOSICION_LEVANTAMIENTO') },
+    { t: 'Disposición de levantamiento', rec: true, i: 'fa-solid fa-lock-open', ver: gestion && (c.medidaVigente === 1 || vehiculoRetenido) && !tieneEscrito('DISPOSICION_LEVANTAMIENTO'), on: () => void generarDesde('DISPOSICION_LEVANTAMIENTO') },
     { t: 'Dictar fallo', rec: true, i: 'fa-solid fa-scale-balanced', ver: puedeFallo, deshabilitado: descPend ? 'Hay un descargo sin resolver: resuélvalo primero (aceptar, observar o rechazar).' : undefined, on: abrirFallo },
     { t: 'Generar escrito', i: 'fa-solid fa-file-circle-plus', on: abrirEscrito, ver: puede(user?.rol, 'redactarEscritos') && !final, destacado: true },
     { t: 'Emitir boleta', rec: ['Notificado', 'Fallo notificado'].includes(estado), i: 'fa-solid fa-receipt', ver: puede(user?.rol, 'emitirBoletas') && !final && !['Esp. Acreditar Pago', 'Cuotas', 'En Juzgado', 'En Apremios'].includes(estado), on: () => setModal({
@@ -188,7 +191,7 @@ export function CausaDetalle() {
         { k: 'aNombre', t: 'A nombre de (quien firma el compromiso)', tipo: 'texto', valor: String(c.infractorRazonSocial || c.infractorNombre || '') },
       ],
     }) },
-    { t: 'Boleta de estadía', rec: true, i: 'fa-solid fa-warehouse', ver: puede(user?.rol, 'emitirBoletas') && c.retencionDeVehiculo === 1 && !final, on: () => setModal({ titulo: 'Boleta de estadía', accion: 'emitir_estadia', icono: 'fa-solid fa-warehouse', aviso: 'Se cobra al retirar el vehículo. La fecha de ingreso al depósito la carga Faltas.', campos: [{ k: 'ingreso', t: 'Fecha de ingreso al depósito', tipo: 'fecha', req: true }], extra: { conv: 'ingreso' } }) },
+    { t: 'Boleta de estadía', rec: true, i: 'fa-solid fa-warehouse', ver: puede(user?.rol, 'emitirBoletas') && vehiculoRetenido && !hayBoletaLiberacion, on: () => setModal({ titulo: 'Boleta de estadía', accion: 'emitir_estadia', icono: 'fa-solid fa-warehouse', aviso: 'Se cobra al retirar el vehículo. La fecha de ingreso al depósito la carga Faltas.', campos: [{ k: 'ingreso', t: 'Fecha de ingreso al depósito', tipo: 'fecha', req: true }], extra: { conv: 'ingreso' } }) },
     { t: 'Ajustar valorización', i: 'fa-solid fa-scale-unbalanced', ver: gestion && !final, on: () => setModal({ titulo: 'Ajustar valorización', accion: 'ajustar_monto', icono: 'fa-solid fa-scale-unbalanced', campos: [{ k: 'monto', t: 'Monto de la multa ($)', tipo: 'numero', req: true, valor: String(d.valorizacion.multa) }, { k: 'motivo', t: 'Motivo', tipo: 'area', req: true, ayuda: 'Por ejemplo: falta de exhibición de documentación acreditada luego.' }] }) },
     { t: 'Continuar procedimiento', rec: true, i: 'fa-solid fa-forward', ver: gestion && estado === 'Cuotas' && cuotasVencidas, peligro: true, on: () => setModal({ titulo: 'Caducidad del plan de cuotas', accion: 'continuar_procedimiento', campos: [], aviso: 'Hay cuotas vencidas sin pagar. La causa sigue a fallo, o a Apremios si las cuotas eran de un fallo.', textoOk: 'Continuar' }) },
     { t: 'Derivar a Apremios', rec: true, i: 'fa-solid fa-building-columns', ver: gestion && ['Fallo notificado', 'Cuotas'].includes(estado), on: () => setModal({ titulo: 'Derivar a Apremios', accion: 'derivar', extra: { destino: 'apremios' }, campos: [{ k: 'detalle', t: 'Detalle', tipo: 'area', valor: 'Vencido el plazo de 5 días hábiles sin pago ni apelación. Se remite el legajo completo en PDF.' }] }) },
@@ -218,6 +221,8 @@ export function CausaDetalle() {
     estado, vencePlazoAt: c.vencePlazoAt, notificadaAt: c.notificadaAt, medidaVigente: c.medidaVigente === 1,
     documentos: d.documentos, notificaciones: d.notificaciones, presentaciones: d.presentaciones, boletas: d.boletas, cuotasVencidas,
     botones: botones.filter((b) => b.ver && !b.deshabilitado).map((b) => b.t),
+    retencionVehiculo: c.retencionDeVehiculo === 1, vehiculoLiberado: Boolean(c.vehiculoLiberadoAt),
+    puedeRetenciones: puede(user?.rol, 'retenciones'),
   });
   const considerarDoc = (docUuid: string, titulo?: string) => setModal({
     titulo: 'Considerar notificado', icono: 'fa-solid fa-envelope-circle-check', accion: 'considerar_notificado_documento', textoOk: 'Sí, considerar notificado', campos: [], extra: { documentoUuid: docUuid },
@@ -352,7 +357,7 @@ export function CausaDetalle() {
                   {tipo !== 'contravenciones' ? <div {...marcaCambio(["vehiculo_numero_dominio", "vehiculo_tipo_nombre", "vehiculo_numero_licencia", "meta.marca", "meta.modelo"])}><dt>Vehículo</dt><dd>{cf.vehiculoNumeroDominio || '-'} {cf.vehiculoTipoNombre ?? ''} {[cf.metadata?.marca, cf.metadata?.modelo].filter(Boolean).join(' ')} {cf.vehiculoNumeroLicencia ? `· Lic. ${cf.vehiculoNumeroLicencia}` : ''}</dd></div> : null}
                   {cf.vehiculoLicenciaCategorias?.length ? <div><dt>Categorías de la licencia</dt><dd>{ordenarCategoriasLicencia(cf.vehiculoLicenciaCategorias).join(' · ')}</dd></div> : null}
                   {cf.sustanciasDescripcion ? <div><dt>Sustancias</dt><dd>{cf.sustanciasDescripcion}</dd></div> : null}
-                  <div><dt>Medidas</dt><dd>{[cf.retencionDeLicencia ? 'Retención de licencia' : '', cf.retencionDeVehiculo ? 'Retención de vehículo' : '', cf.acarreo ? 'Acarreo' : '', ...(cf.medidasPreventivas ?? [])].filter(Boolean).join(' · ') || 'Ninguna'}{cf.medidaVigente === 1 ? ' (vigente)' : ''}</dd></div>
+                  <div><dt>Medidas</dt><dd>{[cf.retencionDeLicencia ? 'Retención de licencia' : '', cf.retencionDeVehiculo ? `Retención de vehículo${c.vehiculoLiberadoAt ? ` (liberado el ${fechaCorta(c.vehiculoLiberadoAt)})` : ''}` : '', cf.acarreo ? 'Acarreo' : '', ...(cf.medidasPreventivas ?? [])].filter(Boolean).join(' · ') || 'Ninguna'}{cf.medidaVigente === 1 ? ' (vigente)' : ''}</dd></div>
                   {cf.metadata?.alcoholemia ? <div><dt>Alcoholemia</dt><dd>{cf.metadata.alcoholemia}{cf.metadata.alcoholimetroValor ? ` · ${cf.metadata.alcoholimetroValor} g/l` : ''}</dd></div> : null}
                   <div><dt>Inspector</dt><dd>{cf.inspectorNombre || '-'} · firmó {fechaHora(cf.firmadaAt ?? undefined)}</dd></div>
                   <div><dt>Situación del infractor</dt><dd>{cf.situacionInfractor}</dd></div>

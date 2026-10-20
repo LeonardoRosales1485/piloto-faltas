@@ -14,6 +14,14 @@ import { useRefresco } from '@/lib/use-refresco';
 
 type R = Record<string, any>;
 const RANGOS = [{ v: '30', t: 'Últimos 30 días' }, { v: 'anio', t: 'Este año' }, { v: 'todo', t: 'Todo' }];
+/** Fase de la liberación (Informe 6.c): boleta de acarreo y estadía → pago → disposición firmada → liberación. */
+const FASE: Record<string, { t: string; ayuda: string }> = {
+  retenido: { t: 'Retenido', ayuda: 'Falta emitir la boleta de acarreo y estadía' },
+  boleta: { t: 'Boleta emitida', ayuda: 'Esperando el pago de acarreo y estadía' },
+  disposicion: { t: 'Falta disposición', ayuda: 'Pagado: falta la disposición de levantamiento firmada' },
+  listo: { t: 'Listo para liberar', ayuda: 'Pagado y con disposición firmada' },
+  liberado: { t: 'Liberado', ayuda: '' },
+};
 const aFecha = (ms: number) => new Date(ms - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 
 /** Retenciones de vehículos (acarreo y depósito), simple como en stg: estadísticas, filtro por fechas y listado. */
@@ -28,6 +36,8 @@ export function Retenciones() {
   const [ingreso, setIngreso] = useState('');
   const [aNombre, setANombre] = useState('');
   const [enviando, setEnviando] = useState(false);
+  const [registrar, setRegistrar] = useState<R | null>(null);
+  const [detalleLib, setDetalleLib] = useState('');
   const [cargando, seguir] = useCarga();
 
   const cargar = useCallback((silencioso = false) => {
@@ -52,11 +62,26 @@ export function Retenciones() {
     setEnviando(true);
     try {
       const r = await http.post<R>('/api/causa/accion', { uuid: liberar.uuid, accion: 'liberar_vehiculo', datos: { ingresoAt: new Date(`${ingreso}T12:00`).getTime(), aNombre } });
-      notify.success('Vehículo liberado', `Boleta por ${pesos(r.total)} emitida.${r.disposicion ? ' La disposición de levantamiento quedó en borrador.' : ''}`, r.disposicion ? { texto: 'Ver disposición', href: `/private/escrito/${r.disposicion}` } : undefined);
+      notify.success('Boleta emitida', `Acarreo y estadía por ${pesos(r.total)}. La liberación se registra cuando esté paga y con la disposición de levantamiento firmada.${r.disposicion ? ' La disposición quedó en borrador.' : ''}`, r.disposicion ? { texto: 'Ver disposición', href: `/private/escrito/${r.disposicion}` } : undefined);
       setLiberar(null);
       cargar();
     } catch (e) {
-      notify.error('No se pudo liberar', (e as Error).message);
+      notify.error('No se pudo emitir la boleta', (e as Error).message);
+    } finally {
+      setEnviando(false);
+    }
+  }
+
+  async function confirmarRegistro() {
+    if (!registrar) return;
+    setEnviando(true);
+    try {
+      await http.post<R>('/api/causa/accion', { uuid: registrar.uuid, accion: 'registrar_liberacion', datos: { detalle: detalleLib, sinBoleta: !registrar.boletaEmitida } });
+      notify.success('Vehículo liberado', `Se registró la liberación del acta ${registrar.acta}.`);
+      setRegistrar(null);
+      cargar();
+    } catch (e) {
+      notify.error('No se pudo registrar la liberación', (e as Error).message);
     } finally {
       setEnviando(false);
     }
@@ -100,7 +125,7 @@ export function Retenciones() {
       </div>
 
       <div className="card-step">
-        <div className="card-step-header"><h2>Listado de retenciones</h2><p>Actas con retención de vehículo. Al liberar se cobra el acarreo según el tipo de vehículo y la estadía según los días en depósito.</p></div>
+        <div className="card-step-header"><h2>Listado de retenciones</h2><p>Actas con retención de vehículo. Primero se emite la boleta de acarreo (según el tipo de vehículo) y estadía (según los días en depósito); con la boleta paga y la disposición de levantamiento firmada por la Directora, se registra la liberación.</p></div>
         <div className="card-step-body">
           {cargando && !d ? <LoaderLogo tam={56} texto="Cargando…" /> : (
             <TablaVista>
@@ -114,14 +139,22 @@ export function Retenciones() {
                       <td>{x.tipoVehiculo || '-'}<div className="texto-ayuda">{x.clase}</div></td>
                       <td>{fechaCorta(x.ingreso)}</td>
                       <td className="text-end">{x.dias}</td>
-                      <td><span className={`chip-ret ${x.estado === 'Liberado' ? 'liberado' : 'retenido'}`}>{x.estado}</span>{x.liberadoAt ? <div className="texto-ayuda">{fechaCorta(x.liberadoAt)}{x.pagado ? ' · pagado' : ''}</div> : null}</td>
+                      <td><span className={`chip-ret ${x.estado === 'Liberado' ? 'liberado' : 'retenido'}`}>{FASE[x.fase]?.t ?? x.estado}</span>{x.liberadoAt ? <div className="texto-ayuda">{fechaCorta(x.liberadoAt)}{x.pagado ? ' · pagado' : ''}</div> : FASE[x.fase]?.ayuda ? <div className="texto-ayuda">{FASE[x.fase].ayuda}</div> : null}</td>
                       <td className="text-end" title={`Acarreo ${pesos(x.calculo.acarreo)} + estadía ${pesos(x.calculo.estadia)} (${x.calculo.tramo})`}>{pesos(x.calculo.total)}</td>
                       <td className="text-end">
-                        {x.estado === 'Retenido' ? (
-                          <button type="button" className="btn btn-sm btn-success" onClick={() => { setLiberar(x); setIngreso(aFecha(x.ingreso)); setANombre(x.infractor ?? ''); }}>
-                            <i className="fa-solid fa-lock-open" aria-hidden="true" /> Liberar
-                          </button>
-                        ) : <button type="button" className="btn btn-sm btn-outline-secondary" onClick={() => router.push(`/private/causa/${x.uuid}`)}>Ver causa</button>}
+                        <div className="d-inline-flex flex-wrap gap-1 justify-content-end">
+                          {x.fase === 'retenido' ? (
+                            <button type="button" className="btn btn-sm btn-primary" onClick={() => { setLiberar(x); setIngreso(aFecha(x.ingreso)); setANombre(x.infractor ?? ''); }}>
+                              <i className="fa-solid fa-receipt" aria-hidden="true" /> Emitir boleta
+                            </button>
+                          ) : null}
+                          {x.fase === 'listo' || (x.fase === 'retenido' && x.disposicion === 'firmada') ? (
+                            <button type="button" className={`btn btn-sm ${x.fase === 'listo' ? 'btn-success' : 'btn-outline-secondary'}`} onClick={() => { setRegistrar(x); setDetalleLib(''); }}>
+                              <i className="fa-solid fa-lock-open" aria-hidden="true" /> Registrar liberación
+                            </button>
+                          ) : null}
+                          {['boleta', 'disposicion', 'liberado'].includes(x.fase) ? <button type="button" className="btn btn-sm btn-outline-secondary" onClick={() => router.push(`/private/causa/${x.uuid}`)}>Ver causa</button> : null}
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -135,10 +168,10 @@ export function Retenciones() {
 
       {liberar ? (
         <div className="modal-fake-overlay" onClick={(ev) => ev.target === ev.currentTarget && setLiberar(null)}>
-          <div className="modal-fake" role="dialog" aria-modal="true" aria-label="Liberar vehículo">
+          <div className="modal-fake" role="dialog" aria-modal="true" aria-label="Boleta de acarreo y estadía">
             <div className="modal-fake-header">
-              <i className="fa-solid fa-lock-open" aria-hidden="true" />
-              <h2>Liberar vehículo · {liberar.dominio || liberar.acta}</h2>
+              <i className="fa-solid fa-receipt" aria-hidden="true" />
+              <h2>Boleta de acarreo y estadía · {liberar.dominio || liberar.acta}</h2>
               <button type="button" aria-label="Cerrar" onClick={() => setLiberar(null)}>&times;</button>
             </div>
             <div className="modal-fake-body">
@@ -163,11 +196,36 @@ export function Retenciones() {
                   </table>
                 );
               })()}
-              <p className="texto-ayuda mt-2 mb-0">Se emite la boleta (Malvinas 2000 simulado) y se registra la liberación. Si la retención es la medida vigente, queda la disposición de levantamiento en borrador.</p>
+              <p className="texto-ayuda mt-2 mb-0">Se emite la boleta (Malvinas 2000 simulado). El vehículo sigue retenido: la liberación se registra cuando la boleta esté acreditada y la Directora haya firmado la disposición de levantamiento (si la retención es la medida vigente, la disposición queda en borrador).</p>
             </div>
             <div className="modal-fake-footer">
               <button type="button" className="btn btn-outline-secondary" onClick={() => setLiberar(null)}>Cancelar</button>
-              <button type="button" className="btn btn-success" disabled={enviando || !ingreso} onClick={() => void confirmarLiberacion()}>Liberar y emitir boleta</button>
+              <button type="button" className="btn btn-primary" disabled={enviando || !ingreso} onClick={() => void confirmarLiberacion()}>Emitir boleta</button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {registrar ? (
+        <div className="modal-fake-overlay" onClick={(ev) => ev.target === ev.currentTarget && setRegistrar(null)}>
+          <div className="modal-fake" role="dialog" aria-modal="true" aria-label="Registrar liberación">
+            <div className="modal-fake-header">
+              <i className="fa-solid fa-lock-open" aria-hidden="true" />
+              <h2>Registrar liberación · {registrar.dominio || registrar.acta}</h2>
+              <button type="button" aria-label="Cerrar" onClick={() => setRegistrar(null)}>&times;</button>
+            </div>
+            <div className="modal-fake-body">
+              {registrar.boletaEmitida
+                ? <p>La boleta de acarreo y estadía está acreditada y la disposición de levantamiento está firmada. Se registra la entrega del vehículo con fecha y hora de hoy.</p>
+                : <div className="aviso aviso-alerta mb-3"><i className="fa-solid fa-triangle-exclamation" aria-hidden="true" /> No se emitió la boleta de acarreo y estadía. Confirme solo si corresponde liberar el vehículo sin cobrarla (la disposición de levantamiento ya está firmada).</div>}
+              <div className="form-group mb-0">
+                <label htmlFor="ret-detalle">Constancia o detalle (opcional)</label>
+                <input id="ret-detalle" className="form-control" value={detalleLib} placeholder="Ej.: retiró el titular con DNI y cédula" onChange={(ev) => setDetalleLib(ev.target.value)} />
+              </div>
+            </div>
+            <div className="modal-fake-footer">
+              <button type="button" className="btn btn-outline-secondary" onClick={() => setRegistrar(null)}>Cancelar</button>
+              <button type="button" className="btn btn-success" disabled={enviando} onClick={() => void confirmarRegistro()}>{registrar.boletaEmitida ? 'Registrar liberación' : 'Liberar sin boleta'}</button>
             </div>
           </div>
         </div>
