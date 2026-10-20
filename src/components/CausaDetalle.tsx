@@ -221,7 +221,7 @@ export function CausaDetalle() {
     estado, vencePlazoAt: c.vencePlazoAt, notificadaAt: c.notificadaAt, medidaVigente: c.medidaVigente === 1,
     documentos: d.documentos, notificaciones: d.notificaciones, presentaciones: d.presentaciones, boletas: d.boletas, cuotasVencidas,
     botones: botones.filter((b) => b.ver && !b.deshabilitado).map((b) => b.t),
-    retencionVehiculo: c.retencionDeVehiculo === 1, vehiculoLiberado: Boolean(c.vehiculoLiberadoAt),
+    retencionVehiculo: c.retencionDeVehiculo === 1, vehiculoLiberado: Boolean(c.vehiculoLiberadoAt), retencionLicencia: c.retencionDeLicencia === 1,
     puedeRetenciones: puede(user?.rol, 'retenciones'),
   });
   const considerarDoc = (docUuid: string, titulo?: string) => setModal({

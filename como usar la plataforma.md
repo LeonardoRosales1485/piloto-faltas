@@ -126,7 +126,7 @@ Para cualquier opción debe adjuntar el **DNI de frente y de dorso**, y el **est
 
 1. La causa aparece en **«Medidas a resolver»**. El agente toca **«Resolución de medida preventiva»**, completa el escrito y lo envía a la Directora para que lo firme.
 2. La medida sigue vigente **aunque el infractor pague**: la causa no se archiva.
-3. Para levantarla, el agente genera la **«Disposición de levantamiento»** y la Directora la firma. Ahí la medida se levanta y, si ya estaba todo pago, la causa se archiva sola. Si además había un vehículo retenido, después se registra su liberación en **Retenciones**.
+3. Para levantarla, el agente genera la **«Disposición de levantamiento»** y la Directora la firma. Ahí la medida se levanta (se devuelve la licencia) y, si ya estaba todo pago, la causa se archiva sola. Si además había un vehículo retenido, después se registra su liberación en **Retenciones**.
 
 ### C. Plan de cuotas
 
@@ -140,6 +140,8 @@ Para cualquier opción debe adjuntar el **DNI de frente y de dorso**, y el **est
 Arriba de cada causa, el recuadro **«Próximo paso»** dice qué falta, a quién le toca (agente, Directora o Responsable, infractor u organismo externo) y tiene el botón para avanzar. Por ejemplo: con el fallo firmado, **Notificar el fallo**; si el infractor no lo abre en el portal, **Considerar notificado** (empieza a correr el plazo para pagar o apelar); con el plazo vencido, **Derivar a Apremios**.
 
 Si la multa ya está paga o la causa está cerrada pero el **vehículo sigue retenido**, el recuadro no dice «cerrada»: indica **«Liberar el vehículo»** y el paso que falta (emitir la boleta de acarreo y estadía en Retenciones, esperar el pago, dictar y firmar la disposición de levantamiento, registrar la liberación). Mientras el vehículo esté retenido, la causa sigue mostrando **«Boleta de estadía»** aunque esté cerrada (hasta que se emita la boleta de liberación).
+
+Lo mismo con la **licencia retenida**: con la multa paga o la causa resuelta, el próximo paso es **«Devolver la licencia: dictar la disposición de levantamiento»**. Si están retenidos el vehículo y la licencia, el recuadro muestra los dos pendientes; la misma disposición de levantamiento sirve para ambos.
 
 ## Los escritos
 
