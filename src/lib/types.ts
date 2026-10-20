@@ -41,6 +41,8 @@ export type Infraccion = {
   vehiculoNumeroDominio?: string;
   vehiculoNumeroControlInterno?: string;
   vehiculoNumeroLicencia?: string;
+  /** Categorías (clases/subclases) de la licencia de conducir; undefined = no se tocó (no se guarda). */
+  vehiculoLicenciaCategorias?: string[];
   vehiculoTipoNombre?: string;
   vehiculoMunicipalidadEmisora?: string;
   domicilioInfraccionCalle?: string;
@@ -227,6 +229,8 @@ export type InfraccionRow = {
   vehiculo_numero_dominio: string | null;
   vehiculo_numero_control_interno: string | null;
   vehiculo_numero_licencia: string | null;
+  /** JSON con la lista de categorías de la licencia (sql/030). */
+  vehiculo_licencia_categorias?: string | null;
   vehiculo_tipo_nombre: string | null;
   vehiculo_municipalidad_emisora: string | null;
   domicilio_infraccion_calle: string | null;

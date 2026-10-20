@@ -314,6 +314,19 @@
 .filtros-busqueda { position: relative; flex: 1; min-width: 240px; i { position: absolute; left: .8rem; top: 50%; transform: translateY(-50%); color: var(--bo-tx-gris-400); } input { padding-left: 2.2rem; } }
 [data-theme='dark'] { .filtros-barra, .filtros-panel, .btn-filtros { background: var(--bo-dk-bg-gris-900); border-color: var(--bo-dk-bd-gris-700); color: var(--bo-dk-tx-gris-200); } .filtro-chip { background: var(--bo-dk-bg-gris-800); border-color: var(--bo-dk-bd-gris-700); color: var(--bo-dk-tx-gris-200); } }
 
+// Categorías de la licencia de conducir en el labrado (selección múltiple)
+.chips-categoria { display: flex; flex-wrap: wrap; gap: .4rem; }
+.chip-categoria {
+  display: inline-flex; align-items: center; gap: .3rem; min-width: 3.5rem; justify-content: center;
+  border: 1px solid var(--bo-bd-gris-200); background: var(--bo-bg-gris-50); color: var(--bo-tx-gris-700);
+  border-radius: 999px; padding: .4rem .8rem; font-size: .875rem; font-weight: 600; cursor: pointer;
+  &:hover:not(:disabled) { border-color: var(--bo-bd-azul-300); background: var(--bo-bg-azul-50); }
+  &.activo { background: var(--bo-bg-azul-600); border-color: var(--bo-bd-azul-600); color: var(--bo-tx-blanco); }
+  &:disabled { cursor: default; opacity: .75; }
+  i { font-size: .75rem; }
+}
+[data-theme='dark'] .chip-categoria:not(.activo) { background: var(--bo-dk-bg-gris-800); border-color: var(--bo-dk-bd-gris-700); color: var(--bo-dk-tx-gris-200); }
+
 // Editor de escritos: campos a la izquierda, hoja a la derecha
 .editor-split { display: grid; grid-template-columns: minmax(280px, 360px) minmax(0, 1fr); gap: 1.25rem; align-items: start; }
 .editor-split.sin-panel { grid-template-columns: minmax(0, 1fr); }

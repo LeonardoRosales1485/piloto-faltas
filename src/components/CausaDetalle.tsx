@@ -9,7 +9,7 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { http } from '@/lib/api-client';
 import { printTicket } from '@/lib/print';
-import { ESTADOS_CAUSA, TIPOS_ACTA, claveLey, estadoFinal, fechaCorta, fechaHora, infoEstado, pesos, puede, tipoActa } from '@/lib/dominio';
+import { ESTADOS_CAUSA, TIPOS_ACTA, claveLey, estadoFinal, fechaCorta, fechaHora, infoEstado, ordenarCategoriasLicencia, pesos, puede, tipoActa } from '@/lib/dominio';
 import { useAuthUser } from '@/lib/use-auth-user';
 import type { Infraccion } from '@/lib/types';
 import { RoadmapCausa } from './RoadmapCausa';
@@ -350,6 +350,7 @@ export function CausaDetalle() {
                   <div {...marcaCambio(["infractor_domicilio", "infractor_calle_altura", "infractor_departamento", "infractor_localidad_nombre", "infractor_partido_nombre"])}><dt>Domicilio</dt><dd>{[[cf.infractorDomicilio, cf.infractorCalleAltura, cf.infractorDepartamento].filter(Boolean).join(' '), cf.infractorLocalidadNombre, cf.infractorPartidoNombre].filter(Boolean).join(' · ') || '-'}</dd></div>
                   <div><dt>Correo electrónico</dt><dd>{cf.infractorEmail || <span className="texto-ayuda">Sin dato</span>}{gestion && !final ? <button type="button" className="btn btn-link btn-sm py-0" onClick={() => setModal({ titulo: 'Correo del infractor', icono: 'fa-solid fa-at', accion: 'correo_infractor', textoOk: 'Guardar', aviso: 'Completar solo si se conoce el dato. No forma parte del acta.', campos: [{ k: 'correo', t: 'Correo electrónico', tipo: 'texto', valor: cf.infractorEmail ?? '' }] })}><i className="fa-solid fa-pen" aria-hidden="true" /> {cf.infractorEmail ? 'Editar' : 'Agregar'}</button> : null}</dd></div>
                   {tipo !== 'contravenciones' ? <div {...marcaCambio(["vehiculo_numero_dominio", "vehiculo_tipo_nombre", "vehiculo_numero_licencia", "meta.marca", "meta.modelo"])}><dt>Vehículo</dt><dd>{cf.vehiculoNumeroDominio || '-'} {cf.vehiculoTipoNombre ?? ''} {[cf.metadata?.marca, cf.metadata?.modelo].filter(Boolean).join(' ')} {cf.vehiculoNumeroLicencia ? `· Lic. ${cf.vehiculoNumeroLicencia}` : ''}</dd></div> : null}
+                  {cf.vehiculoLicenciaCategorias?.length ? <div><dt>Categorías de la licencia</dt><dd>{ordenarCategoriasLicencia(cf.vehiculoLicenciaCategorias).join(' · ')}</dd></div> : null}
                   {cf.sustanciasDescripcion ? <div><dt>Sustancias</dt><dd>{cf.sustanciasDescripcion}</dd></div> : null}
                   <div><dt>Medidas</dt><dd>{[cf.retencionDeLicencia ? 'Retención de licencia' : '', cf.retencionDeVehiculo ? 'Retención de vehículo' : '', cf.acarreo ? 'Acarreo' : '', ...(cf.medidasPreventivas ?? [])].filter(Boolean).join(' · ') || 'Ninguna'}{cf.medidaVigente === 1 ? ' (vigente)' : ''}</dd></div>
                   {cf.metadata?.alcoholemia ? <div><dt>Alcoholemia</dt><dd>{cf.metadata.alcoholemia}{cf.metadata.alcoholimetroValor ? ` · ${cf.metadata.alcoholimetroValor} g/l` : ''}</dd></div> : null}

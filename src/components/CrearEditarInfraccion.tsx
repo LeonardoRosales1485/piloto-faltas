@@ -6,7 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { apiClient, http } from '@/lib/api-client';
 import { useLayout } from '@/lib/layout-context';
 import { hayImpresoraPos, printTicket, tomarFotosPos } from '@/lib/print';
-import { puede, SITUACIONES, TIPOS_ACTA, claveLey, fechaHora, tipoActa } from '@/lib/dominio';
+import { CATEGORIAS_LICENCIA, ordenarCategoriasLicencia, puede, SITUACIONES, TIPOS_ACTA, claveLey, fechaHora, tipoActa } from '@/lib/dominio';
 import type { ImgModel, Infraccion, Ley, OpcionCatalogo } from '@/lib/types';
 import { type Paso, MAX_IMAGENES, ejidoPorGps, faltantesPorPaso, pasosPara, readImageFile, toDateTimeLocal, vacia } from './crear-editar-utils';
 import { useNotify } from './NotifyProvider';
@@ -169,6 +169,11 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
   function toggleLista(campo: 'dependenciasNombre' | 'leyesNombre' | 'medidasPreventivas', valor: string) {
     const actual = (form[campo] as string[] | undefined) ?? [];
     patch({ [campo]: actual.includes(valor) ? actual.filter((v) => v !== valor) : [...actual, valor] } as Partial<Infraccion>);
+  }
+
+  function toggleCategoria(v: string) {
+    const actual = form.vehiculoLicenciaCategorias ?? [];
+    patch({ vehiculoLicenciaCategorias: ordenarCategoriasLicencia(actual.includes(v) ? actual.filter((x) => x !== v) : [...actual, v]) });
   }
 
   function usarGps() {
@@ -368,6 +373,7 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
               {form.situacionInfractor !== 'nn' ? fila('Infractor', esJuridica ? `${form.infractorRazonSocial ?? ''} · CUIT ${form.infractorCuit ?? ''}` : `${form.infractorNombre ?? ''} · ${form.infractorDocumentoTipoNombre ?? ''} ${form.infractorDocumentoNumero ?? ''}`) : null}
               {form.situacionInfractor !== 'nn' ? fila('Domicilio', [[form.infractorDomicilio, form.infractorCalleAltura, form.infractorDepartamento].filter(Boolean).join(' '), form.infractorLocalidadNombre, form.infractorPartidoNombre].filter(Boolean).join(' · ')) : null}
               {form.vehiculoNumeroLicencia ? fila('Licencia de conducir', form.vehiculoNumeroLicencia) : null}
+              {form.vehiculoLicenciaCategorias?.length ? fila('Categorías de la licencia', ordenarCategoriasLicencia(form.vehiculoLicenciaCategorias).join(' · ')) : null}
               {tipo !== 'contravenciones' ? fila('Vehículo', [form.vehiculoNumeroDominio, form.vehiculoTipoNombre, form.metadata?.marca, form.metadata?.modelo].filter(Boolean).join(' · ')) : null}
               {form.vehiculoMunicipalidadEmisora ? fila('Municipio emisor', form.vehiculoMunicipalidadEmisora) : null}
               {form.sustanciasDescripcion ? fila('Sustancias', form.sustanciasDescripcion) : null}
@@ -759,6 +765,23 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
                   </Campo>
                 </div>
               ) : null}
+              {tipo === 'multas' ? (
+                <div className="col-12">
+                  <fieldset className="form-group mb-0">
+                    <legend className="form-label-v2 mb-1">Categorías de la licencia <span className="texto-ayuda">(opcional · marque todas las que figuran en la licencia)</span></legend>
+                    <div className="chips-categoria">
+                      {CATEGORIAS_LICENCIA.map((cl) => {
+                        const on = (form.vehiculoLicenciaCategorias ?? []).includes(cl.v);
+                        return (
+                          <button key={cl.v} type="button" className={`chip-categoria ${on ? 'activo' : ''}`} aria-pressed={on} title={cl.d} aria-label={`${cl.v}: ${cl.d}`} disabled={!habilitado} onClick={() => toggleCategoria(cl.v)}>
+                            {on ? <i className="fa-solid fa-check" aria-hidden="true" /> : null}{cl.v}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </fieldset>
+                </div>
+              ) : null}
             </div>
           ) : null}
 
@@ -984,6 +1007,7 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
                   <div><dt>Fecha</dt><dd>{form.legajoFecha?.replace('T', ' ')}</dd></div>
                   <div><dt>Lugar de infracción</dt><dd>{[form.domicilioInfraccionCalle, form.domicilioInfraccionNumero].filter(Boolean).join(' ') || <span className="texto-error">Falta</span>}{form.entreCalle1 ? ` (entre ${form.entreCalle1} y ${form.entreCalle2 ?? ''})` : ''}</dd></div>
                   <div><dt>Infractor</dt><dd>{form.situacionInfractor === 'nn' ? 'No identificado (NN)' : (esJuridica ? `${form.infractorRazonSocial ?? ''} · CUIT ${form.infractorCuit ?? ''}` : `${form.infractorNombre || '—'} · ${form.infractorDocumentoTipoNombre ?? ''} ${form.infractorDocumentoNumero ?? ''}`)}</dd></div>
+                  {tipo === 'multas' && (form.vehiculoNumeroLicencia || form.vehiculoLicenciaCategorias?.length) ? <div><dt>Licencia</dt><dd>{[form.vehiculoNumeroLicencia ? `N.° ${form.vehiculoNumeroLicencia}` : '', form.vehiculoLicenciaCategorias?.length ? `Categorías ${ordenarCategoriasLicencia(form.vehiculoLicenciaCategorias).join(', ')}` : ''].filter(Boolean).join(' · ')}</dd></div> : null}
                   {tipo !== 'contravenciones' ? <div><dt>Vehículo</dt><dd>{form.vehiculoNumeroDominio || '-'} {form.vehiculoTipoNombre ?? ''}</dd></div> : null}
                   <div><dt>Artículos</dt><dd>{leyesSeleccionadas.map((l) => claveLey(l)).join(' · ') || <span className="texto-error">Falta</span>}</dd></div>
                   <div><dt>Medidas</dt><dd>{[form.retencionDeLicencia ? 'Retención de licencia' : '', form.retencionDeVehiculo ? 'Retención de vehículo' : '', form.acarreo ? 'Acarreo' : '', ...(form.medidasPreventivas ?? [])].filter(Boolean).join(' · ') || 'Ninguna'}</dd></div>

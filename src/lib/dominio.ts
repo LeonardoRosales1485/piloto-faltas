@@ -274,6 +274,42 @@ export const ESTADOS_PRE_FALLO = ['Iniciado', 'En notificación', 'Notificado', 
 // ---------------------------------------------------------------------------
 // Situación del infractor al labrar
 // ---------------------------------------------------------------------------
+/**
+ * Clases y subclases de la Licencia Nacional de Conducir (Ley 24.449, art. 16; listado vigente de la ANSV:
+ * argentina.gob.ar/seguridadvial/licencianacional/clasesysubclases). Una licencia puede tener varias.
+ */
+export const CATEGORIAS_LICENCIA: readonly { v: string; d: string }[] = [
+  { v: 'A.1.1', d: 'Ciclomotores hasta 50 cc' },
+  { v: 'A.1.2', d: 'Motocicletas hasta 150 cc' },
+  { v: 'A.1.3', d: 'Motocicletas de 150 a 300 cc' },
+  { v: 'A.1.4', d: 'Motocicletas de más de 300 cc' },
+  { v: 'A.2.1', d: 'Triciclos y cuatriciclos sin cabina hasta 300 cc' },
+  { v: 'A.2.2', d: 'Triciclos y cuatriciclos sin cabina de más de 300 cc' },
+  { v: 'A.3', d: 'Triciclos y cuatriciclos cabinados' },
+  { v: 'B.1', d: 'Automóviles, utilitarios y camionetas hasta 3500 kg' },
+  { v: 'B.2', d: 'B.1 con acoplado de hasta 750 kg o casa rodante' },
+  { v: 'C.1', d: 'Camiones de 3500 a 12.000 kg' },
+  { v: 'C.2', d: 'Camiones de 12.000 a 24.000 kg' },
+  { v: 'C.3', d: 'Camiones de más de 24.000 kg' },
+  { v: 'D.1', d: 'Transporte de pasajeros hasta 8 plazas' },
+  { v: 'D.2', d: 'Transporte de pasajeros de 9 a 20 plazas' },
+  { v: 'D.3', d: 'Transporte de pasajeros de más de 20 plazas' },
+  { v: 'D.4', d: 'Servicios de urgencia y emergencia' },
+  { v: 'E.1', d: 'Clase C o D con remolque o articulado' },
+  { v: 'E.2', d: 'Maquinaria especial no agrícola' },
+  { v: 'F', d: 'Vehículo adaptado a la condición física del titular' },
+  { v: 'G.1', d: 'Tractores agrícolas' },
+  { v: 'G.2', d: 'Maquinaria especial agrícola' },
+  { v: 'G.3', d: 'Tren agrícola' },
+];
+
+/** Categorías de licencia en el orden del listado oficial (las desconocidas, al final). */
+export function ordenarCategoriasLicencia(lista?: string[] | null): string[] {
+  const orden = CATEGORIAS_LICENCIA.map((c) => c.v);
+  const pos = (v: string) => { const i = orden.indexOf(v); return i < 0 ? orden.length : i; };
+  return [...new Set(lista ?? [])].sort((a, b) => pos(a) - pos(b) || a.localeCompare(b));
+}
+
 export const SITUACIONES = [
   { v: 'presente', t: 'Presente' },
   { v: 'ausente', t: 'Ausente' },

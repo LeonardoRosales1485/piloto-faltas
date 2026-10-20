@@ -1,5 +1,6 @@
 import QRCode from 'qrcode';
 import type { Infraccion } from './types';
+import { ordenarCategoriasLicencia } from './dominio';
 
 const pad = (n: number) => String(n).padStart(2, '0');
 
@@ -174,7 +175,7 @@ export function actaTransitoHtml(i: Infraccion, extras: ActaExtras = {}): string
       <div class="at-fila at-c3">
         ${campo('Licencia', i.vehiculoNumeroLicencia)}
         ${campo('Municipalidad emisora', i.vehiculoMunicipalidadEmisora)}
-        <div></div>
+        ${campo('Categorías', ordenarCategoriasLicencia(i.vehiculoLicenciaCategorias).join(', '))}
       </div>
     </section>
 

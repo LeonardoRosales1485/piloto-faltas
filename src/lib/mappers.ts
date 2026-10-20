@@ -66,6 +66,7 @@ export function infraccionFromRow(
     vehiculoNumeroDominio: i.vehiculo_numero_dominio ?? undefined,
     vehiculoNumeroControlInterno: i.vehiculo_numero_control_interno ?? undefined,
     vehiculoNumeroLicencia: i.vehiculo_numero_licencia ?? undefined,
+    vehiculoLicenciaCategorias: i.vehiculo_licencia_categorias == null ? undefined : readList(i.vehiculo_licencia_categorias),
     vehiculoTipoNombre: i.vehiculo_tipo_nombre ?? undefined,
     vehiculoMunicipalidadEmisora: i.vehiculo_municipalidad_emisora ?? undefined,
     domicilioInfraccionCalle: i.domicilio_infraccion_calle ?? undefined,
@@ -170,6 +171,8 @@ export function infraccionToRow(d: Infraccion, existing?: Partial<InfraccionRow>
     nomenclatura_catastral: d.nomenclaturaCatastral ?? null,
     acarreo: d.acarreo ?? 0,
     medidas_preventivas: JSON.stringify(d.medidasPreventivas ?? []),
+    // Solo si el formulario lo trae: así un acta sin categorías se guarda aunque todavía no se haya corrido sql/030.
+    ...(Array.isArray(d.vehiculoLicenciaCategorias) ? { vehiculo_licencia_categorias: JSON.stringify(d.vehiculoLicenciaCategorias) } : {}),
     sustancias_descripcion: d.sustanciasDescripcion ?? null,
   };
 }
