@@ -320,7 +320,10 @@
   display: inline-flex; align-items: center; gap: .3rem; min-width: 3.5rem; justify-content: center;
   border: 1px solid var(--bo-bd-gris-200); background: var(--bo-bg-gris-50); color: var(--bo-tx-gris-700);
   border-radius: 999px; padding: .4rem .8rem; font-size: .875rem; font-weight: 600; cursor: pointer;
-  &:hover:not(:disabled) { border-color: var(--bo-bd-azul-300); background: var(--bo-bg-azul-50); }
+  // Hover solo con mouse y sin pisar el elegido: en pantallas táctiles el :hover queda «pegado» después del toque
+  // y, como pesaba más que .activo, el chip elegido se veía celeste con texto blanco hasta tocar otra cosa.
+  @media (hover: hover) { &:hover:not(:disabled):not(.activo) { border-color: var(--bo-bd-azul-300); background: var(--bo-bg-azul-50); } }
+  -webkit-tap-highlight-color: transparent;
   &.activo { background: var(--bo-bg-azul-600); border-color: var(--bo-bd-azul-600); color: var(--bo-tx-blanco); }
   &:disabled { cursor: default; opacity: .75; }
   i { font-size: .75rem; }

@@ -107,6 +107,7 @@ Avance: **20 / 20**
 | Liberación de vehículos en el orden del Informe (6.c): «Emitir boleta» de acarreo y estadía ya no marca el vehículo como liberado; «Registrar liberación» en Retenciones exige la boleta acreditada (o confirmar que se libera sin cobrarla) y la disposición de levantamiento firmada. Estados en Retenciones: Retenido, Boleta emitida, Falta disposición, Listo para liberar, Liberado. Próximo paso «Liberar el vehículo» en causas pagas o cerradas con el vehículo retenido (no muestra «Causa cerrada: no hay pasos pendientes»); «Boleta de estadía» visible aunque la causa esté cerrada, mientras el vehículo siga retenido | — |
 | Próximo paso «Devolver la licencia»: con la licencia retenida y la multa paga o la causa resuelta, recomienda dictar la disposición de levantamiento; si también está retenido el vehículo, muestra los dos pendientes | — |
 | Marcas y modelos de vehículos ampliados: 62 marcas y unos 620 modelos (autos, camionetas, camiones, colectivos y motos) para el labrado. Requiere `sql/028_marcas_modelos_ampliadas.sql` (solo agrega) | — |
+| Labrado: el chip de categoría de licencia elegido ya no queda «presionado» (celeste con texto blanco) en pantallas táctiles; el hover solo aplica con mouse y no pisa el estado elegido | — |
 
 ## Fuera del alcance del prototipo
 
