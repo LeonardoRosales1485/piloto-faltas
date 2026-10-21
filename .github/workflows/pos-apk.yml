@@ -40,13 +40,16 @@ jobs:
             flutter create --platforms=android --org ar.gob.malvinasargentinas --project-name faltas_pos .
           fi
 
-      - name: Permisos (internet, cámara, GPS) y nombre visible
+      - name: Permisos (internet, cámara, GPS, Bluetooth), impresora y nombre visible
         run: |
           M=android/app/src/main/AndroidManifest.xml
-          for p in INTERNET CAMERA ACCESS_FINE_LOCATION ACCESS_COARSE_LOCATION REQUEST_INSTALL_PACKAGES; do
+          for p in INTERNET CAMERA ACCESS_FINE_LOCATION ACCESS_COARSE_LOCATION REQUEST_INSTALL_PACKAGES BLUETOOTH BLUETOOTH_ADMIN BLUETOOTH_CONNECT; do
             grep -q "android.permission.$p\"" $M || sed -i "s#<application#<uses-permission android:name=\"android.permission.$p\" />\n    <application#" $M
           done
           sed -i 's#android:label="[^"]*"#android:label="Faltas"#' $M
+          # Impresora: ver si está el servicio de Senraise (Android 11+ exige declararlo) y canal propio (MainActivity)
+          grep -q 'recieptservice.com.recieptservice' $M || sed -i 's#<application#<queries><package android:name="recieptservice.com.recieptservice" /><package android:name="woyou.aidlservice.jiuiv5" /></queries>\n    <application#' $M
+          cp android-extra/MainActivity.kt android/app/src/main/kotlin/ar/gob/malvinasargentinas/faltas_pos/MainActivity.kt
           # ota_update: provider para instalar versiones nuevas
           grep -q OtaUpdateFileProvider $M || python3 -c "import sys;m=sys.argv[1];x=open(m).read();open(m,'w').write(x.replace('</application>', open('android-extra/provider.xml').read()+'    </application>',1))" $M
           mkdir -p android/app/src/main/res/xml && cp android-extra/filepaths.xml android/app/src/main/res/xml/filepaths.xml

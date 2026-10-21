@@ -50,6 +50,7 @@ Guía paso a paso para recorrer un acta de tránsito de punta a punta: desde que
 
    Si falta un dato obligatorio, el paso se marca **en rojo** en la barra de pasos (después de pasar por él o al intentar firmar), y en la firma se listan los faltantes con un enlace a cada paso.
 4. Al firmar se ve una **pantalla final** con todo lo cargado, para ver el acta o imprimir el ticket, y **«Listo, volver al inicio»** (los botones están arriba, antes del resumen). En cualquier pantalla, **«← Inicio»** (arriba) lleva a la pantalla principal del inspector. Desde ese momento **el acta no se puede modificar**. Se imprime el **ticket con el QR** y se le entrega al infractor.
+   - **Impresora:** en el Senraise H10S imprime directo. En otros POS (por ejemplo Symcode MJ-Q50) usa la impresora interna por Bluetooth. Si no puede imprimir, avisa el motivo y ofrece «Imprimir con el sistema». Para revisar o ajustar la impresora de un equipo: en el login, mantener apretado «App POS v…» y usar **«Prueba de impresora»**.
 
 > Si el inspector se equivoca antes de firmar, usa **«Descartar acta»** e indica el motivo. Ese número queda anulado y no se vuelve a usar.
 

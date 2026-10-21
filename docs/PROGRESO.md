@@ -108,6 +108,7 @@ Avance: **20 / 20**
 | Próximo paso «Devolver la licencia»: con la licencia retenida y la multa paga o la causa resuelta, recomienda dictar la disposición de levantamiento; si también está retenido el vehículo, muestra los dos pendientes | — |
 | Marcas y modelos de vehículos ampliados: 62 marcas y unos 620 modelos (autos, camionetas, camiones, colectivos y motos) para el labrado. Requiere `sql/028_marcas_modelos_ampliadas.sql` (solo agrega) | — |
 | Labrado: el chip de categoría de licencia elegido ya no queda «presionado» (celeste con texto blanco) en pantallas táctiles; el hover solo aplica con mouse y no pisa el estado elegido | — |
+| App del POS: soporte para otros POS (ej. Symcode MJ-Q50). Sin Senraise, imprime por la impresora interna vinculada por Bluetooth con ESC/POS (logo, QR nativo, tildes; 58/80 mm). Antes, sin Senraise, el plugin no respondía y la web quedaba esperando: ahora hay tiempo límite, se muestra el error y se ofrece la impresión del sistema. Pantalla oculta «Prueba de impresora» (mantener apretada la versión en el login). **Requiere APK nueva** | — |
 
 ## Fuera del alcance del prototipo
 

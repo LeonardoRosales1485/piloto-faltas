@@ -2,10 +2,11 @@
 import { inicioPara } from '@/lib/role-guard';
 
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { login } from '@/lib/auth-client';
 import { BotonContraste } from './BotonContraste';
 import { ControlTexto } from './ControlTexto';
+import { PruebaImpresora } from './PruebaImpresora';
 
 type Acceso = { u: string; p: string; t: string; i: string };
 
@@ -42,6 +43,11 @@ export function LoginPage() {
   // En la app del POS (WebView) el user agent trae «FaltasPOS/<versión>».
   const [versionPos, setVersionPos] = useState('');
   useEffect(() => { setVersionPos(navigator.userAgent.match(/FaltasPOS\/(\d+)/)?.[1] ?? ''); }, []);
+  // Prueba de impresora (oculta): mantener apretada la versión de la app del POS 1,5 s.
+  const [pruebaImpresora, setPruebaImpresora] = useState(false);
+  const pulsacion = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const soltar = () => { if (pulsacion.current) clearTimeout(pulsacion.current); pulsacion.current = null; };
+  const apretar = () => { soltar(); pulsacion.current = setTimeout(() => setPruebaImpresora(true), 1500); };
   const [aviso, setAviso] = useState('');
   useEffect(() => { if (new URLSearchParams(window.location.search).get('sesion') === 'vencida') setAviso('Su sesión venció o se cerró. Vuelva a ingresar.'); }, []);
   const [loading, setLoading] = useState(false);
@@ -137,12 +143,13 @@ export function LoginPage() {
           <span>Municipalidad de Malvinas Argentinas</span>
           <span>© {year} Blue Open Data</span>
           <span>V:1.0.0</span>
-          {versionPos ? <span>App POS v{versionPos}</span> : null}
+          {versionPos ? <span onPointerDown={apretar} onPointerUp={soltar} onPointerLeave={soltar} onPointerCancel={soltar} onContextMenu={(e) => e.preventDefault()} style={{ userSelect: 'none' }}>App POS v{versionPos}</span> : null}
         </div>
         <div className="login-contraste">
           <ControlTexto botonClase="btn btn-sm btn-outline-secondary" />
           <BotonContraste className="btn btn-sm btn-outline-secondary" conTexto />
         </div>
+        {pruebaImpresora ? <PruebaImpresora onCerrar={() => setPruebaImpresora(false)} /> : null}
         </div>
         <section className="login-rapido" aria-label="Acceso rápido">
           <p className="login-rapido-titulo">Acceso rápido (piloto)</p>

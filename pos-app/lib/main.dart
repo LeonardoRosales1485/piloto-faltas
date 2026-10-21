@@ -8,7 +8,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import 'actualizador.dart';
-import 'impresora_ticket.dart';
+import 'impresoras.dart';
 
 /// URL del Sistema de Faltas. Se puede cambiar al compilar:
 /// flutter build apk --dart-define=APP_URL=https://piloto-faltas.vercel.app
@@ -33,7 +33,7 @@ class Inicio extends StatefulWidget {
 }
 
 class _InicioState extends State<Inicio> {
-  final _impresora = ImpresoraTicket();
+  final _impresora = Impresoras();
   InAppWebViewController? _web;
   bool _buscando = true; // consultando si hay versión nueva
   Actualizacion? _actualizacion;
@@ -136,8 +136,20 @@ class _InicioState extends State<Inicio> {
                 callback: (args) async {
                   try {
                     final datos = Map<String, dynamic>.from(args.first as Map);
-                    await _impresora.imprimir(datos);
-                    return {'ok': true};
+                    final via = await _impresora.imprimir(datos);
+                    return {'ok': true, 'via': via};
+                  } catch (e) {
+                    return {'ok': false, 'error': '$e'.replaceFirst('Exception: ', '')};
+                  }
+                },
+              );
+              // Pantalla «Prueba de impresora»: equipo, Bluetooth vinculados y vía elegida.
+              c.addJavaScriptHandler(
+                handlerName: 'infoImpresora',
+                callback: (args) async {
+                  try {
+                    final info = await _impresora.info();
+                    return {'ok': true, ...info};
                   } catch (e) {
                     return {'ok': false, 'error': '$e'};
                   }

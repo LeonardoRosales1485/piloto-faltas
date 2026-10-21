@@ -122,6 +122,70 @@ export function hayImpresoraPos(): boolean {
 }
 
 /**
+ * Ajustes de la impresora de ESTE equipo (pantalla «Prueba de impresora»: mantener apretada la versión al pie del login).
+ * Se guardan en el navegador del POS. `impresora`: auto | senraise | bluetooth; `mac`: dispositivo Bluetooth elegido;
+ * `columnas`: 32 (58 mm) o 48 (80 mm); `sinAcentos`, `qrTam`, `sinLogo`: para afinar impresoras ESC/POS.
+ */
+export type AjustesImpresora = { impresora?: 'auto' | 'senraise' | 'bluetooth'; mac?: string; columnas?: number; sinAcentos?: boolean; qrTam?: number; sinLogo?: boolean };
+const CLAVE_IMPRESORA = 'faltas.impresora';
+export function leerAjustesImpresora(): AjustesImpresora {
+  try { return JSON.parse(localStorage.getItem(CLAVE_IMPRESORA) ?? '{}') as AjustesImpresora; } catch { return {}; }
+}
+export function guardarAjustesImpresora(a: AjustesImpresora) {
+  try { localStorage.setItem(CLAVE_IMPRESORA, JSON.stringify(a)); } catch { /* sin almacenamiento */ }
+}
+
+/** Llama a la app del POS con tiempo límite: si la impresora no responde, no queda esperando para siempre. */
+async function llamarPos<T>(pos: PuenteFlutter, nombre: string, datos: unknown, ms = 35000): Promise<T> {
+  return Promise.race([
+    pos.callHandler(nombre, datos) as Promise<T>,
+    new Promise<T>((_, rej) => setTimeout(() => rej(new Error('La impresora no respondió')), ms)),
+  ]);
+}
+
+/** Datos del equipo y de la impresora (pantalla de prueba). Null fuera de la app del POS. */
+export async function infoImpresora(): Promise<Record<string, unknown> | null> {
+  const pos = puentePos();
+  if (!pos) return null;
+  return llamarPos<Record<string, unknown>>(pos, 'infoImpresora', {}, 15000);
+}
+
+/** Imprime un ticket de prueba con los ajustes indicados. Devuelve la vía usada o lanza el error. */
+export async function imprimirPrueba(a: AjustesImpresora): Promise<string> {
+  const pos = puentePos();
+  if (!pos) throw new Error('Solo funciona en la app del POS');
+  const t: DatosTicket = {
+    titulo: 'TICKET DE PRUEBA', numero: 'T-000000', fecha: formatearFechaTicket(new Date().toISOString()), lugar: 'Av. Pte. Perón 1500, Los Polvorines',
+    dominio: 'AB123CD', articulos: ['Ordenanza 261/2022 · Art. 45 (prueba de tildes: ñ á é í ó ú)'], reparticion: 'TRÁNSITO',
+    url: `${window.location.origin}/acta/prueba`, codigo: 'PRUEBA',
+  };
+  const r = await llamarPos<{ ok?: boolean; via?: string; error?: string } | null>(pos, 'imprimirTicket', { ...t, ...a });
+  if (r?.ok === false) throw new Error(r.error || 'No se pudo imprimir');
+  return r?.via ?? 'senraise';
+}
+
+/** Aviso cuando la impresora del POS falla: ofrece la impresión del sistema (diálogo de Android). */
+function avisoFalloImpresora(error: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    const ov = document.createElement('div');
+    ov.className = 'modal-fake-overlay';
+    ov.innerHTML = `<div class="modal-fake modal-fake-sm" role="alertdialog" aria-modal="true" aria-label="No se pudo imprimir">
+      <div class="modal-fake-header"><h2>No se pudo imprimir el ticket</h2></div>
+      <div class="modal-fake-body"><p class="mb-2">${escapeHtml(error)}</p><p class="mb-0">Puede intentar con la impresión del sistema.</p></div>
+      <div class="modal-fake-footer"><button type="button" class="btn btn-outline-secondary" data-r="0">Cerrar</button><button type="button" class="btn btn-primary" data-r="1">Imprimir con el sistema</button></div>
+    </div>`;
+    ov.addEventListener('click', (e) => {
+      const b = (e.target as HTMLElement).closest('[data-r]') as HTMLElement | null;
+      if (!b) return;
+      ov.remove();
+      resolve(b.dataset.r === '1');
+    });
+    document.body.appendChild(ov);
+    (ov.querySelector('.btn-primary') as HTMLButtonElement | null)?.focus();
+  });
+}
+
+/**
  * En la app del POS el <input type="file" capture> del WebView no devuelve la foto, así que la cámara/galería la abre
  * la app (handler «tomarFoto», image_picker) y devuelve las imágenes como data URL. Devuelve null si no hay app.
  */
@@ -172,14 +236,17 @@ export async function printTicket(infraccion: Infraccion, confirmar = true): Pro
   // En el POS Senraise (app del inspector) imprime directo con la impresora térmica, sin diálogo.
   const pos = puentePos();
   if (pos) {
+    let error = '';
     try {
-      const r = (await pos.callHandler('imprimirTicket', t)) as { ok?: boolean; error?: string } | null;
+      const r = await llamarPos<{ ok?: boolean; error?: string } | null>(pos, 'imprimirTicket', { ...t, ...leerAjustesImpresora() });
       if (!r || r.ok !== false) return;
-      console.warn('Impresora del POS:', r.error);
+      error = r.error || 'La impresora del equipo no respondió.';
     } catch (e) {
-      console.warn('Impresora del POS no disponible', e);
+      error = e instanceof Error ? e.message : 'La impresora del equipo no respondió.';
     }
-    // Si la impresora nativa falla, sigue con la impresión web (diálogo de Android).
+    console.warn('Impresora del POS:', error);
+    // Si la impresora nativa falla, se avisa y se ofrece la impresión web (diálogo de Android).
+    if (!(await avisoFalloImpresora(error))) return;
   }
   const campo = (label: string, valor: string) => `<div class="t-campo"><span class="t-label">${label}</span><span class="t-valor">${escapeHtml(valor)}</span></div>`;
   const cuerpo = `<div class="ticket">

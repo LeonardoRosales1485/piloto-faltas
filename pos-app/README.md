@@ -13,6 +13,21 @@ App Android mínima (Flutter) que abre el Sistema de Faltas a pantalla completa 
    y el **QR nativo** (nítido). Sin diálogo de impresión.
 4. Fuera de la app (navegador común) o si la impresora falla, la web usa el ticket HTML de 80 mm.
 
+## Otros POS (ej. Symcode MJ-Q50)
+
+`lib/impresoras.dart` elige la vía según el equipo:
+
+- **Senraise** (tiene instalado `recieptservice.com.recieptservice` o el modelo dice Senraise/H10): SDK de Senraise, como siempre.
+- **Otros:** impresora interna vinculada por **Bluetooth** (dirección `00:11:22:33:44:55` o un nombre tipo
+  «InnerPrinter»/«Printer»), con comandos **ESC/POS** armados en `lib/ticket_escpos.dart` (logo, textos, QR nativo,
+  tildes con la tabla WPC1252). El canal nativo está en `android-extra/MainActivity.kt` (se copia al compilar).
+- Si no hay impresora, la app devuelve el error y la web lo muestra y ofrece la impresión del sistema
+  (antes, en un POS sin Senraise, el plugin no respondía nunca y no pasaba nada).
+
+**Prueba de impresora:** en el login, mantener apretado «App POS v…» 1,5 s. Muestra el equipo, los Bluetooth
+vinculados y la vía automática; permite forzar la vía, elegir el dispositivo, el papel (58/80 mm), el tamaño del QR,
+imprimir sin tildes o sin logo, e imprimir un ticket de prueba. Los ajustes se guardan en ese equipo.
+
 ## Compilar sin instalar nada (recomendado): GitHub Actions
 
 1. Hacer `git push` (o en GitHub: **Actions → APK del POS → Run workflow**, donde se puede cambiar la URL).

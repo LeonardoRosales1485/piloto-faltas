@@ -4,12 +4,16 @@ $ErrorActionPreference = 'Stop'
 if ($Paso -eq 'manifest') {
   $m = Join-Path $PSScriptRoot 'android\app\src\main\AndroidManifest.xml'
   $x = [IO.File]::ReadAllText($m)
-  foreach ($p in 'INTERNET','CAMERA','ACCESS_FINE_LOCATION','ACCESS_COARSE_LOCATION','REQUEST_INSTALL_PACKAGES') {
+  foreach ($p in 'INTERNET','CAMERA','ACCESS_FINE_LOCATION','ACCESS_COARSE_LOCATION','REQUEST_INSTALL_PACKAGES','BLUETOOTH','BLUETOOTH_ADMIN','BLUETOOTH_CONNECT') {
     if ($x -notmatch "android\.permission\.$p`"") {
       $x = $x -replace '<application', "<uses-permission android:name=`"android.permission.$p`" />`n    <application"
     }
   }
   $x = $x -replace 'android:label="[^"]*"', 'android:label="Faltas"'
+  # Impresora: ver si está el servicio de Senraise (Android 11+ exige declararlo)
+  if ($x -notmatch 'recieptservice\.com\.recieptservice') {
+    $x = $x -replace '<application', "<queries><package android:name=`"recieptservice.com.recieptservice`" /><package android:name=`"woyou.aidlservice.jiuiv5`" /></queries>`n    <application"
+  }
   if ($x -notmatch 'OtaUpdateFileProvider') {
     $prov = [IO.File]::ReadAllText((Join-Path $PSScriptRoot 'android-extra\provider.xml'))
     $x = $x -replace '</application>', ($prov + "    </application>")
@@ -21,6 +25,8 @@ if ($Paso -eq 'manifest') {
   $app = Join-Path $PSScriptRoot 'android\app\build.gradle.kts'
   $ax = [IO.File]::ReadAllText($app)
   if ($ax -match 'ndkVersion = flutter.ndkVersion') { [IO.File]::WriteAllText($app, ($ax -replace 'ndkVersion = flutter.ndkVersion', 'ndkVersion = "27.0.12077973"')) }
+  # Canal propio de impresión (Bluetooth, datos del equipo)
+  Copy-Item (Join-Path $PSScriptRoot 'android-extra\MainActivity.kt') (Join-Path $PSScriptRoot 'android\app\src\main\kotlin\ar\gob\malvinasargentinas\faltas_pos\MainActivity.kt') -Force
   $xml = Join-Path $PSScriptRoot 'android\app\src\main\res\xml'
   New-Item -ItemType Directory -Force $xml | Out-Null
   Copy-Item (Join-Path $PSScriptRoot 'android-extra\filepaths.xml') (Join-Path $xml 'filepaths.xml') -Force
