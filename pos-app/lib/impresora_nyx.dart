@@ -1,83 +1,57 @@
-import 'package:flutter/services.dart' show rootBundle;
-import 'package:nyx_printer_v2/nyx_printer.dart';
+import 'package:flutter/services.dart';
 
-/// Impresora «Nyx» (servicio net.nyx.printerservice / com.incar.printerservice): Symcode MJ-Q50 (fabricante NB55),
-/// T2 Pro, T2 Plus. Papel de 58 mm (384 puntos). Mismo ticket que el Senraise, con los datos de `datosTicket` (web).
-/// Cada llamada del plugin devuelve 0 si salió bien.
+/// Impresora «Nyx» (servicio net.nyx.printerservice): Symcode MJ-Q50 (fabricante NB55), T2 Pro, T2 Plus.
+/// Papel de 58 mm (384 puntos). Mismo ticket que el Senraise, con los datos de `datosTicket` (web).
+/// Arma la lista de pasos y la imprime el código nativo (android-extra/MainActivity.kt, «imprimirNyx»),
+/// que habla con el servicio por Binder (sin plugin: nyx_printer_v2 1.2.2 no compila).
 class ImpresoraNyx {
-  final NyxPrinter _p = NyxPrinter();
-
-  Future<void> _ok(Future<int?> llamada, String que) async {
-    final r = await llamada;
-    if (r != null && r != 0) throw Exception('La impresora Nyx devolvió el error $r al imprimir $que');
-  }
-
-  /// El servicio tarda un instante en conectarse al abrir la app: hasta 3 intentos antes de imprimir.
-  Future<void> _esperarServicio() async {
-    Object? ultimo;
-    for (var i = 0; i < 3; i++) {
-      try {
-        final r = await _p.getVersion();
-        if (r == null || r == 0) return;
-        ultimo = 'código $r';
-      } catch (e) {
-        ultimo = e;
-      }
-      await Future<void>.delayed(const Duration(milliseconds: 700));
-    }
-    throw Exception('No responde el servicio de impresión del equipo ($ultimo)');
-  }
+  static const _canal = MethodChannel('faltas/impresora');
+  static const _izq = 0;
+  static const _centro = 1;
 
   Future<void> imprimir(Map<String, dynamic> t) async {
     final articulos = (t['articulos'] as List?)?.map((e) => '$e').toList() ?? <String>[];
-    final qr = ((t['qrTam'] as num?)?.toInt() ?? 6).clamp(3, 12).toInt() * 50; // 6 → 300 puntos de 384
-    await _esperarServicio();
+    final qr = ((t['qrTam'] as num?)?.toInt() ?? 6).clamp(3, 7).toInt() * 50; // 6 → 300 de 384 puntos
+    final pasos = <Map<String, dynamic>>[];
+    void texto(String s, {int tam = 24, bool negrita = false, int alinear = _izq}) =>
+        pasos.add({'tipo': 'texto', 'texto': _ajustar(s, tam), 'tam': tam, 'negrita': negrita, 'alinear': alinear});
+    void campo(String label, String valor) {
+      texto(label, tam: 20, negrita: true);
+      texto(valor, tam: 24, negrita: true);
+    }
 
     if (t['sinLogo'] != true) {
       try {
         final logo = await rootBundle.load('assets/logo_ticket.png');
-        await _ok(_p.printImage(logo.buffer.asUint8List()), 'el logo');
-      } catch (_) {/* sin logo si la impresora no acepta la imagen */}
+        pasos.add({'tipo': 'imagen', 'png': logo.buffer.asUint8List(), 'ancho': 260, 'alinear': _centro});
+      } catch (_) {/* sin logo */}
     }
-    await _texto('MUNICIPALIDAD DE\nMALVINAS ARGENTINAS', tam: 24, negrita: true, centro: true);
-    await _texto('Dirección de Faltas', tam: 22, centro: true);
-    await _texto('-' * 16, tam: 22, centro: true);
-    await _texto('${t['titulo'] ?? 'ACTA'}', tam: 24, negrita: true, centro: true);
-    await _texto('${t['numero'] ?? '-'}', tam: 40, negrita: true, centro: true);
-
-    Future<void> campo(String label, String valor) async {
-      await _texto(label, tam: 20, negrita: true);
-      await _texto(valor, tam: 24, negrita: true);
-    }
-
-    await campo('FECHA Y HORA', '${t['fecha'] ?? '-'}');
-    await campo('LUGAR', '${t['lugar'] ?? '-'}');
-    if ('${t['dominio'] ?? ''}'.isNotEmpty) await campo('DOMINIO', '${t['dominio']}');
-    await _texto('DISPOSICIÓN LEGAL INFRINGIDA', tam: 20, negrita: true);
+    texto('MUNICIPALIDAD DE\nMALVINAS ARGENTINAS', negrita: true, alinear: _centro);
+    texto('Dirección de Faltas', tam: 22, alinear: _centro);
+    texto('-' * 16, tam: 22, alinear: _centro);
+    texto('${t['titulo'] ?? 'ACTA'}', negrita: true, alinear: _centro);
+    texto('${t['numero'] ?? '-'}', tam: 40, negrita: true, alinear: _centro);
+    campo('FECHA Y HORA', '${t['fecha'] ?? '-'}');
+    campo('LUGAR', '${t['lugar'] ?? '-'}');
+    if ('${t['dominio'] ?? ''}'.isNotEmpty) campo('DOMINIO', '${t['dominio']}');
+    texto('DISPOSICIÓN LEGAL INFRINGIDA', tam: 20, negrita: true);
     for (final a in (articulos.isEmpty ? ['-'] : articulos)) {
-      await _texto('• $a', tam: 22, negrita: true);
+      texto('• $a', tam: 22, negrita: true);
     }
-    await campo('REPARTICIÓN', '${t['reparticion'] ?? '-'}');
+    campo('REPARTICIÓN', '${t['reparticion'] ?? '-'}');
+    texto('-' * 16, tam: 22, alinear: _centro);
+    texto('IMPORTANTE: no debe abonar monto de dinero alguno a la autoridad que confeccionó la presente acta.', tam: 20, negrita: true, alinear: _centro);
+    if ('${t['url'] ?? ''}'.isNotEmpty) pasos.add({'tipo': 'qr', 'texto': '${t['url']}', 'lado': qr, 'alinear': _centro});
+    texto('Escanee para ver el acta digital', tam: 20, negrita: true, alinear: _centro);
+    if ('${t['codigo'] ?? ''}'.isNotEmpty) texto('Código: ${t['codigo']}', tam: 20, alinear: _centro);
+    pasos.add({'tipo': 'avanzar', 'px': 100}); // margen para cortar el papel
 
-    await _texto('-' * 16, tam: 22, centro: true);
-    await _texto('IMPORTANTE: no debe abonar monto de dinero alguno a la autoridad que confeccionó la presente acta.', tam: 20, negrita: true, centro: true);
-    if ('${t['url'] ?? ''}'.isNotEmpty) await _ok(_p.printQrCode('${t['url']}', width: qr, height: qr), 'el QR');
-    await _texto('Escanee para ver el acta digital', tam: 20, negrita: true, centro: true);
-    if ('${t['codigo'] ?? ''}'.isNotEmpty) await _texto('Código: ${t['codigo']}', tam: 20, centro: true);
-    await _texto('\n\n\n', tam: 20); // margen para cortar el papel
+    try {
+      await _canal.invokeMethod('imprimirNyx', {'pasos': pasos});
+    } on PlatformException catch (e) {
+      throw Exception(e.message ?? 'No se pudo imprimir con la impresora del equipo');
+    }
   }
-
-  Future<void> _texto(String s, {int tam = 24, bool negrita = false, bool centro = false}) => _ok(
-        _p.printText(
-          _ajustar(s, tam),
-          textFormat: NyxTextFormat(
-            textSize: tam,
-            style: negrita ? NyxFontStyle.bold : NyxFontStyle.normal,
-            align: centro ? NyxAlign.center : NyxAlign.left,
-          ),
-        ),
-        'el texto',
-      );
 
   /// Corta en palabras completas (384 puntos de ancho; cada carácter ocupa ~0,6 × tamaño).
   static String _ajustar(String s, int tam) {

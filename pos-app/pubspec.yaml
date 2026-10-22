@@ -12,7 +12,6 @@ dependencies:
   flutter_inappwebview: ^6.1.5
   permission_handler: ^11.3.1
   senraise_printer: ^0.0.6
-  nyx_printer_v2: ^1.2.0 # impresora «Nyx» (net.nyx.printerservice): Symcode MJ-Q50 / NB55
   image_picker: ^1.1.2
   ota_update: ">=6.0.0 <7.0.0"
   package_info_plus: ^8.0.0

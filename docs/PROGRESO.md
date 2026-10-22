@@ -109,7 +109,7 @@ Avance: **20 / 20**
 | Marcas y modelos de vehículos ampliados: 62 marcas y unos 620 modelos (autos, camionetas, camiones, colectivos y motos) para el labrado. Requiere `sql/028_marcas_modelos_ampliadas.sql` (solo agrega) | — |
 | Labrado: el chip de categoría de licencia elegido ya no queda «presionado» (celeste con texto blanco) en pantallas táctiles; el hover solo aplica con mouse y no pisa el estado elegido | — |
 | App del POS: soporte para otros POS (ej. Symcode MJ-Q50). Sin Senraise, imprime por la impresora interna vinculada por Bluetooth con ESC/POS (logo, QR nativo, tildes; 58/80 mm). Antes, sin Senraise, el plugin no respondía y la web quedaba esperando: ahora hay tiempo límite, se muestra el error y se ofrece la impresión del sistema. Pantalla oculta «Prueba de impresora» (mantener apretada la versión en el login). **Requiere APK nueva** | — |
-| App del POS: el Symcode MJ-Q50 (fabricante NB55) usa el servicio de impresión «Nyx» (net.nyx.printerservice): nueva vía con el plugin nyx_printer_v2 (texto, QR nativo y logo, 58 mm), con prioridad sobre Bluetooth. Opción «Nyx» en la Prueba de impresora. **Requiere APK nueva** | — |
+| App del POS: el Symcode MJ-Q50 (fabricante NB55) usa el servicio de impresión «Nyx» (net.nyx.printerservice): nueva vía que llama al servicio por Binder desde el código nativo (texto, QR nativo y logo, 58 mm; el plugin nyx_printer_v2 1.2.2 no compila), con prioridad sobre Bluetooth. Opción «Nyx» en la Prueba de impresora. **Requiere APK nueva** | — |
 
 ## Fuera del alcance del prototipo
 
