@@ -40,7 +40,7 @@ Guía corta para la capacitación de los inspectores antes de la prueba en calle
 ## 4. Lo que tiene que saber el infractor
 
 - **No debe pagarle nada al inspector.** Lo dice el ticket.
-- Puede ver el acta escaneando el QR o en el **portal** (`/portal`), con cuenta. Sin cuenta, puede **consultar por dominio o por documento** si hay actas a su nombre o de su vehículo.
+- Puede verificar el acta escaneando el QR. Para verla y gestionarla tiene que registrarse en el **portal** (`/portal`).
 - Al abrir el acta en el portal queda **notificado**. Las veces que vuelva a entrar quedan registradas, pero no cambian los plazos.
 
 ## 5. Vehículo retenido: qué pasa después
