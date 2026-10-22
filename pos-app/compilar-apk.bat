@@ -114,7 +114,10 @@ if errorlevel 1 (
   echo No se encontro Node.js; no se pudo publicar. Instale Node desde https://nodejs.org
   goto :sin_publicar
 )
-node publicar.mjs "faltas-pos.apk" %BUILD%
+set "FORZAR="
+choice /m "Hacerla obligatoria (los POS no pueden omitirla)"
+if not errorlevel 2 set "FORZAR=forzar"
+node publicar.mjs "faltas-pos.apk" %BUILD% %FORZAR%
 if errorlevel 1 echo *** No se pudo publicar la actualizacion. ***
 :sin_publicar
 echo.

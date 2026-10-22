@@ -1,7 +1,9 @@
 // Publica el APK del POS como actualización en Supabase Storage (bucket público «pos-app»).
 // Deja solo la versión actual y la anterior, y escribe version.json, que la app consulta al iniciar.
 //
-// Uso: node pos-app/publicar.mjs <ruta-al-apk> <build>
+// Uso: node pos-app/publicar.mjs <ruta-al-apk> <build> [forzar]
+// «forzar»: la actualización es obligatoria (la app no muestra «Ahora no»). Funciona con las apps ya instaladas:
+// marcan obligatoria toda versión cuyo build sea menor al de «anterior», así que se publica anterior = esta misma.
 // Credenciales: NEXT_PUBLIC_SUPABASE_URL (o SUPABASE_URL) y SUPABASE_SERVICE_ROLE_KEY,
 // del entorno o del .env.local de la raíz del repo.
 import { readFileSync, existsSync } from 'node:fs';
@@ -23,7 +25,8 @@ function env() {
   return e;
 }
 
-const [, , apk, buildTxt] = process.argv;
+const [, , apk, buildTxt, modo] = process.argv;
+const forzar = modo === 'forzar';
 const build = Number(buildTxt);
 if (!apk || !existsSync(apk) || !Number.isInteger(build) || build <= 0) {
   console.error('Uso: node pos-app/publicar.mjs <ruta-al-apk> <build>');
@@ -58,6 +61,7 @@ let previa = null;
 try {
   const r = await fetch(`${publico('version.json')}?t=${Date.now()}`, { cache: 'no-store' });
   if (r.ok) { const v = await r.json(); if (v?.build && v.build !== build) previa = { build: v.build, url: v.url }; }
+  else console.log(`version.json no se pudo leer (${r.status}): se publica como primera versión.`);
 } catch { /* primera publicación */ }
 if (previa && previa.build > build) {
   console.error(`Ya está publicada la versión ${previa.build}, más nueva que ${build}. No se publica.`);
@@ -70,7 +74,7 @@ console.log(`Subiendo ${nombre} ...`);
 await pedir('POST', `object/${BUCKET}/${nombre}`, readFileSync(apk), { 'Content-Type': 'application/vnd.android.package-archive', 'x-upsert': 'true', 'cache-control': '31536000' });
 
 // 4) version.json (sin caché, para que la app vea el cambio enseguida)
-const version = { build, url: publico(nombre), anterior: previa, publicada: new Date().toISOString() };
+const version = { build, url: publico(nombre), anterior: forzar ? { build, url: publico(nombre) } : previa, previa, obligatoria: forzar, publicada: new Date().toISOString() };
 await pedir('POST', `object/${BUCKET}/version.json`, JSON.stringify(version, null, 2), { 'Content-Type': 'application/json', 'x-upsert': 'true', 'cache-control': 'no-cache' });
 
 // 5) Borrar los APK que no sean la versión actual ni la anterior
@@ -82,5 +86,5 @@ if (borrar.length) {
   console.log(`Borradas versiones viejas: ${borrar.join(', ')}`);
 }
 
-console.log(`Publicada la versión ${build}${previa ? ` (anterior: ${previa.build})` : ''}.`);
+console.log(`Publicada la versión ${build}${previa ? ` (anterior: ${previa.build})` : ''}${forzar ? ' · OBLIGATORIA para todos los POS' : ''}.`);
 console.log(publico('version.json'));
