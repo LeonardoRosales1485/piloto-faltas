@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:ota_update/ota_update.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 /// version.json publicado por pos-app/publicar.mjs en Supabase Storage.
 const versionUrl = String.fromEnvironment('VERSION_URL',
@@ -19,22 +20,28 @@ class Actualizacion {
 }
 
 /// Consulta version.json. Devuelve null si no hay versión nueva o si no hay conexión (la app sigue igual).
+/// Hasta 3 intentos con tiempos amplios: con datos móviles (4G) la primera conexión puede tardar y antes,
+/// con 5–8 s y un solo intento, el aviso de actualización a veces no aparecía hasta reabrir la app varias veces.
 Future<Actualizacion?> buscarActualizacion() async {
-  try {
-    final actual = int.tryParse((await PackageInfo.fromPlatform()).buildNumber) ?? 0;
-    final cliente = HttpClient()..connectionTimeout = const Duration(seconds: 5);
-    final req = await cliente.getUrl(Uri.parse('$versionUrl?t=${DateTime.now().millisecondsSinceEpoch}'));
-    final res = await req.close().timeout(const Duration(seconds: 8));
-    if (res.statusCode != 200) return null;
-    final v = jsonDecode(await res.transform(utf8.decoder).join()) as Map<String, dynamic>;
-    final nueva = (v['build'] as num?)?.toInt() ?? 0;
-    final url = '${v['url'] ?? ''}';
-    if (nueva <= actual || url.isEmpty) return null;
-    final anterior = ((v['anterior'] as Map?)?['build'] as num?)?.toInt() ?? 0;
-    return Actualizacion(actual, nueva, url, actual < anterior);
-  } catch (_) {
-    return null;
+  final actual = int.tryParse((await PackageInfo.fromPlatform()).buildNumber) ?? 0;
+  for (var intento = 1; intento <= 3; intento++) {
+    try {
+      final cliente = HttpClient()..connectionTimeout = const Duration(seconds: 10);
+      final req = await cliente.getUrl(Uri.parse('$versionUrl?t=${DateTime.now().millisecondsSinceEpoch}'));
+      final res = await req.close().timeout(const Duration(seconds: 15));
+      if (res.statusCode != 200) return null;
+      final v = jsonDecode(await res.transform(utf8.decoder).join().timeout(const Duration(seconds: 10))) as Map<String, dynamic>;
+      cliente.close();
+      final nueva = (v['build'] as num?)?.toInt() ?? 0;
+      final url = '${v['url'] ?? ''}';
+      if (nueva <= actual || url.isEmpty) return null;
+      final anterior = ((v['anterior'] as Map?)?['build'] as num?)?.toInt() ?? 0;
+      return Actualizacion(actual, nueva, url, actual < anterior);
+    } catch (_) {
+      if (intento < 3) await Future<void>.delayed(const Duration(seconds: 2));
+    }
   }
+  return null;
 }
 
 /// Vista a pantalla completa mientras se descarga e instala la versión nueva.
@@ -53,6 +60,7 @@ class _PantallaActualizacionState extends State<PantallaActualizacion> {
   double? _progreso; // 0..1, null = indeterminado
   String _error = '';
   StreamSubscription<OtaEvent>? _sub;
+  Timer? _vigia; // descarga trabada: si no hay avance en 45 s, se ofrece reintentar
 
   @override
   void initState() {
@@ -60,13 +68,37 @@ class _PantallaActualizacionState extends State<PantallaActualizacion> {
     _iniciar();
   }
 
-  void _iniciar() {
+  void _vigilar() {
+    _vigia?.cancel();
+    _vigia = Timer(const Duration(seconds: 45), () {
+      if (!mounted || _fase != _Fase.descargando) return;
+      _sub?.cancel();
+      setState(() { _fase = _Fase.error; _error = 'La descarga se detuvo (conexión lenta o cortada). Toque «Reintentar».'; });
+    });
+  }
+
+  Future<void> _iniciar() async {
     _sub?.cancel();
     setState(() { _fase = _Fase.descargando; _progreso = null; _error = ''; });
+    // Permiso «Instalar apps desconocidas» antes de descargar: si se pide recién al final, en algunos equipos
+    // (Android 8, ej. Symcode MJ-Q50) el instalador no vuelve a abrirse y había que reabrir la app.
+    try {
+      if (!await Permission.requestInstallPackages.isGranted) {
+        final st = await Permission.requestInstallPackages.request();
+        if (!st.isGranted) {
+          if (mounted) setState(() { _fase = _Fase.error; _error = 'Falta permitir «Instalar apps desconocidas» para Faltas en los ajustes de Android. Actívelo y toque «Reintentar».'; });
+          return;
+        }
+      }
+    } catch (_) {/* versiones de Android sin este permiso: sigue */}
+    if (!mounted) return;
+    _vigilar();
     try {
       _sub = OtaUpdate().execute(widget.a.url, destinationFilename: 'faltas-pos-${widget.a.nueva}.apk').listen((ev) {
         if (!mounted) return;
         final s = ev.status.toString().split('.').last;
+        if (s == 'DOWNLOADING') _vigilar();
+        if (s != 'DOWNLOADING') _vigia?.cancel();
         if (s == 'DOWNLOADING') {
           final p = double.tryParse(ev.value ?? '');
           setState(() { _fase = _Fase.descargando; _progreso = p == null ? null : (p / 100).clamp(0, 1); });
@@ -87,6 +119,7 @@ class _PantallaActualizacionState extends State<PantallaActualizacion> {
 
   @override
   void dispose() {
+    _vigia?.cancel();
     _sub?.cancel();
     super.dispose();
   }
@@ -134,7 +167,7 @@ class _PantallaActualizacionState extends State<PantallaActualizacion> {
               Text(detalle, textAlign: TextAlign.center, style: const TextStyle(fontSize: 15)),
               const SizedBox(height: 24),
               if (_fase != _Fase.descargando)
-                FilledButton.icon(onPressed: _iniciar, icon: const Icon(Icons.refresh), label: Text(_fase == _Fase.instalando ? 'Volver a abrir el instalador' : 'Reintentar'),
+                FilledButton.icon(onPressed: () => _iniciar(), icon: const Icon(Icons.refresh), label: Text(_fase == _Fase.instalando ? 'Volver a abrir el instalador' : 'Reintentar'),
                     style: FilledButton.styleFrom(backgroundColor: azul, padding: const EdgeInsets.symmetric(vertical: 14))),
               if (!widget.a.obligatoria && _fase != _Fase.descargando) ...[
                 const SizedBox(height: 8),

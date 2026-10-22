@@ -110,6 +110,7 @@ Avance: **20 / 20**
 | Labrado: el chip de categoría de licencia elegido ya no queda «presionado» (celeste con texto blanco) en pantallas táctiles; el hover solo aplica con mouse y no pisa el estado elegido | — |
 | App del POS: soporte para otros POS (ej. Symcode MJ-Q50). Sin Senraise, imprime por la impresora interna vinculada por Bluetooth con ESC/POS (logo, QR nativo, tildes; 58/80 mm). Antes, sin Senraise, el plugin no respondía y la web quedaba esperando: ahora hay tiempo límite, se muestra el error y se ofrece la impresión del sistema. Pantalla oculta «Prueba de impresora» (mantener apretada la versión en el login). **Requiere APK nueva** | — |
 | App del POS: el Symcode MJ-Q50 (fabricante NB55) usa el servicio de impresión «Nyx» (net.nyx.printerservice): nueva vía que llama al servicio por Binder desde el código nativo (texto, QR nativo y logo, 58 mm; el plugin nyx_printer_v2 1.2.2 no compila), con prioridad sobre Bluetooth. Opción «Nyx» en la Prueba de impresora. **Requiere APK nueva** | — |
+| App del POS (actualizador): consulta de versión con 3 intentos y tiempos más amplios (con 4G a veces no aparecía el aviso hasta reabrir la app), permiso «Instalar apps desconocidas» pedido antes de descargar, y aviso «La descarga se detuvo» con Reintentar si no avanza en 45 s. **Requiere APK nueva** | — |
 
 ## Fuera del alcance del prototipo
 
