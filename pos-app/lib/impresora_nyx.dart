@@ -34,13 +34,15 @@ class ImpresoraNyx {
     campo('FECHA Y HORA', '${t['fecha'] ?? '-'}');
     campo('LUGAR', '${t['lugar'] ?? '-'}');
     if ('${t['dominio'] ?? ''}'.isNotEmpty) campo('DOMINIO', '${t['dominio']}');
-    texto('DISPOSICIÓN LEGAL INFRINGIDA', tam: 20, negrita: true);
+    texto('${t['tituloArticulos'] ?? 'DISPOSICIÓN LEGAL INFRINGIDA'}', tam: 20, negrita: true);
     for (final a in (articulos.isEmpty ? ['-'] : articulos)) {
       texto('• $a', tam: 22, negrita: true);
     }
     campo('REPARTICIÓN', '${t['reparticion'] ?? '-'}');
     texto('-' * 16, tam: 22, alinear: _centro);
-    texto('IMPORTANTE: no debe abonar monto de dinero alguno a la autoridad que confeccionó la presente acta.', tam: 20, negrita: true, alinear: _centro);
+    // Recuadro destacado: lo manda la web (ticket de retención); sin dato, el aviso de no abonar a la autoridad.
+    final aviso = t.containsKey('aviso') ? '${t['aviso'] ?? ''}' : 'IMPORTANTE: no debe abonar monto de dinero alguno a la autoridad que confeccionó la presente acta.';
+    if (aviso.isNotEmpty) texto(aviso, tam: 20, negrita: true, alinear: _centro);
     // Leyendas legales (boleta de inculpado, advertencia de compactación): las arma la web según el acta.
     for (final l in ((t['leyendas'] as List?)?.map((e) => '$e') ?? const <String>[])) {
       texto(l, tam: 18, alinear: _centro);

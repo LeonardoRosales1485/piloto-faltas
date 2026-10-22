@@ -8,8 +8,8 @@ import { LoaderLogo } from './LoaderLogo';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { http } from '@/lib/api-client';
-import { printTicket } from '@/lib/print';
-import { ESTADOS_CAUSA, TIPOS_ACTA, claveLey, esBoletaLiberacion, estadoFinal, fechaCorta, fechaHora, infoEstado, ordenarCategoriasLicencia, pesos, puede, tipoActa } from '@/lib/dominio';
+import { printTicket, printTicketRetencion } from '@/lib/print';
+import { ESTADOS_CAUSA, TIPOS_ACTA, claveLey, esBoletaLiberacion, estadoFinal, fechaCorta, fechaHora, infoEstado, ordenarCategoriasLicencia, pagoAConciliar, pesos, puede, tipoActa } from '@/lib/dominio';
 import { useAuthUser } from '@/lib/use-auth-user';
 import type { Infraccion } from '@/lib/types';
 import { RoadmapCausa } from './RoadmapCausa';
@@ -34,6 +34,18 @@ type Detalle = {
   valorizacion: { uf: number; unidades: number; subtotal?: number; multa: number; valores?: { fijados: boolean; fecha: number | null; ufVigente: number; difiere: boolean }; leyes: R[]; ajustado: number | null; motivoAjuste: string | null };
 };
 type Modal = { titulo: string; icono?: string; campos: CampoModal[]; accion: string; textoOk?: string; textoCancelar?: string; onNo?: () => Promise<void> | void; peligro?: boolean; aviso?: string; extra?: R } | null;
+
+const aConciliar = (b: R) => pagoAConciliar(b);
+/** Confirmación manual de un pago (minuta 20/10): comprobante obligatorio y declaración de responsabilidad. */
+const modalPagoManual = (b: R): NonNullable<Modal> => ({
+  titulo: `Confirmar pago con comprobante · ${b.numero}`, icono: 'fa-solid fa-file-invoice-dollar', accion: 'confirmar_pago_manual', textoOk: 'Confirmar pago', extra: { boletaUuid: b.uuid, conv: 'archivo' },
+  aviso: 'Para cuando la acreditación de Malvinas 2000 se demora. La boleta queda paga y marcada «a conciliar» hasta que llegue la acreditación.',
+  campos: [
+    { k: 'archivo', t: 'Comprobante de pago (foto o PDF)', tipo: 'archivo', req: true },
+    { k: 'detalle', t: 'Detalle (medio de pago, n.° de operación)', tipo: 'texto' },
+    { k: 'declaracion', t: 'Declaración de responsabilidad', tipo: 'select', req: true, opciones: [{ v: '', t: 'Seleccione…' }, { v: 'si', t: 'Declaro que verifiqué el comprobante y asumo la responsabilidad de esta confirmación' }] },
+  ],
+});
 
 const TABS = [
   { id: 'resumen', t: 'Acta' },
@@ -431,6 +443,8 @@ export function CausaDetalle() {
                 <div className="botonera">
                   <BotonVerActa acta={cf} imagenes={(d.imagenes ?? []).map((x) => x.preview_raw).filter(Boolean)} />
                   <button type="button" className="btn btn-outline-secondary" onClick={() => void printTicket(c)}><i className="fa-solid fa-print" aria-hidden="true" /> Ticket</button>
+                  {c.retencionDeVehiculo ? <button type="button" className="btn btn-outline-secondary" onClick={() => void printTicketRetencion(c, 'vehiculo')}><i className="fa-solid fa-car" aria-hidden="true" /> Ticket retención vehículo</button> : null}
+                  {c.retencionDeLicencia ? <button type="button" className="btn btn-outline-secondary" onClick={() => void printTicketRetencion(c, 'licencia')}><i className="fa-solid fa-id-card" aria-hidden="true" /> Ticket retención licencia</button> : null}
                   <a className="btn btn-outline-secondary" href={`/imprimir/legajo/${uuid}`} target="_blank" rel="noreferrer"><i className="fa-solid fa-book" aria-hidden="true" /> Legajo completo (PDF)</a>
                 </div>
               </>
@@ -493,11 +507,13 @@ export function CausaDetalle() {
                   <li key={b.uuid}>
                     <div>
                       <div className="li-titulo">{b.numero} · {b.concepto}</div>
-                      <div className="li-sub">{pesos(Number(b.monto))} · vence {fechaCorta(b.vencimiento)} · a nombre de {b.a_nombre_de} · <strong>{ESTADO_BOL[b.estado] ?? b.estado}</strong>{b.confirmado_por ? ` por ${b.confirmado_por}` : ''}</div>
+                      <div className="li-sub">{pesos(Number(b.monto))} · vence {fechaCorta(b.vencimiento)} · a nombre de {b.a_nombre_de} · <strong>{ESTADO_BOL[b.estado] ?? b.estado}</strong>{b.confirmado_por ? ` por ${b.confirmado_por}` : ''}{aConciliar(b) ? <span className="chip-ret retenido ms-1">A conciliar</span> : null}</div>
                     </div>
                     <div className="d-flex gap-2">
                       {b.estado === 'emitida' && gestion ? <button type="button" className="btn btn-sm btn-outline-secondary" onClick={() => void accion('informar_pago', { boletaUuid: b.uuid }, 'Pago informado')}>Informar pago</button> : null}
                       {b.estado === 'a_verificar' && puede(user?.rol, 'confirmarPagos') ? <button type="button" className="btn btn-sm btn-success" onClick={() => void accion('confirmar_pago', { boletaUuid: b.uuid }, 'Pago acreditado')}>Confirmar acreditación</button> : null}
+                      {['emitida', 'a_verificar', 'vencida'].includes(b.estado) && puede(user?.rol, 'confirmarPagos') ? <button type="button" className="btn btn-sm btn-outline-success" onClick={() => setModal(modalPagoManual(b))}>Confirmar con comprobante</button> : null}
+                      {aConciliar(b) && puede(user?.rol, 'confirmarPagos') ? <button type="button" className="btn btn-sm btn-outline-secondary" onClick={() => setModal({ titulo: `Conciliar pago · ${b.numero}`, icono: 'fa-solid fa-scale-balanced', accion: 'conciliar_pago', extra: { boletaUuid: b.uuid }, aviso: 'Pago confirmado a mano por demora del clearing. Indique si llegó la acreditación de Malvinas 2000.', campos: [{ k: 'resultado', t: 'Resultado', tipo: 'select', opciones: [{ v: 'ok', t: 'Acreditado: conciliar' }, { v: 'rechazado', t: 'No se acreditó: vuelve a impaga' }] }, { k: 'detalle', t: 'Detalle', tipo: 'area' }] })}>Conciliar</button> : null}
                     </div>
                   </li>
                 ))}

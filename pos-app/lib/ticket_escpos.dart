@@ -155,7 +155,7 @@ class TicketEscPos {
     campo('FECHA Y HORA', '${t['fecha'] ?? '-'}');
     campo('LUGAR', '${t['lugar'] ?? '-'}');
     if ('${t['dominio'] ?? ''}'.isNotEmpty) campo('DOMINIO', '${t['dominio']}');
-    _texto('DISPOSICIÓN LEGAL INFRINGIDA', negrita: true);
+    _texto('${t['tituloArticulos'] ?? 'DISPOSICIÓN LEGAL INFRINGIDA'}', negrita: true);
     for (final a in (articulos.isEmpty ? ['-'] : articulos)) {
       _texto('- $a');
     }
@@ -163,7 +163,9 @@ class TicketEscPos {
 
     _separador();
     _alinear(1);
-    _texto('IMPORTANTE: no debe abonar monto de dinero alguno a la autoridad que confeccionó la presente acta.', negrita: true);
+    // Recuadro destacado: lo manda la web (ticket de retención); sin dato, el aviso de no abonar a la autoridad.
+    final aviso = t.containsKey('aviso') ? '${t['aviso'] ?? ''}' : 'IMPORTANTE: no debe abonar monto de dinero alguno a la autoridad que confeccionó la presente acta.';
+    if (aviso.isNotEmpty) _texto(aviso, negrita: true);
     // Leyendas legales (boleta de inculpado, advertencia de compactación): las arma la web según el acta.
     for (final l in ((t['leyendas'] as List?)?.map((e) => '$e') ?? const <String>[])) {
       _b.addByte(0x0A);

@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { apiClient, http } from '@/lib/api-client';
 import { useLayout } from '@/lib/layout-context';
-import { hayImpresoraPos, printTicket, tomarFotosPos } from '@/lib/print';
+import { hayImpresoraPos, printTicket, printTicketRetencion, tomarFotosPos } from '@/lib/print';
 import { CATEGORIAS_LICENCIA, ordenarCategoriasLicencia, puede, SITUACIONES, TIPOS_ACTA, claveLey, fechaHora, tipoActa } from '@/lib/dominio';
 import type { ImgModel, Infraccion, Ley, OpcionCatalogo } from '@/lib/types';
 import { type Paso, MAX_IMAGENES, ejidoPorGps, faltantesPorPaso, pasosPara, readImageFile, toDateTimeLocal, vacia } from './crear-editar-utils';
@@ -362,6 +362,16 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
               <button type="button" className="btn btn-outline-primary btn-lg" onClick={() => void printTicket(paraTicket())}>
                 <i className="fa-solid fa-print" aria-hidden="true" /> Imprimir ticket
               </button>
+              {form.retencionDeVehiculo ? (
+                <button type="button" className="btn btn-outline-warning btn-lg" onClick={() => void printTicketRetencion(paraTicket(), 'vehiculo')}>
+                  <i className="fa-solid fa-car" aria-hidden="true" /> Ticket de retención (vehículo)
+                </button>
+              ) : null}
+              {form.retencionDeLicencia ? (
+                <button type="button" className="btn btn-outline-warning btn-lg" onClick={() => void printTicketRetencion(paraTicket(), 'licencia')}>
+                  <i className="fa-solid fa-id-card" aria-hidden="true" /> Ticket de retención (licencia)
+                </button>
+              ) : null}
             </div>
             <button type="button" className="btn btn-success btn-lg w-100 acta-confirmada-ok" onClick={() => setConfirmarSalida(true)}>
               <i className="fa-solid fa-check" aria-hidden="true" /> Listo, volver al inicio
@@ -448,6 +458,16 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
                   <button type="button" className="btn btn-primary btn-lg" onClick={() => void printTicket(paraTicket())}>
                     <i className="fa-solid fa-print" aria-hidden="true" /> Imprimir ticket
                   </button>
+                  {form.retencionDeVehiculo ? (
+                    <button type="button" className="btn btn-outline-warning btn-lg" onClick={() => void printTicketRetencion(paraTicket(), 'vehiculo')}>
+                      <i className="fa-solid fa-car" aria-hidden="true" /> Ticket de retención (vehículo)
+                    </button>
+                  ) : null}
+                  {form.retencionDeLicencia ? (
+                    <button type="button" className="btn btn-outline-warning btn-lg" onClick={() => void printTicketRetencion(paraTicket(), 'licencia')}>
+                      <i className="fa-solid fa-id-card" aria-hidden="true" /> Ticket de retención (licencia)
+                    </button>
+                  ) : null}
                   <BotonVerActa acta={form as Infraccion} imagenes={imagenes.map((x) => x.previewRaw ?? '').filter(Boolean)} className="btn btn-outline-primary btn-lg" />
                   <Link className="btn btn-outline-secondary btn-lg" href={`/private/crear-editar/${tipo}`} onClick={() => (iniciado.current = false)}>
                     <i className="fa-solid fa-plus" aria-hidden="true" /> Labrar otra acta

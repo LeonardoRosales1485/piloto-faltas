@@ -3,6 +3,7 @@
 
 import Link from 'next/link';
 import { InputClave } from './InputClave';
+import { ConsultaPublica } from './ConsultaPublica';
 import { LoaderLogo } from './LoaderLogo';
 import { useCarga } from '@/lib/use-carga';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -126,5 +127,5 @@ export function PortalInicio() {
     if (local) portal.get<Perfil>('/api/portal/yo').then((p) => { guardarPerfil(p); setPerfil(p); }).catch(() => undefined);
   }, []);
   if (perfil === undefined) return null;
-  return perfil ? <Causas perfil={perfil} /> : <Login volver={sp.get('volver')} />;
+  return perfil ? <Causas perfil={perfil} /> : <><Login volver={sp.get('volver')} /><ConsultaPublica /></>;
 }

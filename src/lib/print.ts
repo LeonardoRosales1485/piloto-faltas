@@ -96,6 +96,10 @@ export type DatosTicket = {
   titulo: string; numero: string; fecha: string; lugar: string; dominio: string; articulos: string[]; reparticion: string; url: string; codigo: string;
   /** Leyendas legales que corresponden al acta (boleta de inculpado, compactación). */
   leyendas: string[];
+  /** Recuadro destacado; sin indicar, el aviso de no abonar a la autoridad. Vacío: sin recuadro (APK 1.0.2+). */
+  aviso?: string;
+  /** Título del bloque de artículos (por defecto «Disposición legal infringida»). */
+  tituloArticulos?: string;
 };
 
 /**
@@ -250,7 +254,32 @@ function confirmarImpresion(numero: string): Promise<boolean> {
 }
 
 export async function printTicket(infraccion: Infraccion, confirmar = true): Promise<void> {
-  const t = datosTicket(infraccion, await textosLeyendas());
+  return imprimirDatosTicket(datosTicket(infraccion, await textosLeyendas()), confirmar);
+}
+
+/**
+ * Ticket de retención (minuta 20/10): identifica el vehículo o la licencia retenidos con el número de acta y un QR,
+ * para pegar en el parabrisas al ingresar al depósito o abrochar a la licencia. Uno por cada retención del acta.
+ */
+export async function printTicketRetencion(infraccion: Infraccion, que: 'vehiculo' | 'licencia'): Promise<void> {
+  const base = datosTicket(infraccion);
+  const meta = infraccion.metadata ?? {};
+  const vehiculo = [infraccion.vehiculoTipoNombre, meta.marca, meta.modelo].filter((x) => x && x !== '-').join(' ');
+  const t: DatosTicket = {
+    ...base,
+    titulo: que === 'vehiculo' ? 'RETENCIÓN DE VEHÍCULO' : 'RETENCIÓN DE LICENCIA',
+    tituloArticulos: que === 'vehiculo' ? 'VEHÍCULO RETENIDO' : 'LICENCIA RETENIDA',
+    articulos: que === 'vehiculo'
+      ? [`Vehículo: ${vehiculo || '-'}`, `Dominio: ${base.dominio || 'sin dominio'}`]
+      : [`Licencia N.° ${infraccion.vehiculoNumeroLicencia || '-'}`, `Titular: ${infraccion.infractorNombre || infraccion.infractorRazonSocial || '-'}`],
+    reparticion: que === 'vehiculo' ? 'TRÁNSITO · DEPÓSITO MUNICIPAL' : 'TRÁNSITO · DIRECCIÓN DE FALTAS',
+    aviso: que === 'vehiculo' ? 'PEGAR EN EL PARABRISAS DEL VEHÍCULO RETENIDO' : 'ABROCHAR A LA LICENCIA RETENIDA',
+    leyendas: [`Corresponde al acta ${base.numero}. No retirar este comprobante: identifica ${que === 'vehiculo' ? 'el vehículo' : 'la licencia'} hasta su devolución.`],
+  };
+  return imprimirDatosTicket(t, true);
+}
+
+async function imprimirDatosTicket(t: DatosTicket, confirmar: boolean): Promise<void> {
   if (confirmar && !(await confirmarImpresion(t.numero))) return;
   // En el POS Senraise (app del inspector) imprime directo con la impresora térmica, sin diálogo.
   const pos = puentePos();
@@ -275,15 +304,45 @@ export async function printTicket(infraccion: Infraccion, confirmar = true): Pro
     ${campo('FECHA Y HORA', t.fecha)}
     ${campo('LUGAR', t.lugar)}
     ${t.dominio ? campo('DOMINIO', t.dominio) : ''}
-    <div class="t-campo"><span class="t-label">DISPOSICIÓN LEGAL INFRINGIDA</span><ul class="t-art">${(t.articulos.length ? t.articulos : ['-']).map((a) => `<li>${escapeHtml(a)}</li>`).join('')}</ul></div>
+    <div class="t-campo"><span class="t-label">${escapeHtml(t.tituloArticulos ?? 'DISPOSICIÓN LEGAL INFRINGIDA')}</span><ul class="t-art">${(t.articulos.length ? t.articulos : ['-']).map((a) => `<li>${escapeHtml(a)}</li>`).join('')}</ul></div>
     ${campo('REPARTICIÓN', t.reparticion)}
-    <div class="t-aviso">IMPORTANTE: no debe abonar monto de dinero alguno a la autoridad que confeccionó la presente acta.</div>
+    ${t.aviso === '' ? '' : `<div class="t-aviso">${escapeHtml(t.aviso ?? 'IMPORTANTE: no debe abonar monto de dinero alguno a la autoridad que confeccionó la presente acta.')}</div>`}
     ${t.leyendas.map((l) => `<p class="t-leyenda-legal">${escapeHtml(l)}</p>`).join('')}
     <div class="t-qr">${svgQr(t.url)}</div>
     <p class="t-leyenda">Escanee para ver el acta digital</p>
     ${t.codigo ? `<p class="t-codigo">Código: ${t.codigo}</p>` : ''}
   </div>`;
   abrirVentana('Ticket de infracción', cuerpo, ticketCss(), 340);
+}
+
+/** Dirección del control de liberación que escanea el corralón (QR de la disposición y de la constancia). */
+export function liberacionUrl(uuid: string): string {
+  const origen = typeof window !== 'undefined' ? window.location.origin : '';
+  return `${origen}/liberacion/${encodeURIComponent(uuid)}`;
+}
+
+/**
+ * Constancia para el corralón (minuta 20/10): se entrega con la liberación registrada en Faltas. El QR lleva al control
+ * de liberación, que dice si está vigente o vencida al momento de retirar el vehículo.
+ */
+export function printConstanciaLiberacion(x: { uuid: string; acta: string; dominio?: string | null; vehiculo?: string | null; vigenteHasta?: number | null }): void {
+  const fecha = (ms?: number | null) => (ms ? new Date(ms).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'America/Argentina/Buenos_Aires' }) : '-');
+  const cuerpo = `<div class="constancia">
+    <div class="c-centro">${logoTicket()}<p class="c-muni">MUNICIPALIDAD DE MALVINAS ARGENTINAS</p><p>Dirección de Faltas</p></div>
+    <h1>CONSTANCIA DE LIBERACIÓN DE VEHÍCULO</h1>
+    <p><strong>Acta:</strong> ${escapeHtml(x.acta)}</p>
+    <p><strong>Dominio:</strong> <span class="c-dominio">${escapeHtml(x.dominio || 'Sin dominio')}</span></p>
+    <p><strong>Vehículo:</strong> ${escapeHtml(x.vehiculo || '-')}</p>
+    <p><strong>Vigente hasta:</strong> ${fecha(x.vigenteHasta)}</p>
+    <div class="c-qr">${svgQr(liberacionUrl(x.uuid), '50mm')}</div>
+    <p class="c-ayuda">El depósito municipal escanea este código antes de entregar el vehículo. Si la liberación venció, no se entrega:
+    debe volver a la Dirección de Faltas, que emite la boleta complementaria por la estadía adicional.</p>
+  </div>`;
+  abrirVentana('Constancia de liberación', cuerpo, `.constancia { max-width: 150mm; margin: 10mm auto; font-family: Arial, sans-serif; font-size: 11pt; color: #000; }
+    .c-centro { text-align: center; } .c-centro img { max-height: 18mm; } .c-muni { font-weight: 700; margin: 2mm 0 0; }
+    h1 { font-size: 14pt; text-align: center; border-top: 1px solid #000; border-bottom: 1px solid #000; padding: 2mm 0; margin: 4mm 0; }
+    .c-dominio { font-size: 16pt; font-weight: 700; letter-spacing: 2px; } .c-qr svg { display: block; margin: 4mm auto; }
+    .c-ayuda { font-size: 9pt; text-align: center; }`);
 }
 
 export { actaPublicaUrl };

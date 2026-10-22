@@ -1,7 +1,8 @@
 import { NextRequest } from 'next/server';
 import { esBoletaLiberacion, tipoVisible } from '@/lib/dominio';
 import { handle } from '@/lib/srv';
-import { calculoLiberacion } from '@/lib/tarifas';
+import { calculoLiberacion, validezLiberacionMs } from '@/lib/tarifas';
+import { boletasLiberacionActivas, calcularEstadoLiberacion, type BoletaLib } from '@/lib/liberacion-srv';
 
 type Fila = {
   id: number; uuid: string; infraccion_tipo_id: number; legajo_numero_acta: string; legajo_fecha: string | null; firmada_at: number | null;
@@ -25,13 +26,16 @@ export async function GET(req: NextRequest) {
       .map((f) => ({ ...f, ingreso: Number(f.estadia_ingreso_at || f.firmada_at) }))
       .filter((f) => (!desde || f.ingreso >= desde) && (!hasta || f.ingreso <= hasta));
     const ids = filas.map((f) => f.id);
-    const { data: bol } = ids.length ? await db.from('boleta').select('infraccion_id, monto, estado, detalle_json').in('infraccion_id', ids).neq('estado', 'anulada') : { data: [] };
-    const boletasLib = ((bol ?? []) as { infraccion_id: number; monto: number; estado: string; detalle_json: string | null }[]).filter((b) => esBoletaLiberacion(b));
+    const { data: bol } = ids.length ? await db.from('boleta').select('infraccion_id, monto, estado, detalle_json, vencimiento').in('infraccion_id', ids).neq('estado', 'anulada') : { data: [] };
+    const boletasLib = ((bol ?? []) as (BoletaLib & { infraccion_id: number })[]).filter((b) => esBoletaLiberacion(b));
+    const validez = await validezLiberacionMs(db);
     const { data: disp } = ids.length ? await db.from('documento').select('infraccion_id, estado, plantilla!inner(codigo)').in('infraccion_id', ids).eq('plantilla.codigo', 'DISPOSICION_LEVANTAMIENTO') : { data: [] };
     const disposiciones = (disp ?? []) as { infraccion_id: number; estado: string }[];
     const lista = await Promise.all(filas.map(async (f) => {
       const liberado = Boolean(f.vehiculo_liberado_at);
-      const b = boletasLib.filter((x) => x.infraccion_id === f.id);
+      const todas = boletasLib.filter((x) => x.infraccion_id === f.id);
+      const b = boletasLiberacionActivas(todas);
+      const lib = calcularEstadoLiberacion({ id: f.id, retencion_de_vehiculo: 1, vehiculo_liberado_at: f.vehiculo_liberado_at, vehiculo_liberacion_json: f.vehiculo_liberacion_json }, todas, validez);
       let calc: Awaited<ReturnType<typeof calculoLiberacion>>;
       // Con la boleta emitida (o ya liberado) el cálculo queda fijo; si no, es el estimado a hoy.
       if ((liberado || b.length) && f.vehiculo_liberacion_json) calc = JSON.parse(f.vehiculo_liberacion_json);
@@ -44,6 +48,8 @@ export async function GET(req: NextRequest) {
         uuid: f.uuid, acta: f.legajo_numero_acta, dominio: f.vehiculo_numero_dominio, tipoVehiculo: f.vehiculo_tipo_nombre, clase: calc.claseNombre,
         infractor: f.infractor_razon_social || f.infractor_nombre, ingreso: f.ingreso, liberadoAt: f.vehiculo_liberado_at, dias: calc.dias,
         estado: liberado ? 'Liberado' : 'Retenido', fase, disposicion, boletaEmitida: b.length > 0, calculo: calc, pagado,
+        control: lib.estado, vigenteHasta: lib.vigenteHasta, entregadoAt: lib.entregadoAt,
+        boletaVencida: b.some((x) => x.estado !== 'definitiva' && Number(x.vencimiento) < Date.now()),
       };
     }));
     const pendiente = lista.filter((x) => x.estado === 'Retenido' || !x.pagado).reduce((a, x) => a + x.calculo.total, 0);

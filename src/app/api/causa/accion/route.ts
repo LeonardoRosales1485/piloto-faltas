@@ -5,6 +5,7 @@ import { descargoPendiente } from '@/lib/camino';
 import { calculoLiberacion, claseVehiculo, diasEnDeposito, tarifaEstadia, validezLiberacionMs } from '@/lib/tarifas';
 import { CAMPOS_SUBSANABLES, subsanacionDe, valorDe } from '@/lib/subsanacion';
 import { accionesDisponibles, type Presentacion } from '@/lib/portal-srv';
+import { boletasLiberacionActivas, calcularEstadoLiberacion, datosLiberacion, type BoletaLib, type CausaLib } from '@/lib/liberacion-srv';
 import {
   cambiarEstado, causaPorUuid, check, configNum, handle, historial, HttpError, nombreUsuario, uuid,
 } from '@/lib/srv';
@@ -235,6 +236,42 @@ export async function POST(req: NextRequest) {
         await evaluarArchivoPorPago(db, c, quien);
         return { ok: true };
       }
+      // Confirmación manual por demora del clearing (minuta 20/10): el agente acredita el pago con el comprobante del
+      // infractor adjunto y bajo su responsabilidad. La boleta queda paga, marcada «a conciliar» hasta que llegue la acreditación.
+      case 'confirmar_pago_manual': {
+        check(puede(user.rol, 'confirmarPagos'), 'Sin permiso', 403);
+        const { data } = await db.from('boleta').select('*').eq('uuid', txt('boletaUuid')).eq('infraccion_id', c.id).maybeSingle();
+        check(data, 'Boleta inexistente', 404);
+        const b = data as { id: number; numero: string; monto: number; estado: string; pagado_at: number | null; detalle_json: string | null };
+        check(['emitida', 'a_verificar', 'vencida'].includes(b.estado), 'La boleta ya está acreditada o anulada', 409);
+        check(txt('archivoRaw').startsWith('data:'), 'Adjunte el comprobante de pago (foto o PDF)');
+        check(txt('declaracion') === 'si', 'Debe aceptar la declaración de responsabilidad');
+        const docUuid = uuid();
+        await db.from('documento').insert({ uuid: docUuid, infraccion_id: c.id, tipo: 'adjunto', titulo: `Comprobante de pago · Boleta ${b.numero}`, archivo_nombre: txt('archivoNombre') || 'comprobante', archivo_raw: txt('archivoRaw'), estado: 'definitivo', creado_por: quien, date_created: Date.now() });
+        let det: Record<string, unknown> = {};
+        try { det = JSON.parse(b.detalle_json || '{}') as Record<string, unknown>; } catch { det = {}; }
+        const conciliacion = { estado: 'pendiente', comprobante: docUuid, confirmadoPor: quien, confirmadoAt: Date.now(), detalle: txt('detalle') || null };
+        await db.from('boleta').update({ estado: 'definitiva', pagado_at: b.pagado_at ?? Date.now(), confirmado_por: `${quien} (manual)`, detalle_json: JSON.stringify({ ...det, conciliacion }) }).eq('id', b.id);
+        await historial(db, c.id, quien, 'Pago confirmado manualmente (a conciliar)', `Boleta ${b.numero} · ${pesos(Number(b.monto))} · con comprobante adjunto y declaración de responsabilidad${txt('detalle') ? ` · ${txt('detalle')}` : ''}`);
+        await evaluarArchivoPorPago(db, c, quien);
+        return { ok: true };
+      }
+      // Conciliación de un pago confirmado a mano: llegó la acreditación (ok) o no se acreditó (rechazado: vuelve a emitida).
+      case 'conciliar_pago': {
+        check(puede(user.rol, 'confirmarPagos'), 'Sin permiso', 403);
+        const { data } = await db.from('boleta').select('*').eq('uuid', txt('boletaUuid')).eq('infraccion_id', c.id).maybeSingle();
+        check(data, 'Boleta inexistente', 404);
+        const b = data as { id: number; numero: string; monto: number; detalle_json: string | null };
+        let det: Record<string, unknown> = {};
+        try { det = JSON.parse(b.detalle_json || '{}') as Record<string, unknown>; } catch { det = {}; }
+        const conc = (det.conciliacion ?? null) as Record<string, unknown> | null;
+        check(conc && conc.estado === 'pendiente', 'La boleta no tiene un pago a conciliar', 409);
+        const ok = txt('resultado') !== 'rechazado';
+        det.conciliacion = { ...conc, estado: ok ? 'conciliado' : 'rechazado', conciliadoPor: quien, conciliadoAt: Date.now() };
+        await db.from('boleta').update(ok ? { detalle_json: JSON.stringify(det) } : { estado: 'emitida', pagado_at: null, confirmado_por: null, detalle_json: JSON.stringify(det) }).eq('id', b.id);
+        await historial(db, c.id, quien, ok ? 'Pago conciliado' : 'Pago no acreditado en la conciliación', `Boleta ${b.numero} · ${pesos(Number(b.monto))}${ok ? '' : ' · la boleta vuelve a quedar impaga. Revise el estado de la causa.'}${txt('detalle') ? ` · ${txt('detalle')}` : ''}`);
+        return { ok: true };
+      }
       case 'continuar_procedimiento': {
         check(gestion, 'Sin permiso', 403);
         const { data: fallos } = await db.from('documento').select('id, plantilla!inner(codigo)').eq('infraccion_id', c.id).eq('plantilla.codigo', 'FALLO_CONDENATORIO').in('estado', ['firmado', 'definitivo']);
@@ -315,10 +352,14 @@ export async function POST(req: NextRequest) {
         check(!c.vehiculo_liberado_at, 'El vehículo ya fue liberado', 409);
         const { data: disp } = await db.from('documento').select('id, numero, plantilla!inner(codigo)').eq('infraccion_id', c.id).eq('plantilla.codigo', 'DISPOSICION_LEVANTAMIENTO').in('estado', ['firmado', 'definitivo']).limit(1);
         check((disp ?? []).length > 0, 'Falta la disposición de levantamiento firmada por la Directora', 409);
-        const { data: bolLib } = await db.from('boleta').select('estado, detalle_json').eq('infraccion_id', c.id).neq('estado', 'anulada');
-        const lib = ((bolLib ?? []) as { estado: string; detalle_json: string | null }[]).filter((b) => esBoletaLiberacion(b));
-        if (lib.length) check(lib.every((b) => b.estado === 'definitiva'), 'La boleta de acarreo y estadía todavía no está acreditada', 409);
-        else check(d.sinBoleta === true, 'No se emitió la boleta de acarreo y estadía: confirme que se libera sin cobrarla', 409);
+        const { data: bolLib } = await db.from('boleta').select('estado, detalle_json, vencimiento, monto').eq('infraccion_id', c.id);
+        const lib = boletasLiberacionActivas((bolLib ?? []) as BoletaLib[]);
+        if (lib.length) {
+          check(lib.every((b) => b.estado === 'definitiva'), 'La boleta de acarreo y estadía todavía no está acreditada', 409);
+          // Con la boleta vencida no se libera: corresponde la boleta complementaria por la estadía adicional (minuta 20/10).
+          const est = calcularEstadoLiberacion(c as unknown as CausaLib, (bolLib ?? []) as BoletaLib[], await validezLiberacionMs(db));
+          check(est.estado !== 'vencida', 'La boleta de acarreo y estadía venció: emita la boleta complementaria por la estadía adicional', 409);
+        } else check(d.sinBoleta === true, 'No se emitió la boleta de acarreo y estadía: confirme que se libera sin cobrarla', 409);
         // Entrega presencial en la sede de Faltas (minuta 20/10): se acreditan los requisitos uno por uno.
         const requisitos = (Array.isArray(d.requisitos) ? d.requisitos : []).map(String);
         const faltan = REQUISITOS_LIBERACION.filter((r) => !requisitos.includes(r));
@@ -326,6 +367,44 @@ export async function POST(req: NextRequest) {
         const n = (disp as { numero: string | null }[])[0].numero;
         await db.from('infraccion').update({ vehiculo_liberado_at: Date.now() }).eq('id', c.id);
         await historial(db, c.id, quien, 'Vehículo liberado', `Disposición de levantamiento${n ? ` N° ${n}` : ''}${lib.length ? ' · acarreo y estadía pagos' : ' · sin boleta de acarreo y estadía'} · Entrega presencial: ${REQUISITOS_LIBERACION.join(', ').toLowerCase()} acreditados${txt('detalle') ? ` · ${txt('detalle')}` : ''}`);
+        return { ok: true };
+      }
+      // Liberación vencida (minuta 20/10): el corralón no entrega y Faltas emite la boleta complementaria con la diferencia de
+      // acarreo y estadía a hoy. Las boletas impagas vencidas quedan «vencidas». Si no hay diferencia, se renueva la validez.
+      case 'boleta_complementaria': {
+        check(puede(user.rol, 'retenciones') || puede(user.rol, 'emitirBoletas'), 'Sin permiso', 403);
+        check(Number(c.retencion_de_vehiculo) === 1, 'El acta no tiene retención de vehículo');
+        const { data: bol } = await db.from('boleta').select('uuid, estado, detalle_json, vencimiento, monto').eq('infraccion_id', c.id);
+        const boletas = (bol ?? []) as (BoletaLib & { uuid: string })[];
+        const ahora = Date.now();
+        const validez = await validezLiberacionMs(db);
+        const impagasVencidas = boletasLiberacionActivas(boletas).filter((b) => b.estado !== 'definitiva' && Number(b.vencimiento) < ahora) as (BoletaLib & { uuid: string })[];
+        const est = calcularEstadoLiberacion(c as unknown as CausaLib, boletas, validez, ahora);
+        check(est.estado === 'vencida' || (est.estado === 'pendiente_pago' && impagasVencidas.length === boletasLiberacionActivas(boletas).filter((b) => b.estado !== 'definitiva').length),
+          'La liberación no está vencida: no corresponde boleta complementaria', 409);
+        if (impagasVencidas.length) await db.from('boleta').update({ estado: 'vencida' }).in('uuid', impagasVencidas.map((b) => b.uuid));
+        const ingreso = Number(c.estadia_ingreso_at) || Number(c.firmada_at);
+        const calc = await calculoLiberacion(db, c.vehiculo_tipo_nombre as string | null, ingreso, ahora);
+        const diferencia = Math.max(0, calc.total - est.pagado);
+        const json = datosLiberacion(c as unknown as CausaLib);
+        if (diferencia > 0) {
+          const { reservar } = await import('@/lib/acta-srv');
+          const num = await reservar(db, `BOL-${new Date().getFullYear()}`);
+          await db.from('boleta').insert({ uuid: uuid(), infraccion_id: c.id, numero: `M2000-${String(num).padStart(7, '0')}`, concepto: `Liberación de vehículo: complementaria por estadía adicional (${calc.dias} días) · Acta ${c.legajo_numero_acta}`, detalle_json: JSON.stringify({ liberacion: true, complementaria: true, ...calc, pagadoAntes: est.pagado }), monto: diferencia, vencimiento: ahora + validez, a_nombre_de: txt('aNombre') || String(c.infractor_razon_social || c.infractor_nombre || ''), estado: 'emitida', date_created: ahora });
+        }
+        await db.from('infraccion').update({ vehiculo_liberacion_json: JSON.stringify({ ...json, ...calc, vigenteHasta: diferencia > 0 ? null : ahora + validez }) }).eq('id', c.id);
+        await historial(db, c.id, quien, diferencia > 0 ? 'Boleta complementaria de liberación emitida' : 'Validez de la liberación renovada',
+          diferencia > 0 ? `${calc.dias} días · total a hoy ${pesos(calc.total)} − pagado ${pesos(est.pagado)} = ${pesos(diferencia)}. Con la boleta paga, la liberación vuelve a estar vigente.` : `Sin diferencia a cobrar (${calc.dias} días, ${calc.tramo}). Vigente por ${Math.round(validez / 3600000)} h.`);
+        return { diferencia, ...calc };
+      }
+      // El corralón registra la entrega del vehículo, después de controlar el QR (liberación vigente).
+      case 'entrega_corralon': {
+        check(puede(user.rol, 'retenciones'), 'Sin permiso', 403);
+        const { data: bol } = await db.from('boleta').select('estado, detalle_json, vencimiento, monto').eq('infraccion_id', c.id);
+        const est = calcularEstadoLiberacion(c as unknown as CausaLib, (bol ?? []) as BoletaLib[], await validezLiberacionMs(db));
+        check(est.estado === 'vigente', est.estado === 'entregado' ? 'El vehículo ya fue entregado' : est.estado === 'vencida' ? 'La liberación está vencida: no se entrega' : 'La liberación todavía no está registrada en Faltas', 409);
+        await db.from('infraccion').update({ vehiculo_liberacion_json: JSON.stringify({ ...datosLiberacion(c as unknown as CausaLib), entregadoAt: Date.now(), entregadoPor: quien, retiro: txt('retiro') || null }) }).eq('id', c.id);
+        await historial(db, c.id, quien, 'Vehículo entregado en el corralón', txt('retiro') ? `Retiró: ${txt('retiro')}` : 'Liberación vigente controlada por QR');
         return { ok: true };
       }
       case 'correo_infractor': {

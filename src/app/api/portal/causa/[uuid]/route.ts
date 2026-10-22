@@ -3,12 +3,25 @@ import { notificarActa } from '@/lib/causa-srv';
 import { infoEstado, TIPOS_ACTA, tipoActa } from '@/lib/dominio';
 import { loadInfraccionByUuid } from '@/lib/load-infraccion';
 import { accionesDisponibles, handlePortal, nombreCiudadano, type Presentacion } from '@/lib/portal-srv';
-import { causaPorUuid, check } from '@/lib/srv';
+import { causaPorUuid, check, historial, type Db } from '@/lib/srv';
 import { causaVigente, subsanacionDe } from '@/lib/subsanacion';
 
 type Ctx = { params: Promise<{ uuid: string }> };
 
 const CATEGORIAS_VISIBLES = ['Fallo', 'Resolución', 'Disposición', 'Pago'];
+
+/**
+ * Reingresos del infractor (minuta 20/10): la notificación se perfecciona con el primer acceso; los ingresos
+ * siguientes quedan en el historial (uno por día, la pantalla se recarga sola) y no cambian ni reinician los plazos.
+ */
+const HIST_REINGRESO = 'Reingreso del infractor al portal';
+async function registrarReingreso(db: Db, infraccionId: number, quien: string, notificadaAt: number) {
+  const desde = Date.now() - ((Date.now() - 3 * 3600000) % 86400000); // comienzo del día en hora argentina (UTC-3)
+  if (notificadaAt >= desde) return; // el mismo día de la notificación no es un reingreso
+  const { count } = await db.from('causa_historial').select('id', { count: 'exact', head: true }).eq('infraccion_id', infraccionId).eq('accion', HIST_REINGRESO).gte('fecha', desde);
+  if (count) return;
+  await historial(db, infraccionId, quien, HIST_REINGRESO, 'Consultó la causa en el portal. No modifica la notificación ni los plazos.');
+}
 
 /** Detalle de la causa para el infractor. Con ?abrir=1 abre el acta y queda notificado (PI-10). */
 export async function GET(req: NextRequest, ctx: Ctx) {
@@ -18,6 +31,7 @@ export async function GET(req: NextRequest, ctx: Ctx) {
     const c = await causaPorUuid(db, uuid);
     check(!['Borrador', 'Anulada'].includes(c.estado_faltas) && Number(c.visible_portal) === 1, 'Causa no disponible', 404);
     if (abrir && !c.notificada_at) await notificarActa(db, c, 'portal', nombreCiudadano(ciu));
+    else if (c.notificada_at) await registrarReingreso(db, c.id, nombreCiudadano(ciu), Number(c.notificada_at));
     const cv = await causaVigente(db, c);
     const resumen = {
       uuid: c.uuid, numero: c.legajo_numero_acta, legajo: `${c.legajo_number}/${c.legajo_anio}`, fecha: c.legajo_fecha,

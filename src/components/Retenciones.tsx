@@ -6,9 +6,11 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import { http } from '@/lib/api-client';
-import { fechaCorta, pesos, REQUISITOS_LIBERACION } from '@/lib/dominio';
+import { fechaCorta, fechaHora, pesos, REQUISITOS_LIBERACION } from '@/lib/dominio';
+import { printConstanciaLiberacion } from '@/lib/print';
 import { useCarga } from '@/lib/use-carga';
 import { LoaderLogo } from './LoaderLogo';
+import { ModalForm } from './ModalForm';
 import { useNotify } from './NotifyProvider';
 import { useRefresco } from '@/lib/use-refresco';
 
@@ -21,6 +23,12 @@ const FASE: Record<string, { t: string; ayuda: string }> = {
   disposicion: { t: 'Falta disposición', ayuda: 'Pagado: falta la disposición de levantamiento firmada' },
   listo: { t: 'Listo para liberar', ayuda: 'Pagado y con disposición firmada' },
   liberado: { t: 'Liberado', ayuda: '' },
+};
+/** Control en el corralón (QR): si la liberación registrada sigue vigente, venció o ya se entregó el vehículo. */
+const CONTROL: Record<string, { t: string; c: string }> = {
+  vigente: { t: 'Vigente para retirar', c: 'liberado' },
+  vencida: { t: 'Liberación vencida', c: 'retenido' },
+  entregado: { t: 'Entregado', c: 'liberado' },
 };
 const aFecha = (ms: number) => new Date(ms - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 
@@ -35,6 +43,7 @@ export function Retenciones() {
   const [liberar, setLiberar] = useState<R | null>(null);
   const [ingreso, setIngreso] = useState('');
   const [aNombre, setANombre] = useState('');
+  const [entrega, setEntrega] = useState<R | null>(null);
   const [enviando, setEnviando] = useState(false);
   const [registrar, setRegistrar] = useState<R | null>(null);
   const [detalleLib, setDetalleLib] = useState('');
@@ -84,6 +93,19 @@ export function Retenciones() {
       cargar();
     } catch (e) {
       notify.error('No se pudo registrar la liberación', (e as Error).message);
+    } finally {
+      setEnviando(false);
+    }
+  }
+
+  async function accionSimple(x: R, accion: string, ok: string, datos: R = {}) {
+    setEnviando(true);
+    try {
+      const r = await http.post<R>('/api/causa/accion', { uuid: x.uuid, accion, datos });
+      notify.success(ok, accion === 'boleta_complementaria' ? (r.diferencia > 0 ? `Diferencia a cobrar: ${pesos(r.diferencia)}. Con la boleta paga vuelve a estar vigente.` : 'Sin diferencia: la liberación vuelve a estar vigente.') : undefined);
+      cargar();
+    } catch (err) {
+      notify.error('No se pudo completar', (err as Error).message);
     } finally {
       setEnviando(false);
     }
@@ -141,7 +163,8 @@ export function Retenciones() {
                       <td>{x.tipoVehiculo || '-'}<div className="texto-ayuda">{x.clase}</div></td>
                       <td>{fechaCorta(x.ingreso)}</td>
                       <td className="text-end">{x.dias}</td>
-                      <td><span className={`chip-ret ${x.estado === 'Liberado' ? 'liberado' : 'retenido'}`}>{FASE[x.fase]?.t ?? x.estado}</span>{x.liberadoAt ? <div className="texto-ayuda">{fechaCorta(x.liberadoAt)}{x.pagado ? ' · pagado' : ''}</div> : FASE[x.fase]?.ayuda ? <div className="texto-ayuda">{FASE[x.fase].ayuda}</div> : null}</td>
+                      <td><span className={`chip-ret ${x.estado === 'Liberado' ? 'liberado' : 'retenido'}`}>{FASE[x.fase]?.t ?? x.estado}</span>{x.liberadoAt ? <div className="texto-ayuda">{fechaCorta(x.liberadoAt)}{x.pagado ? ' · pagado' : ''}</div> : FASE[x.fase]?.ayuda ? <div className="texto-ayuda">{FASE[x.fase].ayuda}</div> : null}
+                        {CONTROL[x.control] && (x.liberadoAt || x.control === 'vencida') ? <div><span className={`chip-ret ${CONTROL[x.control].c}`}>{CONTROL[x.control].t}</span>{x.control === 'vigente' && x.vigenteHasta ? <div className="texto-ayuda">hasta {fechaHora(x.vigenteHasta)}</div> : x.control === 'entregado' ? <div className="texto-ayuda">{fechaHora(x.entregadoAt)}</div> : null}</div> : null}</td>
                       <td className="text-end" title={`Acarreo ${pesos(x.calculo.acarreo)} + estadía ${pesos(x.calculo.estadia)} (${x.calculo.tramo})`}>{pesos(x.calculo.total)}</td>
                       <td className="text-end">
                         <div className="d-inline-flex flex-wrap gap-1 justify-content-end">
@@ -150,7 +173,22 @@ export function Retenciones() {
                               <i className="fa-solid fa-receipt" aria-hidden="true" /> Emitir boleta
                             </button>
                           ) : null}
-                          {x.fase === 'listo' || (x.fase === 'retenido' && x.disposicion === 'firmada') ? (
+                          {x.control === 'vencida' || (x.control === 'pendiente_pago' && x.boletaVencida) ? (
+                            <button type="button" className="btn btn-sm btn-warning" disabled={enviando} onClick={() => void accionSimple(x, 'boleta_complementaria', 'Boleta complementaria')}>
+                              <i className="fa-solid fa-receipt" aria-hidden="true" /> Boleta complementaria
+                            </button>
+                          ) : null}
+                          {x.control === 'vigente' ? (
+                            <>
+                              <button type="button" className="btn btn-sm btn-outline-secondary" onClick={() => printConstanciaLiberacion({ uuid: x.uuid, acta: x.acta, dominio: x.dominio, vehiculo: x.tipoVehiculo, vigenteHasta: x.vigenteHasta })}>
+                                <i className="fa-solid fa-qrcode" aria-hidden="true" /> Constancia QR
+                              </button>
+                              <button type="button" className="btn btn-sm btn-success" disabled={enviando} onClick={() => setEntrega(x)}>
+                                <i className="fa-solid fa-key" aria-hidden="true" /> Registrar entrega
+                              </button>
+                            </>
+                          ) : null}
+                          {x.control !== 'vencida' && (x.fase === 'listo' || (x.fase === 'retenido' && x.disposicion === 'firmada')) ? (
                             <button type="button" className={`btn btn-sm ${x.fase === 'listo' ? 'btn-success' : 'btn-outline-secondary'}`} onClick={() => { setRegistrar(x); setDetalleLib(''); setRequisitos([]); }}>
                               <i className="fa-solid fa-lock-open" aria-hidden="true" /> Registrar liberación
                             </button>
@@ -239,6 +277,13 @@ export function Retenciones() {
             </div>
           </div>
         </div>
+      ) : null}
+      {entrega ? (
+        <ModalForm titulo={`Entrega en el corralón · ${entrega.dominio || entrega.acta}`} icono="fa-solid fa-key" textoOk="Registrar entrega"
+          aviso={`Liberación vigente hasta ${fechaHora(entrega.vigenteHasta)}. Verifique la identidad de quien retira.`}
+          campos={[{ k: 'retiro', t: 'Quién retira (nombre y documento)', tipo: 'texto' }]}
+          onCancel={() => setEntrega(null)}
+          onOk={async (v) => { await accionSimple(entrega, 'entrega_corralon', 'Entrega registrada', { retiro: v.retiro }); setEntrega(null); }} />
       ) : null}
     </div>
   );

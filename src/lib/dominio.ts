@@ -324,6 +324,11 @@ type BoletaLike = { concepto?: string | null; detalle_json?: string | null };
  */
 export const REQUISITOS_LIBERACION = ['Titularidad del vehículo', 'Formulario 08 certificado', 'Póliza de seguro vigente', 'Licencia de conducir habilitante'] as const;
 
+/** Pago confirmado a mano por demora del clearing (minuta 20/10) que todavía espera la acreditación. */
+export function pagoAConciliar(b: BoletaLike): boolean {
+  try { return (JSON.parse(String(b.detalle_json || '{}')) as { conciliacion?: { estado?: string } }).conciliacion?.estado === 'pendiente'; } catch { return false; }
+}
+
 export function esBoletaLiberacion(b: BoletaLike): boolean {
   return String(b.detalle_json ?? '').includes('"liberacion":true');
 }

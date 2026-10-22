@@ -8,6 +8,7 @@ export async function GET(req: NextRequest) {
   return handle(req, async ({ db, user }) => {
     let q = db.from('boleta').select('*, infraccion(infraccion_tipo_id, uuid, legajo_numero_acta, infractor_nombre, infractor_razon_social, estado_faltas, medida_vigente)').order('id', { ascending: false }).limit(500);
     if (estado === 'vencidas') q = q.eq('estado', 'emitida').lt('vencimiento', Date.now());
+    else if (estado === 'conciliar') q = q.eq('estado', 'definitiva').like('detalle_json', '%"conciliacion":{"estado":"pendiente"%');
     else if (estado !== 'todas') q = q.eq('estado', estado);
     const { data, error } = await q;
     if (error) throw new Error(error.message);

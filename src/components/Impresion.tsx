@@ -8,13 +8,19 @@ import { textosLeyendas } from '@/lib/leyendas';
 import { CSS_HOJA, firmaHtml, membreteHtml, pieHtml } from '@/lib/membrete';
 import { fechaHora } from '@/lib/dominio';
 import { aplicarValores, mostrarDocumento } from '@/lib/campos';
+import { svgQr } from '@/lib/acta-oficial';
+import { liberacionUrl } from '@/lib/print';
 
 type R = Record<string, any>;
 
-export function hoja(doc: R) {
+export function hoja(doc: R, causaUuid?: string) {
   let v: Record<string, string> = {};
   try { v = JSON.parse(doc.valores_json ?? '{}'); } catch { v = {}; }
-  return `<section class="hoja">${membreteHtml()}${mostrarDocumento(aplicarValores(doc.contenido_html ?? '', v, 'puntos'), 'texto')}${firmaHtml(doc)}${pieHtml()}</section>`;
+  // Disposición de levantamiento firmada: lleva el QR que el corralón escanea para ver si la liberación sigue vigente.
+  const qr = causaUuid && doc.plantilla?.codigo === 'DISPOSICION_LEVANTAMIENTO' && ['firmado', 'definitivo'].includes(doc.estado)
+    ? `<div style="display:flex;align-items:center;gap:4mm;margin-top:6mm;font-size:9pt">${svgQr(liberacionUrl(causaUuid), '28mm')}<p>Control en el depósito municipal: escanee el código para verificar que la liberación está vigente antes de entregar el vehículo.</p></div>`
+    : '';
+  return `<section class="hoja">${membreteHtml()}${mostrarDocumento(aplicarValores(doc.contenido_html ?? '', v, 'puntos'), 'texto')}${firmaHtml(doc)}${qr}${pieHtml()}</section>`;
 }
 
 /** Hojas del legajo de una causa (acta, escritos y adjuntos en orden, historial y, si se pide, memos internos). */
@@ -26,7 +32,7 @@ export async function partesLegajo(d: R, { memos }: { memos: boolean }): Promise
   for (const doc of docs) {
     const full = await http.get<{ documento: R }>(`/api/documento/${doc.uuid}`);
     const x = full.documento;
-    if (x.tipo === 'escrito') partes.push(hoja(x));
+    if (x.tipo === 'escrito') partes.push(hoja(x, d.acta?.uuid));
     else if (String(x.archivo_raw ?? '').startsWith('data:image')) partes.push(`<section class="hoja">${membreteHtml()}<p><strong>Adjunto:</strong> ${x.titulo} · ${fechaHora(x.date_created)}</p><img class="adjunto" src="${x.archivo_raw}"/>${pieHtml()}</section>`);
     else partes.push(`<section class="hoja">${membreteHtml()}<p><strong>Adjunto:</strong> ${x.titulo} (${x.archivo_nombre}) · ${fechaHora(x.date_created)}</p>${pieHtml()}</section>`);
   }
@@ -47,8 +53,8 @@ export function Impresion({ modo, uuid }: { modo: 'documento' | 'legajo'; uuid: 
   useEffect(() => {
     (async () => {
       if (modo === 'documento') {
-        const r = await http.get<{ documento: R }>(`/api/documento/${uuid}`);
-        setHtml(hoja(r.documento));
+        const r = await http.get<{ documento: R; causa?: R }>(`/api/documento/${uuid}`);
+        setHtml(hoja(r.documento, r.causa?.uuid));
       } else {
         const d = await http.get<R>(`/api/causa/${uuid}`);
         const partes = await partesLegajo(d, { memos: true });

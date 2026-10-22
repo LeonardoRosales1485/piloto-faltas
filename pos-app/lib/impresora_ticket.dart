@@ -35,7 +35,7 @@ class ImpresoraTicket {
     await _campo('FECHA Y HORA', '${t['fecha'] ?? '-'}');
     await _campo('LUGAR', '${t['lugar'] ?? '-'}');
     if ('${t['dominio'] ?? ''}'.isNotEmpty) await _campo('DOMINIO', '${t['dominio']}');
-    await _texto('DISPOSICIÓN LEGAL INFRINGIDA', tam: 22, negrita: true);
+    await _texto('${t['tituloArticulos'] ?? 'DISPOSICIÓN LEGAL INFRINGIDA'}', tam: 22, negrita: true);
     for (final a in (articulos.isEmpty ? ['-'] : articulos)) {
       await _texto('• $a', tam: 26, negrita: true);
     }
@@ -45,7 +45,9 @@ class ImpresoraTicket {
     // Aviso
     await _separador();
     await _p.setAlignment(_centro);
-    await _texto('IMPORTANTE: no debe abonar monto de dinero alguno a la autoridad que confeccionó la presente acta.', tam: 24, negrita: true);
+    // Recuadro destacado: lo manda la web (ticket de retención); sin dato, el aviso de no abonar a la autoridad.
+    final aviso = t.containsKey('aviso') ? '${t['aviso'] ?? ''}' : 'IMPORTANTE: no debe abonar monto de dinero alguno a la autoridad que confeccionó la presente acta.';
+    if (aviso.isNotEmpty) await _texto(aviso, tam: 24, negrita: true);
     // Leyendas legales (boleta de inculpado, advertencia de compactación): las arma la web según el acta.
     for (final l in ((t['leyendas'] as List?)?.map((e) => '$e') ?? const <String>[])) {
       await _p.nextLine(1);
