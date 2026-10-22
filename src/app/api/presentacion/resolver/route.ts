@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { elevarRecurso } from '@/lib/recursos-srv';
 import { camposCompletar, faltantes } from '@/lib/campos';
-import { emitirBoletas, generarEscrito, efectosDefinitivo } from '@/lib/causa-srv';
+import { correspondeDescuento, emitirBoletas, generarEscrito, efectosDefinitivo } from '@/lib/causa-srv';
 import { esContravencional } from '@/lib/dominio';
 import { cambiarEstado, causaPorId, check, enviarCorreo, handle, historial, nombreUsuario } from '@/lib/srv';
 
@@ -28,7 +28,13 @@ export async function POST(req: NextRequest) {
     const aNombre = p.ciudadano ? (p.ciudadano.razon_social || `${p.ciudadano.nombre} ${p.ciudadano.apellido}`) : String(c.infractor_razon_social || c.infractor_nombre || '');
     if (body.accion === 'aceptar') {
       if (tipo === 'pago_voluntario' || tipo === 'boleta' || tipo === 'cuotas') {
-        const conDescuento = typeof body.conDescuento === 'boolean' ? body.conDescuento : tipo === 'pago_voluntario';
+        // 50 % si no presentó descargo (y sin fallo); se quita solo por decisión del agente o la Dirección, con motivo.
+        const corresponde = tipo !== 'cuotas' && await correspondeDescuento(db, c);
+        check(!(body.conDescuento === true && !corresponde), 'No corresponde el descuento: el infractor presentó descargo o la causa ya tiene fallo', 409);
+        const quitar = corresponde && body.conDescuento === false;
+        if (quitar) check(respuesta, 'Indique en la respuesta por qué se quita el descuento');
+        const conDescuento = corresponde && !quitar;
+        if (quitar) await historial(db, c.id, quien, 'Descuento del pago voluntario quitado', respuesta);
         const modo = tipo === 'cuotas' ? 'cuotas' : conDescuento ? 'voluntario' : 'total';
         const cuotas = tipo === 'cuotas' ? Number(body.cuotas ?? p.cuotas_solicitadas ?? 1) : 1;
         const emision = await emitirBoletas(db, c, modo, cuotas, aNombre, quien);

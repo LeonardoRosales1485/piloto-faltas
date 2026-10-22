@@ -15,7 +15,7 @@ export async function pendientesDe(db: Db, ids: number[]) {
     const lote = ids.slice(i, i + 300);
     const [pres, docs, bol] = await Promise.all([
       db.from('presentacion').select('infraccion_id, estado').in('infraccion_id', lote).neq('estado', 'rechazada'),
-      db.from('documento').select('infraccion_id, estado').in('infraccion_id', lote).eq('tipo', 'escrito').in('estado', ['borrador', 'devuelto', 'en_revision']),
+      db.from('documento').select('infraccion_id, estado').in('infraccion_id', lote).eq('tipo', 'escrito').in('estado', ['borrador', 'devuelto', 'en_revision', 'para_firma']),
       db.from('boleta').select('infraccion_id, estado, vencimiento').in('infraccion_id', lote).in('estado', ['a_verificar', 'emitida']),
     ]);
     for (const r of (pres.data ?? []) as { infraccion_id: number; estado: string }[]) {
@@ -23,7 +23,8 @@ export async function pendientesDe(db: Db, ids: number[]) {
       if (r.estado === 'pendiente') de(r.infraccion_id).presentacionPendiente = true;
     }
     for (const r of (docs.data ?? []) as { infraccion_id: number; estado: string }[]) {
-      if (r.estado === 'en_revision') de(r.infraccion_id).escritoParaFirma = true;
+      // En revisión de la Dirección o aprobado y esperando la firma del Intendente: bandeja «Para firma».
+      if (r.estado === 'en_revision' || r.estado === 'para_firma') de(r.infraccion_id).escritoParaFirma = true;
       else de(r.infraccion_id).escritoEnRedaccion = true;
     }
     for (const r of (bol.data ?? []) as { infraccion_id: number; estado: string; vencimiento: number | null }[]) {

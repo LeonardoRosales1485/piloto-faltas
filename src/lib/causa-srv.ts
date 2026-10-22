@@ -2,7 +2,7 @@
  * Operaciones de la causa: notificación, escritos, presentaciones, boletas, fallo y archivo.
  * Todo cambio de estado pasa por cambiarEstado() y deja historial.
  */
-import { ahoraArgentina, claveLey, esContravencional, estadoFinal, fechaCorta, pesos, resolverLeyes, TIPOS_ACTA, tipoActa } from './dominio';
+import { ahoraArgentina, ESTADOS_PRE_FALLO, claveLey, esContravencional, estadoFinal, fechaCorta, pesos, resolverLeyes, TIPOS_ACTA, tipoActa } from './dominio';
 import { claseVehiculo, tarifaAcarreo } from './tarifas';
 import { causaVigente, leyesVigentes, subsanacionDe } from './subsanacion';
 import {
@@ -397,6 +397,8 @@ export async function efectosDefinitivo(d: Db, user: UsuarioRow, docUuid: string
   }).eq('id', doc.id as number);
   // Trazabilidad (sql/032): quién y cuándo generó el código, para poder recalcularlo. Aparte, por si la migración no corrió.
   await d.from('documento').update({ hash_por: quien, hash_at: ahora }).eq('id', doc.id as number);
+  // Cargo de quien firma (sql/033): el Intendente o la Dirección.
+  if (firmado) await d.from('documento').update({ firmado_cargo: user.rol === 'Intendente' ? 'Intendente Municipal' : 'Directora de Faltas' }).eq('id', doc.id as number);
   await historial(d, c.id, quien, firmado ? 'Escrito firmado digitalmente' : 'Escrito definitivo', `${doc.titulo}${numero ? ` N° ${numero}` : ''} · código de verificación ${hash.slice(0, 16).toUpperCase()}`);
 
   if (pl.codigo === 'DISPOSICION_LEVANTAMIENTO') {
@@ -415,6 +417,16 @@ export async function efectosDefinitivo(d: Db, user: UsuarioRow, docUuid: string
     }
   }
   return { numero, hash };
+}
+
+/**
+ * Descuento del pago voluntario (decisión 22/10/2026): corresponde el 50 % si el infractor no presentó descargo y la causa
+ * todavía no tiene fallo, dentro o fuera de plazo. Se quita solo si el agente o la Dirección lo deciden (con motivo).
+ */
+export async function correspondeDescuento(d: Db, c: CausaRow): Promise<boolean> {
+  if (!ESTADOS_PRE_FALLO.includes(String(c.estado_faltas))) return false;
+  const { count } = await d.from('presentacion').select('id', { count: 'exact', head: true }).eq('infraccion_id', c.id).eq('tipo', 'descargo');
+  return !count;
 }
 
 // ---------------------------------------------------------------------------

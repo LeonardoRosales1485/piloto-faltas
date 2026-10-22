@@ -15,6 +15,7 @@ const ESTADOS = [
   { v: 'en_revision', t: 'En revisión (para firmar)' },
   { v: 'borrador', t: 'Borradores' },
   { v: 'devuelto', t: 'Devueltos' },
+  { v: 'para_firma', t: 'En firma del Intendente' },
   { v: 'firmado', t: 'Firmados' },
   { v: 'definitivo', t: 'Definitivos' },
   { v: 'todos', t: 'Todos' },

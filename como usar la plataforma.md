@@ -18,6 +18,7 @@ Guía paso a paso para recorrer un acta de tránsito de punta a punta: desde que
 | Responsable Sustancias | `responsable_sust` / `responsable123` | Como la Directora, pero para causas de **sustancias alimenticias** |
 | Agente de Sustancias | `agente_sust` / `agente123` | Tramita las causas de **sustancias alimenticias** |
 | Usuario tributario | `tributario` / `tributario123` | Actualiza valores y tarifas |
+| Intendente | `intendente` / `intendente123` | Solo firma fallos y resoluciones aprobados por la Dirección, o pide revisión. Entra directo a «Para firmar» |
 | Administrador | `admin` / `admin123` | Configura plantillas, textos y feriados. No tiene botón de acceso rápido: se entra escribiendo usuario y contraseña |
 | Ciudadano | `valeria@example.com` / `ciudadano123` (DNI 30111222) | Consulta, paga y presenta descargos |
 
@@ -283,6 +284,14 @@ En **Configuración → Opciones sandbox** hay cuatro acciones. Todas piden escr
 - **Informe mensual para el Tribunal de Cuentas:** en **Reportes**, al pie. Se elige el mes y lista los pagos por fecha de acreditación, con multas, derecho de oficina, acarreo y estadía (las cuotas se prorratean). Exporta a Excel (CSV) e imprime/PDF. Marca los pagos confirmados a mano que siguen a conciliar.
 - **Acta con correcciones:** si la causa tiene subsanación, junto a «Ver acta» aparece **«Acta con correcciones (PDF)»**: el acta con los datos corregidos, la leyenda «ACTA CON CORRECCIONES» y la tabla de cambios. El acta original no se modifica.
 - **Hash y trazabilidad:** el acta lleva al pie quién la firmó, la fecha y hora y el código de verificación. Los escritos definitivos también muestran el código, quién lo generó y cuándo. En «Escritos y documentos», **«Verificar»** recalcula el código con el texto guardado y avisa si coincide.
-- **Límites de adjuntos:** PDF o imagen (JPG, PNG), hasta 3 MB por archivo, 8 archivos y 30 fojas por presentación (provisorio, en la configuración: `adjuntos_max_mb`, `adjuntos_max_archivos`, `adjuntos_max_fojas`). Las fotos se achican solas. Se controla en el portal y en el servidor (también en «Adjuntar documento», comprobantes y sentencias).
+- **Límites de adjuntos:** PDF o imagen (JPG, PNG), hasta 3 MB por archivo, 10 archivos y 50 fojas por presentación (propuesta, en la configuración: `adjuntos_max_mb`, `adjuntos_max_archivos`, `adjuntos_max_fojas`). Las fotos se achican solas. Se controla en el portal y en el servidor (también en «Adjuntar documento», comprobantes y sentencias).
 - **Vista dividida:** en las bandejas, en pantallas anchas, el botón **«Vista dividida»** muestra la lista a la izquierda y la causa elegida a la derecha. «Abrir completa» la lleva a pantalla entera. Con «Seguir acta» apagado, el panel se cierra cuando la causa cambia de bandeja.
+
+## Decisiones del 22/10/2026
+
+> Requiere correr `sql/033_intendente_y_decisiones.sql` en Supabase.
+
+- **Firma del Intendente:** los **fallos y las resoluciones** los firma el Intendente. La Directora (o el Responsable del área) los revisa y, en lugar de «Firmar digitalmente», toca **«Aprobar y enviar a firma del Intendente»**: el escrito queda «Para firma del Intendente» y no se puede modificar. El Intendente entra con su usuario a una pantalla única, **«Para firmar»** (menú lateral mínimo): ve la lista, abre cada escrito y lo **firma** o **pide revisión** con una observación (vuelve a «Escritos y firma» de la Directora con esa observación). El sello del escrito dice «Intendente Municipal». Las disposiciones las sigue firmando la Directora. Qué categorías firma el Intendente se define en la configuración (`firma_intendente_categorias`).
+- **Descuento del pago:** corresponde el **50 %** si el infractor **no presentó descargo** y la causa no tiene fallo, dentro o fuera de plazo. Al aceptar un pedido de pago se elige «Según corresponda» o **«Quitar el descuento»** (con el motivo en la respuesta, queda en el historial). En «Emitir boleta», el tipo «Pago» aplica la regla y «Pago sin descuento» pide el motivo. Con descargo presentado no se puede dar el descuento. Las cuotas siguen sin descuento.
+- **UF:** sin cambios: los montos se actualizan solos con los valores vigentes mientras la causa está abierta y se fijan al emitir la boleta; los ajustes manuales siguen valiendo.
 

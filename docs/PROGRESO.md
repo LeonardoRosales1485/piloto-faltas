@@ -130,6 +130,7 @@ Avance: **20 / 20**
 | Minuta 20/10, fase 3 · Control de liberación por QR (`/liberacion/[uuid]`: vigente, vencida, no entregar, entregado), QR en la disposición de levantamiento firmada y «Constancia QR»; «Boleta complementaria» al vencer; «Registrar entrega» del corralón; no se registra la liberación con la boleta vencida | — |
 | Minuta 20/10, fase 3 · Confirmación manual de pagos con comprobante adjunto y declaración de responsabilidad, marca «a conciliar» y conciliación (filtro en Pagos). Guía de capacitación `docs/GUIA-INSPECTORES.md` | — |
 | Minuta 20/10, fase 4 · Recursos (solapa, elevación, movimientos, sentencia con re-emisión de boleta o archivo); informe mensual para el Tribunal de Cuentas (CSV/PDF); acta con correcciones; trazabilidad y verificación del hash; límites de adjuntos (tamaño, formatos, fojas); vista dividida de bandejas | sql/032 |
+| Decisiones 22/10 · Rol Intendente con pantalla «Para firmar» (firma fallos y resoluciones aprobados por la Dirección o pide revisión); descuento del 50 % si no presentó descargo, quitable con motivo; límites de adjuntos 3 MB / 10 archivos / 50 fojas | sql/033 |
 | Menú «Bandejas»: «Todas las causas» pasa a ser el primer ítem | — |
 
 ## Fuera del alcance del prototipo

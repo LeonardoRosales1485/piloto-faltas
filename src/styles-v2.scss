@@ -1107,3 +1107,11 @@ html[data-text-size='muy-grande'] { font-size: 137.5%; }
 .vista-dividida .vd-panel-barra { position: sticky; top: 0; z-index: 2; display: flex; justify-content: flex-end; gap: .5rem; padding: .5rem; background: inherit; border-bottom: 1px solid var(--bo-borde); }
 .vista-dividida tr.fila-abierta > td { background: var(--bo-bg-azul-50, #eff6ff); }
 [data-theme='dark'] .vista-dividida tr.fila-abierta > td { background: rgba(59, 130, 246, .15); }
+
+/* Pantalla del Intendente: lista de escritos a firmar y el escrito al costado. */
+.firma-intendente .fi-grid { display: grid; grid-template-columns: minmax(280px, 360px) minmax(0, 1fr); gap: 1rem; align-items: start; }
+@media (max-width: 991px) { .firma-intendente .fi-grid { grid-template-columns: 1fr; } }
+.firma-intendente .fi-item { display: flex; flex-direction: column; align-items: flex-start; gap: .1rem; width: 100%; text-align: left; background: none; border: 0; padding: .25rem 0; color: inherit; }
+.firma-intendente .lista-items li.activo { background: var(--bo-bg-azul-50, #eff6ff); }
+[data-theme='dark'] .firma-intendente .lista-items li.activo { background: rgba(59, 130, 246, .15); }
+.firma-intendente .fi-hoja { display: block; width: 100%; height: 75vh; border: 0; border-top: 1px solid var(--bo-borde); margin-top: .75rem; background: #fff; border-radius: 0 0 var(--bo-radio-lg) var(--bo-radio-lg); }

@@ -9,14 +9,14 @@ export function pieHtml() {
   return `<div class="pie-institucional">${PIE_INSTITUCIONAL}</div>`;
 }
 
-export function firmaHtml(doc: { firmado_por?: string | null; firmado_at?: number | null; hash?: string | null; numero?: string | null; hash_por?: string | null; hash_at?: number | null }) {
+export function firmaHtml(doc: { firmado_cargo?: string | null; firmado_por?: string | null; firmado_at?: number | null; hash?: string | null; numero?: string | null; hash_por?: string | null; hash_at?: number | null }) {
   const fecha = (ms?: number | null) => (ms ? new Date(Number(ms)).toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' }) : '');
   const codigo = (doc.hash ?? '').slice(0, 16).toUpperCase();
   if (!doc.firmado_por) {
     // Escrito definitivo sin firma: igual lleva el código, quién lo generó y cuándo (trazabilidad, minuta 20/10).
     return doc.hash && doc.hash_por ? `<div class="sello-firma"><strong>Documento definitivo</strong><br/>Generado por ${doc.hash_por} · ${fecha(doc.hash_at)}<br/>Código de verificación: ${codigo}</div>` : '';
   }
-  return `<div class="sello-firma"><strong>Firmado digitalmente por ${doc.firmado_por}</strong><br/>Directora de Faltas · ${fecha(doc.firmado_at)}<br/>Código de verificación: ${codigo}<br/><em>Firma simulada en el piloto (P-04)</em></div>`;
+  return `<div class="sello-firma"><strong>Firmado digitalmente por ${doc.firmado_por}</strong><br/>${doc.firmado_cargo || 'Directora de Faltas'} · ${fecha(doc.firmado_at)}<br/>Código de verificación: ${codigo}<br/><em>Firma simulada en el piloto (P-04)</em></div>`;
 }
 
 export const CSS_HOJA = `

@@ -60,7 +60,7 @@ const TABS = [
 ] as const;
 
 const TIPO_PRES: Record<string, string> = { pago_voluntario: 'Pago voluntario', boleta: 'Boleta', cuotas: 'Plan de cuotas', descargo: 'Descargo', apelacion: 'Apelación' };
-const ESTADO_DOC: Record<string, string> = { borrador: 'Borrador', en_revision: 'En revisión', devuelto: 'Devuelto', firmado: 'Firmado', definitivo: 'Definitivo' };
+const ESTADO_DOC: Record<string, string> = { borrador: 'Borrador', en_revision: 'En revisión', para_firma: 'Para firma del Intendente', devuelto: 'Devuelto', firmado: 'Firmado', definitivo: 'Definitivo' };
 const ESTADO_BOL: Record<string, string> = { emitida: 'Emitida', a_verificar: 'A verificar', definitiva: 'Pagada (definitiva)', vencida: 'Vencida', anulada: 'Anulada' };
 
 /**
@@ -273,7 +273,8 @@ export function CausaDetalle({ embebida }: { embebida?: { uuid: string; onCambio
     { t: 'Emitir boleta', rec: ['Notificado', 'Fallo notificado'].includes(estado), i: 'fa-solid fa-receipt', ver: puede(user?.rol, 'emitirBoletas') && !final && !['Esp. Acreditar Pago', 'Cuotas', 'En Juzgado', 'En Apremios'].includes(estado), on: () => setModal({
       titulo: 'Emitir boleta (Malvinas 2000 simulado)', icono: 'fa-solid fa-receipt', accion: 'emitir_boleta', textoOk: 'Emitir',
       campos: [
-        { k: 'modo', t: 'Tipo', tipo: 'select', opciones: [{ v: 'voluntario', t: 'Pago voluntario (50 %)' }, { v: 'total', t: 'Sin beneficio (100 %)' }, { v: 'cuotas', t: 'Plan de cuotas' }] },
+        { k: 'modo', t: 'Tipo', tipo: 'select', opciones: [{ v: 'auto', t: 'Pago: 50 % si no presentó descargo (si no, monto pleno)' }, { v: 'total', t: 'Pago sin descuento (quitar el beneficio)' }, { v: 'cuotas', t: 'Plan de cuotas' }] },
+        { k: 'motivo', t: 'Motivo para quitar el descuento', tipo: 'texto', ayuda: 'Solo si elige «sin descuento» y correspondía el 50 %. Queda en el historial.' },
         { k: 'cuotas', t: 'Cantidad de cuotas (solo plan de cuotas)', tipo: 'numero', valor: '3' },
         { k: 'aNombre', t: 'A nombre de (quien firma el compromiso)', tipo: 'texto', valor: String(c.infractorRazonSocial || c.infractorNombre || '') },
       ],
@@ -322,7 +323,7 @@ export function CausaDetalle({ embebida }: { embebida?: { uuid: string; onCambio
     if (a.tipo === 'tab') { setTab(a.tab as (typeof TABS)[number]['id']); return; }
     router.push(a.href);
   };
-  const QUIEN_ICONO: Record<string, string> = { Agente: 'fa-solid fa-user-tie', 'Directora / Responsable': 'fa-solid fa-signature', Infractor: 'fa-solid fa-user', 'Organismo externo': 'fa-solid fa-landmark', Nadie: 'fa-solid fa-check' };
+  const QUIEN_ICONO: Record<string, string> = { Agente: 'fa-solid fa-user-tie', 'Directora / Responsable': 'fa-solid fa-signature', Intendente: 'fa-solid fa-landmark-flag', Infractor: 'fa-solid fa-user', 'Organismo externo': 'fa-solid fa-landmark', Nadie: 'fa-solid fa-check' };
 
   const subCampos = (d.subsanacion?.campos ?? {}) as Record<string, { antes: string; despues: string }>;
   const verSubsanada = Boolean(d.subsanacion && d.actaVigente && vista === 'subsanada');

@@ -38,7 +38,7 @@ const HERRAMIENTAS: { cmd: string; i: string; t: string; arg?: string }[] = [
   { cmd: 'redo', i: 'fa-rotate-right', t: 'Rehacer' },
 ];
 
-const ESTADO: Record<string, string> = { borrador: 'Borrador', en_revision: 'En revisión de la Directora', devuelto: 'Devuelto con observación', firmado: 'Firmado digitalmente', definitivo: 'Definitivo' };
+const ESTADO: Record<string, string> = { borrador: 'Borrador', en_revision: 'En revisión de la Directora', para_firma: 'Aprobado: para firma del Intendente', devuelto: 'Devuelto con observación', firmado: 'Firmado digitalmente', definitivo: 'Definitivo' };
 
 /** Edición del escrito en el sistema, sobre una hoja A4 con el formato oficial (SF-32 a SF-40). */
 export function EditorEscrito() {
@@ -46,7 +46,7 @@ export function EditorEscrito() {
   const notify = useNotify();
   const user = useAuthUser();
   const ref = useRef<HTMLDivElement>(null);
-  const [d, setD] = useState<{ documento: R; causa: R } | null>(null);
+  const [d, setD] = useState<{ documento: R; causa: R; firmaIntendente?: boolean } | null>(null);
   const [cambios, setCambios] = useState(false);
   const [devolver, setDevolver] = useState(false);
   const [trabajando, setTrabajando] = useState(false);
@@ -58,7 +58,7 @@ export function EditorEscrito() {
   const base = useRef('');
 
   const cargar = useCallback(() => {
-    http.get<{ documento: R; causa: R }>(`/api/documento/${uuid}`).then((r) => {
+    http.get<{ documento: R; causa: R; firmaIntendente?: boolean }>(`/api/documento/${uuid}`).then((r) => {
       let v: Record<string, string> = {};
       try { v = JSON.parse(r.documento.valores_json ?? '{}'); } catch { v = {}; }
       base.current = r.documento.contenido_html ?? '';
@@ -154,7 +154,7 @@ export function EditorEscrito() {
     setTrabajando(true);
     try {
       const r = await http.post<R>('/api/documento/revisar', { uuid, accion, observacion, ...(editable ? payload() : {}) });
-      notify.success(accion === 'firmar' ? `Firmado digitalmente${r.numero ? ` · N° ${r.numero}` : ''}` : 'Devuelto al agente');
+      notify.success(accion === 'firmar' ? (r.paraFirma ? 'Aprobado: pasa a la firma del Intendente' : `Firmado digitalmente${r.numero ? ` · N° ${r.numero}` : ''}`) : 'Devuelto al agente');
       setDevolver(false);
       cargar();
     } catch (e) {
@@ -205,6 +205,8 @@ export function EditorEscrito() {
           </span>
         </div>
         {doc.observacion && doc.estado === 'devuelto' ? <div className="px-3 pb-3"><div className="aviso aviso-alerta mb-0"><strong>Observación de la Directora:</strong> {doc.observacion}</div></div> : null}
+        {doc.observacion && doc.estado === 'en_revision' && String(doc.observacion).startsWith('Intendente:') ? <div className="px-3 pb-3"><div className="aviso aviso-alerta mb-0"><strong>El Intendente pidió revisión.</strong> {String(doc.observacion).slice(11).trim()}</div></div> : null}
+        {doc.estado === 'para_firma' ? <div className="px-3 pb-3"><div className="aviso aviso-info mb-0"><i className="fa-solid fa-landmark-flag" aria-hidden="true" /> Aprobado por la Dirección: espera la firma del Intendente. No se puede modificar.</div></div> : null}
       </div>
 
       <div className="botonera mb-3 no-print">
@@ -217,7 +219,7 @@ export function EditorEscrito() {
         ) : null}
         {esDirectora && ['en_revision', 'borrador', 'devuelto'].includes(doc.estado) ? (
           <>
-            <button type="button" className="btn btn-success" disabled={trabajando} onClick={() => void revisar('firmar')}><i className="fa-solid fa-signature" aria-hidden="true" /> Firmar digitalmente</button>
+            <button type="button" className="btn btn-success" disabled={trabajando} onClick={() => void revisar('firmar')}><i className="fa-solid fa-signature" aria-hidden="true" /> {d?.firmaIntendente ? 'Aprobar y enviar a firma del Intendente' : 'Firmar digitalmente'}</button>
             {doc.estado === 'en_revision' ? <button type="button" className="btn btn-outline-danger" disabled={trabajando} onClick={() => setDevolver(true)}><i className="fa-solid fa-reply" aria-hidden="true" /> Devolver con observación</button> : null}
           </>
         ) : null}

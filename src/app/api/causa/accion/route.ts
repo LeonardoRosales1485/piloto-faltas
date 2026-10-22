@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { efectoNotificacionPositiva, emitirBoletas, evaluarArchivoPorPago, generarEscrito, notificarActa, notificarDocumento, valorizacion, valoresVigentes } from '@/lib/causa-srv';
+import { correspondeDescuento, efectoNotificacionPositiva, emitirBoletas, evaluarArchivoPorPago, generarEscrito, notificarActa, notificarDocumento, valorizacion, valoresVigentes } from '@/lib/causa-srv';
 import { ESTADOS, esBoletaLiberacion, estadoFinal, puede, pesos, REQUISITOS_LIBERACION } from '@/lib/dominio';
 import { descargoPendiente } from '@/lib/camino';
 import { calculoLiberacion, claseVehiculo, diasEnDeposito, tarifaEstadia, validezLiberacionMs } from '@/lib/tarifas';
@@ -207,8 +207,15 @@ export async function POST(req: NextRequest) {
       }
       case 'emitir_boleta': {
         check(puede(user.rol, 'emitirBoletas'), 'Sin permiso', 403);
-        const modo = txt('modo') as 'voluntario' | 'total' | 'cuotas';
-        check(['voluntario', 'total', 'cuotas'].includes(modo), 'Modo inválido');
+        check(['auto', 'voluntario', 'total', 'cuotas'].includes(txt('modo')), 'Modo inválido');
+        // Descuento (decisión 22/10): «auto» aplica el 50 % si corresponde (sin descargo ni fallo); «total» lo quita, con motivo.
+        const corresponde = txt('modo') !== 'cuotas' && await correspondeDescuento(db, c);
+        check(!(txt('modo') === 'voluntario' && !corresponde), 'No corresponde el descuento: el infractor presentó descargo o la causa ya tiene fallo', 409);
+        if (txt('modo') === 'total' && corresponde) {
+          check(txt('motivo'), 'Indique por qué se quita el descuento');
+          await historial(db, c.id, quien, 'Descuento del pago voluntario quitado', txt('motivo'));
+        }
+        const modo = (txt('modo') === 'auto' ? (corresponde ? 'voluntario' : 'total') : txt('modo')) as 'voluntario' | 'total' | 'cuotas';
         return emitirBoletas(db, c, modo, Number(d.cuotas ?? 1), txt('aNombre') || String(c.infractor_razon_social || c.infractor_nombre || ''), quien);
       }
       case 'emitir_estadia': {

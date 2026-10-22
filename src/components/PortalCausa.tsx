@@ -17,7 +17,7 @@ type R = Record<string, any>;
 
 const ACCIONES: { k: string; t: string; d: string; i: string; aviso?: string }[] = [
   // «Pago» neutro (minuta 20/10): un solo botón, también vencido el plazo. Internamente es un pedido de pago voluntario
-  // (en plazo) o de boleta (fuera de plazo); la Dirección de Faltas decide si concede el descuento.
+  // (en plazo) o de boleta (fuera de plazo); el 50 % corresponde si no presentó descargo y la Dirección puede quitarlo.
   { k: 'pago', t: 'Pago', d: 'Pide la boleta para pagar. La Dirección de Faltas le informa el monto que corresponde.', i: 'fa-solid fa-file-invoice-dollar', aviso: 'advertencia_pago_voluntario' },
   { k: 'descargo', t: 'Presentar descargo', d: 'Explique su versión de los hechos y adjunte pruebas.', i: 'fa-solid fa-scale-balanced', aviso: 'advertencia_descargo_transito' },
   { k: 'reenviar_descargo', t: 'Reenviar descargo', d: 'Corrija lo que le observaron. Solo se puede reenviar una vez.', i: 'fa-solid fa-rotate' },
@@ -197,9 +197,9 @@ export function PortalCausa() {
             <div className="portal-caminos">
               <p className="mb-2">Tiene <strong>tres caminos</strong>{r.venceAt ? <> hasta el <strong>{fechaCorta(r.venceAt)}</strong>{(() => { const dias = Math.ceil((Number(r.venceAt) - Date.now()) / 86400000); return dias > 0 ? ` (quedan ${dias} días)` : ''; })()}</> : null}. Elija uno solo:</p>
               <ol>
-                <li><strong>Pago</strong>: pide la boleta y termina el trámite; mientras esté en plazo, con el beneficio del pago voluntario.{d.resumen.tipo === 'multas' ? ' Si lo elige, ya no puede presentar descargo.' : ''}</li>
+                <li><strong>Pago</strong>: pide la boleta y termina el trámite. Si no presentó descargo, con el 50 % de descuento del pago voluntario (la Dirección puede quitarlo).{d.resumen.tipo === 'multas' ? ' Si lo elige, ya no puede presentar descargo.' : ''}</li>
                 <li><strong>Descargo</strong>: explica su versión y adjunta pruebas.{d.resumen.tipo === 'multas' ? ' Si lo presenta, ya no puede hacer el pago voluntario.' : ''} La Dirección lo analiza antes de dictar el fallo.</li>
-                <li><strong>No hacer nada</strong>: vencido el plazo la Dirección dicta el fallo con lo que consta en el acta. Puede seguir pidiendo el pago; la Dirección define si mantiene el beneficio.</li>
+                <li><strong>No hacer nada</strong>: vencido el plazo la Dirección dicta el fallo con lo que consta en el acta. Hasta el fallo puede seguir pidiendo el pago con el descuento.</li>
               </ol>
             </div>
           ) : null}

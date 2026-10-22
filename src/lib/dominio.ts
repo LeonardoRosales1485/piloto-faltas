@@ -39,6 +39,7 @@ export const ROLES = {
   responsable: 'Responsable',
   tributario: 'Tributario',
   becario: 'Becario',
+  intendente: 'Intendente',
 } as const;
 
 export const ROL_ETIQUETA: Record<string, string> = {
@@ -49,6 +50,7 @@ export const ROL_ETIQUETA: Record<string, string> = {
   Responsable: 'Responsable de área',
   Tributario: 'Usuario tributario',
   Becario: 'Becario',
+  Intendente: 'Intendente (firma)',
 };
 
 const BACK_OFFICE = ['Administrador', 'Usuario', 'Directora', 'Responsable', 'Becario'];
@@ -76,6 +78,8 @@ export const PERMISOS = {
   verEscritos: BACK_OFFICE,
   redactarEscritos: ESCRITOS,
   firmar: ['Directora', 'Responsable'],
+  // Intendente (minuta 20/10, decisión 22/10): solo firma fallos y resoluciones aprobados por la Dirección.
+  firmaIntendente: ['Intendente'],
   verPagos: BACK_OFFICE,
   emitirBoletas: GESTION,
   confirmarPagos: GESTION,
@@ -140,7 +144,8 @@ export const PERMISO_INFO: Record<Permiso, { g: string; t: string; d: string }> 
   resolverPresentaciones: { g: 'Presentaciones', t: 'Resolver presentaciones', d: 'Aceptar, observar o rechazar descargos, pagos, cuotas y apelaciones' },
   verEscritos: { g: 'Escritos', t: 'Ver escritos', d: 'Bandeja «Escritos y firma»' },
   redactarEscritos: { g: 'Escritos', t: 'Redactar escritos', d: 'Generar y editar escritos, adjuntar documentos' },
-  firmar: { g: 'Escritos', t: 'Firmar escritos', d: 'Firma digital de resoluciones, disposiciones y fallos' },
+  firmar: { g: 'Escritos', t: 'Firmar escritos', d: 'Firma digital de resoluciones, disposiciones y fallos (los que firma el Intendente, los aprueba y se los envía)' },
+  firmaIntendente: { g: 'Escritos', t: 'Firma del Intendente', d: 'Pantalla «Para firmar»: firma fallos y resoluciones aprobados por la Dirección o pide revisión' },
   verPagos: { g: 'Pagos', t: 'Ver pagos', d: 'Sección «Pagos»' },
   emitirBoletas: { g: 'Pagos', t: 'Emitir boletas', d: 'Boletas de multa y de estadía' },
   confirmarPagos: { g: 'Pagos', t: 'Confirmar pagos', d: 'Acreditar pagos (a verificar → definitivo)' },

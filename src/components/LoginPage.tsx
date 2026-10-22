@@ -167,6 +167,15 @@ export function LoginPage() {
             </div>
           ))}
           <div className="login-rapido-area">
+            <p className="login-rapido-subtitulo">Intendencia</p>
+            <div className="login-rapido-grid">
+              <button type="button" className="login-rapido-btn" disabled={loading} onClick={() => void entrar('intendente', 'intendente123')} title="intendente / intendente123">
+                <i className="fa-solid fa-landmark-flag" aria-hidden="true" />
+                <span>Intendente (firma)</span>
+              </button>
+            </div>
+          </div>
+          <div className="login-rapido-area">
             <p className="login-rapido-subtitulo">Inspectores y portal ciudadano</p>
             <div className="login-rapido-grid">
               {INSPECTORES.map((x) => (

@@ -4,7 +4,7 @@
  * Se usa en el navegador (aviso antes de enviar) y en el servidor (control efectivo).
  */
 export type LimitesAdjuntos = { maxMb: number; maxArchivos: number; maxFojas: number };
-export const LIMITES_DEFECTO: LimitesAdjuntos = { maxMb: 3, maxArchivos: 8, maxFojas: 30 };
+export const LIMITES_DEFECTO: LimitesAdjuntos = { maxMb: 3, maxArchivos: 10, maxFojas: 50 };
 export const FORMATOS_ADJUNTOS: Record<string, string> = { 'application/pdf': 'PDF', 'image/jpeg': 'JPG', 'image/png': 'PNG', 'image/webp': 'WEBP' };
 export const ACCEPT_ADJUNTOS = Object.keys(FORMATOS_ADJUNTOS).join(',');
 

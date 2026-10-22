@@ -63,7 +63,7 @@ export const BANDEJAS_TRABAJO = [
   { id: 'pagos', codigo: 'PENDIENTE_CONFIRMACION', titulo: 'Pagos a acreditar', icono: 'fa-solid fa-money-check-dollar', ayuda: 'Pagos informados que esperan la acreditación', trabajo: true },
   { id: 'fallo', codigo: 'DICTAR_FALLO', titulo: 'Para fallo', icono: 'fa-solid fa-gavel', ayuda: 'Descargo analizado, plazo vencido sin pago ni descargo, cuotas vencidas o fallo vencido (derivar)', trabajo: true },
   { id: 'revision', codigo: 'PENDIENTE_REVISION', titulo: 'Para revisión', icono: 'fa-solid fa-file-pen', ayuda: 'Escritos en borrador o devueltos con observación: completar y enviar a firma', trabajo: true },
-  { id: 'firma', codigo: 'PENDIENTE_FIRMA', titulo: 'Para firma', icono: 'fa-solid fa-file-signature', ayuda: 'Fallos, resoluciones y disposiciones listos para firmar', trabajo: true },
+  { id: 'firma', codigo: 'PENDIENTE_FIRMA', titulo: 'Para firma', icono: 'fa-solid fa-file-signature', ayuda: 'Fallos, resoluciones y disposiciones para firmar (o aprobados y esperando la firma del Intendente)', trabajo: true },
   { id: 'retenciones', codigo: 'MEDIDAS_RETENCIONES', titulo: 'Medidas y retenciones', icono: 'fa-solid fa-warehouse', ayuda: 'Medidas preventivas a resolver y vehículos retenidos sin liberar', trabajo: true },
   { id: 'espera', codigo: 'EN_PLAZO', titulo: 'En plazo', icono: 'fa-solid fa-hourglass-half', ayuda: 'Sin tareas pendientes: corren los plazos del infractor (pago, descargo, cuotas, apelación)', trabajo: false },
   { id: 'externas', codigo: 'GESTION_EXTERNA', titulo: 'Gestión externa', icono: 'fa-solid fa-landmark', ayuda: 'En Juzgado de Paz o en Apremios', trabajo: false },

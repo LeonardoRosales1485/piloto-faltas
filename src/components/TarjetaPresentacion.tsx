@@ -48,7 +48,7 @@ export function TarjetaPresentacion({ p, causa, adjuntos = [], gestion, destacad
     try {
       const respuesta = [...String(v.pedido ?? '').split(',').filter(Boolean), (v.respuesta ?? '').trim()].filter(Boolean).join(' ');
       if (resolver === 'observar' && !respuesta) { notify.error('Falta la respuesta', 'Indique qué documentación falta o escriba la respuesta.'); return; }
-      await http.post('/api/presentacion/resolver', { uuid: p.uuid, accion: resolver, respuesta, cuotas: v.cuotas ? Number(v.cuotas) : undefined, conDescuento: v.descuento ? v.descuento === 'si' : undefined });
+      await http.post('/api/presentacion/resolver', { uuid: p.uuid, accion: resolver, respuesta, cuotas: v.cuotas ? Number(v.cuotas) : undefined, conDescuento: v.descuento === 'quitar' ? false : undefined });
       setResolver(null);
       onResuelta(p, resolver);
     } catch (e) {
@@ -100,8 +100,8 @@ export function TarjetaPresentacion({ p, causa, adjuntos = [], gestion, destacad
           }
           campos={[
             ...(resolver === 'aceptar' && p.tipo === 'cuotas' ? [{ k: 'cuotas', t: 'Cantidad de cuotas otorgadas', tipo: 'numero' as const, req: true, valor: String(p.cuotas_solicitadas ?? 3) }] : []),
-            // Pedido de pago (minuta 20/10): la Dirección define si concede el beneficio del pago voluntario o exige el monto pleno.
-            ...(resolver === 'aceptar' && (p.tipo === 'pago_voluntario' || p.tipo === 'boleta') ? [{ k: 'descuento', t: 'Monto a cobrar', tipo: 'select' as const, req: true, valor: p.tipo === 'pago_voluntario' ? 'si' : 'no', opciones: [{ v: 'si', t: 'Con el descuento del pago voluntario' }, { v: 'no', t: 'Monto pleno (sin descuento)' }], ayuda: p.tipo === 'boleta' ? 'Lo pidió fuera de plazo: puede conceder igual el beneficio.' : undefined }] : []),
+            // Descuento (decisión 22/10): 50 % si no presentó descargo y no hay fallo; se quita solo si lo decide el agente o la Dirección.
+            ...(resolver === 'aceptar' && (p.tipo === 'pago_voluntario' || p.tipo === 'boleta') ? [{ k: 'descuento', t: 'Monto a cobrar', tipo: 'select' as const, req: true, valor: 'regla', opciones: [{ v: 'regla', t: 'Según corresponda: 50 % si no presentó descargo' }, { v: 'quitar', t: 'Quitar el descuento (monto pleno)' }], ayuda: 'Para quitar el descuento, explique el motivo en la respuesta (queda en el historial).' }] : []),
             ...(resolver === 'observar' ? [{ k: 'pedido', t: 'Documentación que falta', tipo: 'multi' as const, opciones: PEDIDOS_DOC.map((x) => ({ v: x, t: x })), ayuda: 'Se agrega a la respuesta. Opcional.' }] : []),
             { k: 'respuesta', t: 'Respuesta al infractor', tipo: 'area' as const, req: resolver !== 'aceptar' && resolver !== 'observar' },
           ]}

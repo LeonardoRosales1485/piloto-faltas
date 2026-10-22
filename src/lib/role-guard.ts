@@ -26,6 +26,7 @@ const RUTAS: { prefijo: string; permiso: Permiso }[] = [
   { prefijo: '/private/seguimiento-gps', permiso: 'seguimientoGps' },
   { prefijo: '/private/funciones', permiso: 'parametrizar' },
   { prefijo: '/private/sandbox', permiso: 'sandbox' },
+  { prefijo: '/private/firma-intendente', permiso: 'firmaIntendente' },
 ];
 
 type U = { rol?: string; sector?: string | null; modulosActa?: string[]; modulosEfectivos?: string[]; tiposActa?: number[] | null } | null | undefined;
@@ -52,6 +53,7 @@ export function tipoInspector(sector?: string | null): 'multas' | 'contravencion
 export function inicioPara(rol?: string, sector?: string | null, modulosActa?: string[]): string {
   if (rol === 'Inspector') return '/private/inicio';
   if (rol === 'Tributario') return '/private/finanzas';
+  if (rol === 'Intendente') return '/private/firma-intendente';
   return '/private/causas';
 }
 

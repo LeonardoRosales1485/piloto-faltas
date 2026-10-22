@@ -18,7 +18,7 @@ export type ProximoPaso = {
   titulo: string;
   detalle?: string;
   /** Quién tiene que actuar. */
-  quien: 'Agente' | 'Directora / Responsable' | 'Infractor' | 'Organismo externo' | 'Nadie';
+  quien: 'Agente' | 'Directora / Responsable' | 'Intendente' | 'Infractor' | 'Organismo externo' | 'Nadie';
   tono: 'accion' | 'espera' | 'alerta' | 'fin';
   acciones: AccionPaso[];
 };
@@ -141,6 +141,14 @@ export function proximoPaso(x: Ctx): ProximoPaso {
 
   // 2. Escritos de fallo, resolución o disposición: en revisión, en borrador, sin notificar o esperando al infractor.
   const escritos = x.documentos.filter((d) => d.tipo === 'escrito' && CAT_NOTIFICABLE.includes(d.plantilla?.categoria));
+  const paraIntendente = escritos.find((d) => d.estado === 'para_firma');
+  if (paraIntendente) {
+    return {
+      titulo: `Esperar la firma del Intendente: ${paraIntendente.titulo}`,
+      detalle: 'La Dirección lo aprobó y está en la pantalla «Para firmar» del Intendente. Si pide revisión, vuelve a «Escritos y firma» con su observación.',
+      quien: 'Intendente', tono: 'espera', acciones: [{ tipo: 'link', href: `/private/escrito/${paraIntendente.uuid}`, t: 'Ver el escrito' }],
+    };
+  }
   const enRevision = escritos.find((d) => d.estado === 'en_revision');
   if (enRevision) {
     return {
