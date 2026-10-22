@@ -1,16 +1,11 @@
-import { NextRequest } from 'next/server';
-import { handlePortal, nombreCiudadano } from '@/lib/portal-srv';
-import { check, historial } from '@/lib/srv';
+import { handlePublic, HttpError } from '@/lib/srv';
 
-/** Pago simulado de la boleta (Malvinas 2000): queda «a verificar» hasta que Faltas lo confirma (SF-56). */
-export async function POST(req: NextRequest) {
-  const b = (await req.json()) as { boletaUuid: string };
-  return handlePortal(req, async ({ ciu, db }) => {
-    const { data } = await db.from('boleta').select('id, infraccion_id, estado, numero').eq('uuid', b.boletaUuid).maybeSingle();
-    const bol = data as { id: number; infraccion_id: number; estado: string; numero: string } | null;
-    check(bol && bol.estado === 'emitida', 'La boleta no está disponible para pagar');
-    await db.from('boleta').update({ estado: 'a_verificar', pagado_at: Date.now() }).eq('id', bol!.id);
-    await historial(db, bol!.infraccion_id, `${nombreCiudadano(ciu)} (portal)`, 'Pago informado', `Boleta ${bol!.numero}: queda a verificar hasta la acreditación.`);
-    return { ok: true };
+/**
+ * Pedido 22/10/2026: el infractor no paga ni informa pagos desde el portal. Solo solicita el pago (presentación) y la
+ * Dirección de Faltas le habilita la boleta y registra el pago («Informar pago» / «Confirmar acreditación»).
+ */
+export async function POST() {
+  return handlePublic(async () => {
+    throw new HttpError(410, 'El pago no se informa desde el portal: abone la boleta en los medios habilitados y la Dirección de Faltas lo registra.');
   });
 }

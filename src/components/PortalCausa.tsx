@@ -18,10 +18,11 @@ type R = Record<string, any>;
 const ACCIONES: { k: string; t: string; d: string; i: string; aviso?: string }[] = [
   // «Pago» neutro (minuta 20/10): un solo botón, también vencido el plazo. Internamente es un pedido de pago voluntario
   // (en plazo) o de boleta (fuera de plazo); el 50 % corresponde si no presentó descargo y la Dirección puede quitarlo.
-  { k: 'pago', t: 'Pago', d: 'Pide la boleta para pagar. La Dirección de Faltas le informa el monto que corresponde.', i: 'fa-solid fa-file-invoice-dollar', aviso: 'advertencia_pago_voluntario' },
+  // Pedido 22/10: es solo una solicitud. El infractor no paga desde el portal: la Dirección la analiza y le habilita la boleta.
+  { k: 'pago', t: 'Solicitar pago', d: 'Es una solicitud: la Dirección de Faltas la analiza y le habilita la boleta con el monto que corresponde.', i: 'fa-solid fa-file-invoice-dollar', aviso: 'advertencia_pago_voluntario' },
   { k: 'descargo', t: 'Presentar descargo', d: 'Explique su versión de los hechos y adjunte pruebas.', i: 'fa-solid fa-scale-balanced', aviso: 'advertencia_descargo_transito' },
   { k: 'reenviar_descargo', t: 'Reenviar descargo', d: 'Corrija lo que le observaron. Solo se puede reenviar una vez.', i: 'fa-solid fa-rotate' },
-  { k: 'cuotas', t: 'Pedir plan de cuotas', d: 'Pague en cuotas mensuales. Faltas define la cantidad.', i: 'fa-solid fa-calendar-days', aviso: 'advertencia_cuotas' },
+  { k: 'cuotas', t: 'Solicitar plan de cuotas', d: 'Es una solicitud: si la Dirección de Faltas la acepta, le habilita las boletas de cada cuota.', i: 'fa-solid fa-calendar-days', aviso: 'advertencia_cuotas' },
   { k: 'apelacion', t: 'Presentar apelación', d: 'La revisa el Juzgado de Paz. Plazo: 5 días hábiles desde la notificación del fallo.', i: 'fa-solid fa-landmark' },
 ];
 
@@ -98,13 +99,7 @@ export function PortalCausa() {
     }
   }
 
-  async function pagar(b: R) {
-    try {
-      await portal.post('/api/portal/pagar', { boletaUuid: b.uuid });
-      setMsg({ ok: true, t: `Pago de la boleta ${b.numero} informado. La Dirección de Faltas lo verifica con la acreditación.` });
-      cargar();
-    } catch (e) { setMsg({ ok: false, t: (e as Error).message }); }
-  }
+
 
   /** Párrafos del formulario modelo de descargo (para el PDF y el Word). */
   function parrafosModelo() {
@@ -197,7 +192,7 @@ export function PortalCausa() {
             <div className="portal-caminos">
               <p className="mb-2">Tiene <strong>tres caminos</strong>{r.venceAt ? <> hasta el <strong>{fechaCorta(r.venceAt)}</strong>{(() => { const dias = Math.ceil((Number(r.venceAt) - Date.now()) / 86400000); return dias > 0 ? ` (quedan ${dias} días)` : ''; })()}</> : null}. Elija uno solo:</p>
               <ol>
-                <li><strong>Pago</strong>: pide la boleta y termina el trámite. Si no presentó descargo, con el 50 % de descuento del pago voluntario (la Dirección puede quitarlo).{d.resumen.tipo === 'multas' ? ' Si lo elige, ya no puede presentar descargo.' : ''}</li>
+                <li><strong>Solicitar pago</strong>: la Dirección analiza la solicitud y le habilita la boleta. Si no presentó descargo, con el 50 % de descuento del pago voluntario (la Dirección puede quitarlo).{d.resumen.tipo === 'multas' ? ' Si lo elige, ya no puede presentar descargo.' : ''}</li>
                 <li><strong>Descargo</strong>: explica su versión y adjunta pruebas.{d.resumen.tipo === 'multas' ? ' Si lo presenta, ya no puede hacer el pago voluntario.' : ''} La Dirección lo analiza antes de dictar el fallo.</li>
                 <li><strong>No hacer nada</strong>: vencido el plazo la Dirección dicta el fallo con lo que consta en el acta. Hasta el fallo puede seguir pidiendo el pago con el descuento.</li>
               </ol>
@@ -263,7 +258,7 @@ export function PortalCausa() {
                   <div className="li-sub">N° {b.numero} · {pesos(Number(b.monto))} · vence {fechaCorta(b.vencimiento)} · a nombre de {b.a_nombre_de}</div>
                   <div className="li-sub"><strong>{ESTADO_BOL[b.estado] ?? b.estado}</strong></div>
                 </div>
-                {b.estado === 'emitida' ? <button type="button" className="btn btn-success" onClick={() => void pagar(b)}>Pagar (simulado)</button> : null}
+                {b.estado === 'emitida' ? <span className="texto-ayuda">Abónela en los medios de pago habilitados (Malvinas 2000). El pago lo registra la Dirección de Faltas.</span> : null}
               </li>
             ))}
           </ul>

@@ -26,6 +26,7 @@ export async function POST(req: NextRequest) {
     if (body.accion === 'observar') check(tipo === 'descargo' && !p.reenvio_de, 'Solo se observa un descargo, y por única vez');
 
     const aNombre = p.ciudadano ? (p.ciudadano.razon_social || `${p.ciudadano.nombre} ${p.ciudadano.apellido}`) : String(c.infractor_razon_social || c.infractor_nombre || '');
+    let constancia: string | null = null;
     if (body.accion === 'aceptar') {
       if (tipo === 'pago_voluntario' || tipo === 'boleta' || tipo === 'cuotas') {
         // 50 % si no presentó descargo (y sin fallo); se quita solo por decisión del agente o la Dirección, con motivo.
@@ -38,11 +39,13 @@ export async function POST(req: NextRequest) {
         const modo = tipo === 'cuotas' ? 'cuotas' : conDescuento ? 'voluntario' : 'total';
         const cuotas = tipo === 'cuotas' ? Number(body.cuotas ?? p.cuotas_solicitadas ?? 1) : 1;
         const emision = await emitirBoletas(db, c, modo, cuotas, aNombre, quien);
+        if ('constancia' in emision) constancia = emision.constancia ?? null;
         // Compromiso de pago desde plantilla, a nombre de quien firma (SF-52, SF-53)
         const codigo = esContravencional(c.infraccion_tipo_nombre)
           ? (c.estado_faltas === 'Fallo notificado' ? 'COMPROMISO_FALLO_CONTRAVENCION' : 'COMPROMISO_CONTRAVENCION_PV')
           : (modo === 'voluntario' ? 'COMPROMISO_TRANSITO_INFRACTOR_PV' : 'COMPROMISO_FALLO_TRANSITO');
-        const { data: pl } = await db.from('plantilla').select('id').eq('codigo', codigo).maybeSingle();
+        // Cobro por $0: no hay compromiso de pago, solo la constancia (emitirBoletas ya la generó).
+        const { data: pl } = 'constancia' in emision ? { data: null } : await db.from('plantilla').select('id').eq('codigo', codigo).maybeSingle();
         if (pl) {
           const g = await generarEscrito(db, user, c, (pl as { id: number }).id);
           // Prellena los campos conocidos del compromiso; si queda alguno sin dato, queda en borrador para el agente.
@@ -93,6 +96,6 @@ export async function POST(req: NextRequest) {
     if (p.ciudadano?.email) {
       await enviarCorreo(db, p.ciudadano.email, `Respuesta a su ${NOMBRE[tipo] ?? 'presentación'} · Acta ${c.legajo_numero_acta}`, `${body.accion === 'aceptar' ? 'Su solicitud fue aceptada.' : body.accion === 'observar' ? 'Su descargo fue observado (pase a subsanar). Complete lo que falta y reenvíelo una única vez desde el portal.' : 'Su solicitud no fue admitida.'} ${respuesta}${body.accion === 'aceptar' && tipo !== 'descargo' && tipo !== 'apelacion' ? ' La boleta está disponible en el portal.' : ''}`, c.id);
     }
-    return { ok: true };
+    return { ok: true, constancia };
   }, 'resolverPresentaciones');
 }

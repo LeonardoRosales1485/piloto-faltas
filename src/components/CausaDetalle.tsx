@@ -175,7 +175,11 @@ export function CausaDetalle({ embebida }: { embebida?: { uuid: string; onCambio
   async function accion(nombre: string, datos: R = {}, ok = 'Listo') {
     try {
       const r = await http.post<R>('/api/causa/accion', { uuid, accion: nombre, datos });
-      notify.success(ok);
+      if (r?.constancia) {
+        // Cobro por $0: en lugar de boleta, constancia en PDF de que no debe nada.
+        notify.success('Monto $ 0: no se emitió boleta', 'Se generó la constancia de que no debe abonar nada.', { texto: 'Abrir constancia (PDF)', href: `/imprimir/documento/${r.constancia}` });
+        window.open(`/imprimir/documento/${r.constancia}`, '_blank');
+      } else notify.success(ok);
       setModal(null);
       cargar();
       return r;

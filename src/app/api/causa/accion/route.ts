@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { correspondeDescuento, efectoNotificacionPositiva, emitirBoletas, evaluarArchivoPorPago, generarEscrito, notificarActa, notificarDocumento, valorizacion, valoresVigentes } from '@/lib/causa-srv';
+import { constanciaSinMonto, correspondeDescuento, efectoNotificacionPositiva, emitirBoletas, evaluarArchivoPorPago, generarEscrito, notificarActa, notificarDocumento, valorizacion, valoresVigentes } from '@/lib/causa-srv';
 import { ESTADOS, esBoletaLiberacion, estadoFinal, puede, pesos, REQUISITOS_LIBERACION } from '@/lib/dominio';
 import { descargoPendiente } from '@/lib/camino';
 import { calculoLiberacion, claseVehiculo, diasEnDeposito, tarifaEstadia, validezLiberacionMs } from '@/lib/tarifas';
@@ -224,6 +224,11 @@ export async function POST(req: NextRequest) {
         check(ingreso > 0, 'Indique la fecha de ingreso al depósito');
         const dias = diasEnDeposito(ingreso);
         const est = await tarifaEstadia(db, claseVehiculo(c.vehiculo_tipo_nombre as string | null), dias);
+        if (est.monto <= 0) {
+          // Estadía sin cargo: constancia en PDF en lugar de una boleta por $0.
+          await db.from('infraccion').update({ estadia_ingreso_at: ingreso }).eq('id', c.id);
+          return { constancia: await constanciaSinMonto(db, c, quien, txt('aNombre') || String(c.infractor_nombre || ''), 'estadia') };
+        }
         const { reservar } = await import('@/lib/acta-srv');
         const num = await reservar(db, `BOL-${new Date().getFullYear()}`);
         await db.from('infraccion').update({ estadia_ingreso_at: ingreso }).eq('id', c.id);

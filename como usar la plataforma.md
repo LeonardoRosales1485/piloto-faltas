@@ -100,7 +100,7 @@ Para cualquier opción debe adjuntar el **DNI de frente y de dorso**, y el **est
 
 ## 6. El infractor paga y Faltas confirma
 
-1. En el portal, en **Boletas**, el ciudadano toca **«Pagar (simulado)»**. La boleta queda **«a verificar»**.
+1. El ciudadano ve la boleta en el portal y la abona fuera del sistema (Malvinas 2000). Desde la causa, Faltas toca **«Informar pago»** en la boleta: queda **«a verificar»**.
 2. Como **operador**, entrá a **Pagos**, pestaña **«A verificar»**, y tocá **Confirmar**. Esto equivale a la acreditación de Malvinas 2000.
 3. Si se pagó todo y **no hay medida preventiva vigente**, la causa pasa sola a **«Archivo por pago»** y deja de verse en el portal. **Fin del camino feliz.**
 
@@ -179,7 +179,7 @@ Lo mismo con la **licencia retenida**: con la multa paga o la causa resuelta, el
 - **Ingreso:** usuario y clave locales, en lugar del usuario municipal (SSO).
 - **Firma digital** del inspector y de la Directora: deja constancia de quién firmó y cuándo, con un código de verificación.
 - **Correos:** quedan registrados en «Correos enviados».
-- **Pagos:** Malvinas 2000 se simula con el botón «Pagar (simulado)» y la confirmación en Pagos.
+- **Pagos:** Malvinas 2000 se simula: Faltas informa el pago desde la causa («Informar pago») y lo confirma en Pagos.
 - **Fuera de esta fase:** notificaciones en persona (cédulas), Depósito Vehicular y funcionamiento sin señal.
 
 
@@ -294,4 +294,9 @@ En **Configuración → Opciones sandbox** hay cuatro acciones. Todas piden escr
 - **Firma del Intendente:** los **fallos y las resoluciones** los firma el Intendente. La Directora (o el Responsable del área) los revisa y, en lugar de «Firmar digitalmente», toca **«Aprobar y enviar a firma del Intendente»**: el escrito queda «Para firma del Intendente» y no se puede modificar. El Intendente entra con su usuario a una pantalla única, **«Para firmar»** (menú lateral mínimo): ve la lista, abre cada escrito y lo **firma** o **pide revisión** con una observación (vuelve a «Escritos y firma» de la Directora con esa observación). El sello del escrito dice «Intendente Municipal». Las disposiciones las sigue firmando la Directora. Qué categorías firma el Intendente se define en la configuración (`firma_intendente_categorias`).
 - **Descuento del pago:** corresponde el **50 %** si el infractor **no presentó descargo** y la causa no tiene fallo, dentro o fuera de plazo. Al aceptar un pedido de pago se elige «Según corresponda» o **«Quitar el descuento»** (con el motivo en la respuesta, queda en el historial). En «Emitir boleta», el tipo «Pago» aplica la regla y «Pago sin descuento» pide el motivo. Con descargo presentado no se puede dar el descuento. Las cuotas siguen sin descuento.
 - **UF:** sin cambios: los montos se actualizan solos con los valores vigentes mientras la causa está abierta y se fijan al emitir la boleta; los ajustes manuales siguen valiendo.
+
+## Solicitud de pago y cobros por $0 (pedido del 22/10/2026)
+
+- **El infractor no paga desde el portal.** «Solicitar pago» y «Solicitar plan de cuotas» son solo solicitudes: quedan en «Presentaciones» y las habilita un agente, la Directora o el Responsable (como hasta ahora, «Aceptar» emite las boletas). En el portal las boletas se ven, pero ya no está el botón «Pagar»: se abonan en los medios habilitados y el pago lo registra Faltas («Informar pago» / «Confirmar acreditación» o «Confirmar con comprobante»).
+- **Cobro por $0:** si al emitir la boleta (desde la causa o al aceptar un pedido de pago) el total da $ 0, no se emite boleta: se genera la **«Constancia: no registra monto a abonar»** (PDF, con código de verificación), que se abre sola y queda en «Escritos y documentos» y en el portal. Lo mismo con la boleta de estadía cuando no hay días con cargo. La causa no cambia de estado: si corresponde, se archiva desde «Archivar».
 

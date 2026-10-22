@@ -48,7 +48,11 @@ export function TarjetaPresentacion({ p, causa, adjuntos = [], gestion, destacad
     try {
       const respuesta = [...String(v.pedido ?? '').split(',').filter(Boolean), (v.respuesta ?? '').trim()].filter(Boolean).join(' ');
       if (resolver === 'observar' && !respuesta) { notify.error('Falta la respuesta', 'Indique qué documentación falta o escriba la respuesta.'); return; }
-      await http.post('/api/presentacion/resolver', { uuid: p.uuid, accion: resolver, respuesta, cuotas: v.cuotas ? Number(v.cuotas) : undefined, conDescuento: v.descuento === 'quitar' ? false : undefined });
+      const r = await http.post<{ constancia?: string | null }>('/api/presentacion/resolver', { uuid: p.uuid, accion: resolver, respuesta, cuotas: v.cuotas ? Number(v.cuotas) : undefined, conDescuento: v.descuento === 'quitar' ? false : undefined });
+      if (r?.constancia) {
+        notify.success('Monto $ 0: no se emitió boleta', 'Se generó la constancia de que no debe abonar nada.', { texto: 'Abrir constancia (PDF)', href: `/imprimir/documento/${r.constancia}` });
+        window.open(`/imprimir/documento/${r.constancia}`, '_blank');
+      }
       setResolver(null);
       onResuelta(p, resolver);
     } catch (e) {

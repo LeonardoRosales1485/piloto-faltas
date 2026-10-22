@@ -429,6 +429,28 @@ export async function correspondeDescuento(d: Db, c: CausaRow): Promise<boolean>
   return !count;
 }
 
+/**
+ * Constancia de que no hay monto a abonar (cobro por $0): escrito definitivo con código de verificación, visible en la
+ * causa y en el portal e imprimible en PDF. No cambia el estado de la causa. Devuelve el uuid del escrito.
+ */
+export async function constanciaSinMonto(d: Db, c: CausaRow, quien: string, aNombre: string, concepto: 'multa' | 'estadia') {
+  const ahora = Date.now();
+  const que = concepto === 'estadia' ? 'en concepto de estadía en el depósito municipal' : 'en concepto de multa, derecho de oficina y acarreo';
+  const html = `<p style="text-align:center"><strong>CONSTANCIA DE INEXISTENCIA DE MONTO A ABONAR</strong></p>
+<p>Se deja constancia de que, en la causa correspondiente al Acta N.° <strong>${c.legajo_numero_acta}</strong> (legajo ${c.legajo_number}/${c.legajo_anio}), a nombre de <strong>${aNombre || c.infractor_razon_social || c.infractor_nombre || '-'}</strong>${c.vehiculo_numero_dominio ? `, dominio ${c.vehiculo_numero_dominio}` : ''}, el monto a abonar ${que} es de <strong>$ 0,00 (pesos cero)</strong>.</p>
+<p>En consecuencia, <strong>no debe abonar suma alguna</strong> por dicho concepto. No se emite boleta de pago.</p>
+<p>Malvinas Argentinas, ${fechaCorta(ahora)}.</p>`;
+  const docUuid = uuid();
+  const hash = sha(`${html}|${quien}|${ahora}`);
+  await d.from('documento').insert({
+    uuid: docUuid, infraccion_id: c.id, tipo: 'escrito', titulo: 'Constancia: no registra monto a abonar', contenido_html: html, valores_json: '{}',
+    modo_edicion: 'libre', estado: 'definitivo', hash, creado_por: quien, date_created: ahora, date_updated: ahora,
+  });
+  await d.from('documento').update({ hash_por: quien, hash_at: ahora }).eq('uuid', docUuid); // sql/032
+  await historial(d, c.id, quien, 'Constancia de monto $ 0 emitida', `No se emite boleta: el monto ${que} es $ 0,00 · código ${hash.slice(0, 16).toUpperCase()}`);
+  return docUuid;
+}
+
 // ---------------------------------------------------------------------------
 // Boletas y pagos (emisión y acreditación de Malvinas 2000 simuladas)
 // ---------------------------------------------------------------------------
@@ -444,6 +466,11 @@ export async function emitirBoletas(
   const acarreoMonto = Number(c.acarreo) === 1 ? await tarifaAcarreo(d, claseVehiculo(c.vehiculo_tipo_nombre as string | null)) : 0;
   const total = multa + acarreoMonto + (yaCobroDerecho ? 0 : derecho);
   const detalle = { multa, acarreo: acarreoMonto, derecho_oficina: yaCobroDerecho ? 0 : derecho, unidades: v.unidades, uf: v.uf, modo };
+  // Cobro por $0 (pedido 22/10): no se emite boleta; queda una constancia en PDF de que no hay nada para abonar.
+  if (total <= 0) {
+    const constancia = await constanciaSinMonto(d, c, quien, aNombre, 'multa');
+    return { total: 0, cuotas: 0, detalle, constancia };
+  }
   const n = modo === 'cuotas' ? Math.max(1, cuotas) : 1;
   const ahora = Date.now();
   const fer = await feriados(d);
