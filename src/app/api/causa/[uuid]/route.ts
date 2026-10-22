@@ -13,7 +13,7 @@ export async function GET(req: NextRequest, ctx: Ctx) {
   const { uuid } = await ctx.params;
   return handle(req, async ({ db }) => {
     const c = await causaPorUuid(db, uuid);
-    const [acta, hist, docs, pres, bol, notif, imgs, v, sub, actaVigente, memos] = await Promise.all([
+    const [acta, hist, docs, pres, bol, notif, imgs, v, sub, actaVigente, memos, rec] = await Promise.all([
       loadInfraccionByUuid(uuid),
       db.from('causa_historial').select('*').eq('infraccion_id', c.id).order('id', { ascending: false }),
       db.from('documento').select('id, uuid, tipo, titulo, estado, numero, fecha_numero, firmado_por, firmado_at, creado_por, date_created, observacion, archivo_nombre, presentacion_id, plantilla(categoria, codigo)').eq('infraccion_id', c.id).order('id', { ascending: false }),
@@ -25,6 +25,7 @@ export async function GET(req: NextRequest, ctx: Ctx) {
       subsanacionDe(db, c.id),
       loadInfraccionByUuid(uuid, { vigente: true }),
       db.from('memo').select('*').eq('infraccion_id', c.id).order('id', { ascending: false }),
+      db.from('recurso').select('uuid, tipo, instancia, expediente, fecha_elevacion, estado, resultado, monto_ordenado, sentencia_documento_id, movimientos_json, creado_por, resuelto_at').eq('infraccion_id', c.id).order('id', { ascending: false }),
     ]);
     // Bandeja de trabajo en la que está la causa (para «Seguir acta»).
     const { lista } = await conBandejas(db, [c as unknown as FilaCausa]);
@@ -34,6 +35,8 @@ export async function GET(req: NextRequest, ctx: Ctx) {
       actaVigente: sub ? actaVigente : null,
       subsanacion: sub,
       memos: memos.data ?? [],
+      // Sin sql/032 la tabla no existe: la solapa queda vacía.
+      recursos: rec.error ? [] : (rec.data ?? []),
       // Valores actuales (originales) de los campos corregibles, para precargar «Subsanar datos».
       subsanables: CAMPOS_SUBSANABLES.map((f) => ({ ...f, valor: valorDe(c as unknown as Record<string, unknown>, f.k, acta?.leyesNombre ?? []) })),
       historial: hist.data ?? [],

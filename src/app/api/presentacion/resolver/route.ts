@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server';
+import { elevarRecurso } from '@/lib/recursos-srv';
 import { camposCompletar, faltantes } from '@/lib/campos';
 import { emitirBoletas, generarEscrito, efectosDefinitivo } from '@/lib/causa-srv';
 import { esContravencional } from '@/lib/dominio';
@@ -70,7 +71,12 @@ export async function POST(req: NextRequest) {
       } else if (tipo === 'descargo') {
         await cambiarEstado(db, c, 'Descargo', quien, 'Descargo aceptado', 'Pasa a la bandeja para fallo.');
       } else if (tipo === 'apelacion') {
-        await cambiarEstado(db, c, 'En Juzgado', quien, 'Apelación concedida', 'Se remite el legajo completo en PDF al Juzgado de Paz.');
+        // Queda registrado el recurso (solapa «Recursos») para cargar expediente, movimientos y sentencia.
+        try {
+          await elevarRecurso(db, c, quien, { instancia: 'Juzgado de Paz Letrado', expediente: '', fecha: Date.now(), tipo: 'apelacion', detalle: 'Apelación concedida desde la presentación del infractor.' });
+        } catch {
+          await cambiarEstado(db, c, 'En Juzgado', quien, 'Apelación concedida', 'Se remite el legajo completo en PDF al Juzgado de Paz.');
+        }
       }
     } else if (body.accion === 'observar') {
       await cambiarEstado(db, c, 'Causa observada', quien, 'Descargo observado', respuesta);

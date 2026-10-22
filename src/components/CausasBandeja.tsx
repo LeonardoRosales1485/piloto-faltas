@@ -16,6 +16,7 @@ import { useNotify } from './NotifyProvider';
 import { exportarApremios } from '@/lib/apremios-client';
 import { getUser } from '@/lib/auth-client';
 import { useRefresco } from '@/lib/use-refresco';
+import { CausaDetalle } from './CausaDetalle';
 
 type Fila = Record<string, string | number | null> & { uuid: string };
 type Resp = { content: Fila[]; totalElements: number; totalPages: number; page: number; conteos: Record<string, number>; conteosTrabajo?: Record<BandejaTrabajoId, number> };
@@ -43,6 +44,21 @@ export function CausasBandeja() {
   // Tipos de acta que el usuario puede labrar (su área): botón «Nueva acta».
   const [labra, setLabra] = useState<ModuloActa[]>([]);
   useEffect(() => { const u = getUser(); setLabra(puede(u?.rol, 'labrar') ? modulosDe(u) : []); }, []);
+  // Vista dividida (minuta 20/10): lista a la izquierda y la causa abierta a la derecha, en pantallas anchas.
+  // La preferencia queda en el navegador.
+  const [dividida, setDividida] = useState(false);
+  const [ancha, setAncha] = useState(false);
+  const [abierta, setAbierta] = useState<string | null>(null);
+  useEffect(() => {
+    try { setDividida(localStorage.getItem('faltas:vista-dividida') === '1'); } catch { /* sin almacenamiento */ }
+    const mq = window.matchMedia('(min-width: 1200px)');
+    const f = () => setAncha(mq.matches);
+    f();
+    mq.addEventListener('change', f);
+    return () => mq.removeEventListener('change', f);
+  }, []);
+  const alternarDividida = () => setDividida((v) => { try { localStorage.setItem('faltas:vista-dividida', v ? '0' : '1'); } catch { /* idem */ } if (v) setAbierta(null); return !v; });
+  const enPanel = dividida && ancha;
   const alternar = (c: Fila) => setSel((m) => { const n = new Map(m); if (n.has(c.uuid)) n.delete(c.uuid); else n.set(c.uuid, String(c.legajo_numero_acta)); return n; });
 
   const cargar = useCallback((silencioso = false) => {
@@ -78,7 +94,7 @@ export function CausasBandeja() {
   }, [menuAbierto]);
   function aplicar(f: () => void) { f(); setPage(0); setMenuAbierto(false); }
 
-  return (
+  const lista = (
     <div className="pagina">
       <h1 className="visually-hidden">{infoTrabajo ? `Bandeja: ${infoTrabajo.titulo}` : 'Causas'}</h1>
       {r?.conteosTrabajo ? (
@@ -156,6 +172,9 @@ export function CausasBandeja() {
           <i className="fa-solid fa-magnifying-glass" aria-hidden="true" />
           <input aria-label="Buscar por acta, legajo, dominio, documento o nombre" className="form-control" value={texto} onChange={(e) => { setTexto(e.target.value); setPage(0); }} placeholder="Buscar acta, legajo, dominio, documento o nombre" />
         </div>
+        <button type="button" className={`btn btn-outline-secondary text-nowrap d-none d-xl-inline-flex align-items-center gap-1 ${dividida ? 'active' : ''}`} aria-pressed={dividida} title="Lista y causa lado a lado" onClick={alternarDividida}>
+          <i className="fa-solid fa-table-columns" aria-hidden="true" /> Vista dividida
+        </button>
         {labra.map((m) => (
           <Link key={m} href={`/private/crear-editar/${m}`} className="btn btn-primary text-nowrap">
             <i className="fa-solid fa-plus" aria-hidden="true" /> {labra.length === 1 ? 'Nueva acta' : `Nueva acta de ${TIPOS_ACTA[m].corto.toLowerCase()}`}
@@ -199,10 +218,10 @@ export function CausasBandeja() {
                 <tr><td colSpan={gestion ? 9 : 8}><LoaderLogo tam={56} texto="Cargando causas…" /></td></tr>
               ) : null}
               {!cargando && (r?.content ?? []).map((c) => (
-                <tr key={c.uuid}>
+                <tr key={c.uuid} className={enPanel && abierta === c.uuid ? 'fila-abierta' : undefined}>
                   {gestion ? <td><input type="checkbox" className="form-check-input" aria-label={`Seleccionar ${c.legajo_numero_acta}`} checked={sel.has(c.uuid)} onChange={() => alternar(c)} /></td> : null}
                   <td>
-                    <Link href={`/private/causa/${c.uuid}${trabajo ? `?b=${trabajo}` : ''}`} className="fw-semibold">{c.legajo_numero_acta}</Link>
+                    <Link href={`/private/causa/${c.uuid}${trabajo ? `?b=${trabajo}` : ''}`} className="fw-semibold" onClick={(e) => { if (enPanel && !e.ctrlKey && !e.metaKey) { e.preventDefault(); setAbierta(c.uuid); } }}>{c.legajo_numero_acta}</Link>
                     <div className="texto-ayuda">{TIPOS_ACTA[tipoActa(String(c.infraccion_tipo_nombre))].corto}</div>
                   </td>
                   <td>{c.legajo_number}/{c.legajo_anio}</td>
@@ -250,6 +269,25 @@ export function CausasBandeja() {
           </div>
         ) : null}
       </div>
+    </div>
+  );
+  if (!enPanel) return lista;
+  return (
+    <div className="vista-dividida">
+      <div className="vd-lista">{lista}</div>
+      <aside className="vd-panel" aria-label="Causa abierta">
+        {abierta ? (
+          <>
+            <div className="vd-panel-barra">
+              <Link href={`/private/causa/${abierta}${trabajo ? `?b=${trabajo}` : ''}`} className="btn btn-sm btn-outline-secondary"><i className="fa-solid fa-up-right-and-down-left-from-center" aria-hidden="true" /> Abrir completa</Link>
+              <button type="button" className="btn btn-sm btn-outline-secondary" aria-label="Cerrar el panel" onClick={() => setAbierta(null)}><i className="fa-solid fa-xmark" aria-hidden="true" /></button>
+            </div>
+            <CausaDetalle key={abierta} embebida={{ uuid: abierta, onCambio: () => cargar(true), onCerrar: () => setAbierta(null) }} />
+          </>
+        ) : (
+          <div className="sin-resultados py-5"><i className="fa-solid fa-table-columns" aria-hidden="true" /><p className="mb-0">Elija una causa de la lista para verla acá.</p></div>
+        )}
+      </aside>
     </div>
   );
 }

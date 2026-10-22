@@ -5,6 +5,8 @@ import { descargoPendiente } from '@/lib/camino';
 import { calculoLiberacion, claseVehiculo, diasEnDeposito, tarifaEstadia, validezLiberacionMs } from '@/lib/tarifas';
 import { CAMPOS_SUBSANABLES, subsanacionDe, valorDe } from '@/lib/subsanacion';
 import { accionesDisponibles, type Presentacion } from '@/lib/portal-srv';
+import { controlarAdjuntos } from '@/lib/adjuntos-srv';
+import { elevarRecurso, movimientoRecurso, resolverRecurso } from '@/lib/recursos-srv';
 import { boletasLiberacionActivas, calcularEstadoLiberacion, datosLiberacion, type BoletaLib, type CausaLib } from '@/lib/liberacion-srv';
 import {
   cambiarEstado, causaPorUuid, check, configNum, handle, historial, HttpError, nombreUsuario, uuid,
@@ -66,6 +68,7 @@ export async function POST(req: NextRequest) {
         return { ok: true };
       }
       case 'adjuntar': {
+        await controlarAdjuntos(db, [{ nombre: txt('archivoNombre'), raw: txt('archivoRaw') }]);
         check(txt('archivoRaw').startsWith('data:'), 'Archivo inválido');
         await db.from('documento').insert({ uuid: uuid(), infraccion_id: c.id, tipo: 'adjunto', titulo: txt('titulo') || txt('archivoNombre'), archivo_nombre: txt('archivoNombre'), archivo_raw: txt('archivoRaw'), estado: 'definitivo', creado_por: quien, date_created: Date.now() });
         await historial(db, c.id, quien, 'Documento adjuntado', txt('titulo') || txt('archivoNombre'));
@@ -232,6 +235,7 @@ export async function POST(req: NextRequest) {
         check(data, 'Boleta inexistente', 404);
         const b = data as { id: number; numero: string; monto: number; pagado_at: number | null };
         await db.from('boleta').update({ estado: 'definitiva', pagado_at: b.pagado_at ?? Date.now(), confirmado_por: quien }).eq('id', b.id);
+        await db.from('boleta').update({ acreditado_at: Date.now() }).eq('id', b.id); // sql/032 (informe del Tribunal de Cuentas)
         await historial(db, c.id, quien, 'Pago acreditado (definitivo)', `Boleta ${b.numero} · ${pesos(Number(b.monto))}`);
         await evaluarArchivoPorPago(db, c, quien);
         return { ok: true };
@@ -246,12 +250,14 @@ export async function POST(req: NextRequest) {
         check(['emitida', 'a_verificar', 'vencida'].includes(b.estado), 'La boleta ya está acreditada o anulada', 409);
         check(txt('archivoRaw').startsWith('data:'), 'Adjunte el comprobante de pago (foto o PDF)');
         check(txt('declaracion') === 'si', 'Debe aceptar la declaración de responsabilidad');
+        await controlarAdjuntos(db, [{ nombre: txt('archivoNombre'), raw: txt('archivoRaw') }]);
         const docUuid = uuid();
         await db.from('documento').insert({ uuid: docUuid, infraccion_id: c.id, tipo: 'adjunto', titulo: `Comprobante de pago · Boleta ${b.numero}`, archivo_nombre: txt('archivoNombre') || 'comprobante', archivo_raw: txt('archivoRaw'), estado: 'definitivo', creado_por: quien, date_created: Date.now() });
         let det: Record<string, unknown> = {};
         try { det = JSON.parse(b.detalle_json || '{}') as Record<string, unknown>; } catch { det = {}; }
         const conciliacion = { estado: 'pendiente', comprobante: docUuid, confirmadoPor: quien, confirmadoAt: Date.now(), detalle: txt('detalle') || null };
         await db.from('boleta').update({ estado: 'definitiva', pagado_at: b.pagado_at ?? Date.now(), confirmado_por: `${quien} (manual)`, detalle_json: JSON.stringify({ ...det, conciliacion }) }).eq('id', b.id);
+        await db.from('boleta').update({ acreditado_at: Date.now() }).eq('id', b.id);
         await historial(db, c.id, quien, 'Pago confirmado manualmente (a conciliar)', `Boleta ${b.numero} · ${pesos(Number(b.monto))} · con comprobante adjunto y declaración de responsabilidad${txt('detalle') ? ` · ${txt('detalle')}` : ''}`);
         await evaluarArchivoPorPago(db, c, quien);
         return { ok: true };
@@ -269,6 +275,7 @@ export async function POST(req: NextRequest) {
         const ok = txt('resultado') !== 'rechazado';
         det.conciliacion = { ...conc, estado: ok ? 'conciliado' : 'rechazado', conciliadoPor: quien, conciliadoAt: Date.now() };
         await db.from('boleta').update(ok ? { detalle_json: JSON.stringify(det) } : { estado: 'emitida', pagado_at: null, confirmado_por: null, detalle_json: JSON.stringify(det) }).eq('id', b.id);
+        if (!ok) await db.from('boleta').update({ acreditado_at: null }).eq('id', b.id);
         await historial(db, c.id, quien, ok ? 'Pago conciliado' : 'Pago no acreditado en la conciliación', `Boleta ${b.numero} · ${pesos(Number(b.monto))}${ok ? '' : ' · la boleta vuelve a quedar impaga. Revise el estado de la causa.'}${txt('detalle') ? ` · ${txt('detalle')}` : ''}`);
         return { ok: true };
       }
@@ -287,6 +294,23 @@ export async function POST(req: NextRequest) {
         check(gestion, 'Sin permiso', 403);
         const destino = txt('destino') === 'juzgado' ? 'En Juzgado' : 'En Apremios';
         await cambiarEstado(db, c, destino, quien, `Derivación a ${destino === 'En Juzgado' ? 'Juzgado de Paz' : 'Apremios'}`, txt('detalle') || 'Se remite el legajo completo en PDF.');
+        return { ok: true };
+      }
+      // Recursos (minuta 20/10, apartado F): elevación, seguimiento y sentencia.
+      case 'elevar_recurso': {
+        check(gestion, 'Sin permiso', 403);
+        await elevarRecurso(db, c, quien, { instancia: txt('instancia'), expediente: txt('expediente'), fecha: Number(d.fechaAt) || Date.now(), tipo: txt('tipo'), detalle: txt('detalle') });
+        return { ok: true };
+      }
+      case 'movimiento_recurso': {
+        check(gestion, 'Sin permiso', 403);
+        await movimientoRecurso(db, c, quien, txt('recursoUuid'), { fecha: Number(d.fechaAt) || Date.now(), texto: txt('texto'), expediente: txt('expediente') });
+        return { ok: true };
+      }
+      case 'resolver_recurso': {
+        check(gestion, 'Sin permiso', 403);
+        await controlarAdjuntos(db, [{ nombre: txt('archivoNombre'), raw: txt('archivoRaw') }]);
+        await resolverRecurso(db, c, quien, txt('recursoUuid'), { resultado: txt('resultado'), monto: d.monto ? Number(d.monto) : null, detalle: txt('detalle'), archivoRaw: txt('archivoRaw'), archivoNombre: txt('archivoNombre'), aNombre: txt('aNombre') });
         return { ok: true };
       }
       case 'resultado_externo': {

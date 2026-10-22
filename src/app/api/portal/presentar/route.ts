@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { accionesDisponibles, handlePortal, nombreCiudadano, type Presentacion } from '@/lib/portal-srv';
 import { causaPorUuid, check, historial, uuid } from '@/lib/srv';
+import { controlarAdjuntos } from '@/lib/adjuntos-srv';
 
 type Body = { causaUuid: string; tipo: 'pago_voluntario' | 'boleta' | 'cuotas' | 'descargo' | 'apelacion' | 'reenviar_descargo'; texto?: string; cuotas?: number; adjuntos?: { nombre: string; raw: string; titulo: string }[] };
 
@@ -16,6 +17,7 @@ export async function POST(req: NextRequest) {
     const acc = accionesDisponibles(c, (pres ?? []) as Presentacion[], count ?? 0)[b.tipo];
     check(acc?.ok, acc?.motivo ?? 'Acción no disponible', 409);
     const adj = b.adjuntos ?? [];
+    await controlarAdjuntos(db, adj);
     check(adj.some((a) => a.titulo === 'DNI frente') && adj.some((a) => a.titulo === 'DNI dorso'), 'Adjunte el DNI de ambos lados');
     if (ciu.tipo_persona === 'juridica') check(adj.some((a) => a.titulo === 'Estatuto'), 'Adjunte el estatuto de la persona jurídica');
     if (['descargo', 'reenviar_descargo', 'apelacion'].includes(b.tipo)) check((b.texto ?? '').trim().length >= 20 || adj.some((a) => a.titulo === 'Escrito'), 'Escriba su presentación o adjunte el escrito firmado');

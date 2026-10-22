@@ -1098,3 +1098,12 @@ html[data-text-size='muy-grande'] { font-size: 137.5%; }
   .rb-item b { color: var(--bo-tx-azul-700); }
 }
 .seguir-acta { display: inline-flex; align-items: center; gap: .4rem; font-size: .875rem; }
+
+/* Vista dividida de las bandejas (minuta 20/10, fase 4): lista y causa lado a lado en pantallas anchas. */
+.vista-dividida { display: grid; grid-template-columns: minmax(460px, 42%) minmax(0, 1fr); gap: 1rem; align-items: start; }
+.vista-dividida .vd-lista { min-width: 0; }
+.vista-dividida .vd-lista .pagina { padding-right: 0; }
+.vista-dividida .vd-panel { position: sticky; top: .5rem; max-height: calc(100vh - 1rem); overflow-y: auto; border: 1px solid var(--bo-borde); border-radius: var(--bo-radio-lg); background: var(--bo-card); }
+.vista-dividida .vd-panel-barra { position: sticky; top: 0; z-index: 2; display: flex; justify-content: flex-end; gap: .5rem; padding: .5rem; background: inherit; border-bottom: 1px solid var(--bo-borde); }
+.vista-dividida tr.fila-abierta > td { background: var(--bo-bg-azul-50, #eff6ff); }
+[data-theme='dark'] .vista-dividida tr.fila-abierta > td { background: rgba(59, 130, 246, .15); }

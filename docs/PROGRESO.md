@@ -129,6 +129,7 @@ Avance: **20 / 20**
 | Minuta 20/10, fase 3 · Ticket de retención (vehículo o licencia) con QR y recuadro propio; impresoras del POS respetan `aviso` y `tituloArticulos` (app 1.0.2). Reingresos al portal en el historial sin tocar plazos | APK 1.0.2 |
 | Minuta 20/10, fase 3 · Control de liberación por QR (`/liberacion/[uuid]`: vigente, vencida, no entregar, entregado), QR en la disposición de levantamiento firmada y «Constancia QR»; «Boleta complementaria» al vencer; «Registrar entrega» del corralón; no se registra la liberación con la boleta vencida | — |
 | Minuta 20/10, fase 3 · Confirmación manual de pagos con comprobante adjunto y declaración de responsabilidad, marca «a conciliar» y conciliación (filtro en Pagos). Guía de capacitación `docs/GUIA-INSPECTORES.md` | — |
+| Minuta 20/10, fase 4 · Recursos (solapa, elevación, movimientos, sentencia con re-emisión de boleta o archivo); informe mensual para el Tribunal de Cuentas (CSV/PDF); acta con correcciones; trazabilidad y verificación del hash; límites de adjuntos (tamaño, formatos, fojas); vista dividida de bandejas | sql/032 |
 | Menú «Bandejas»: «Todas las causas» pasa a ser el primer ítem | — |
 
 ## Fuera del alcance del prototipo

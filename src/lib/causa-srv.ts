@@ -363,6 +363,19 @@ export async function generarEscrito(d: Db, user: UsuarioRow, c: CausaRow, plant
 }
 
 /** Efectos al quedar definitivo/firmado: numeración, cambio de estado, levantamiento de medida. */
+/**
+ * Verifica el código de un escrito firmado o definitivo: lo recalcula con el texto guardado, quién lo generó y cuándo.
+ * «alterado» si el texto cambió después de la firma; «sin_datos» si es anterior a sql/032 y no se puede recalcular.
+ */
+export function verificarHashDocumento(doc: { contenido_html?: unknown; hash?: unknown; hash_por?: unknown; hash_at?: unknown; firmado_por?: unknown; firmado_at?: unknown }) {
+  const por = String(doc.hash_por ?? doc.firmado_por ?? '');
+  const at = Number(doc.hash_at ?? doc.firmado_at ?? 0);
+  if (!doc.hash) return { estado: 'sin_firma' as const };
+  if (!por || !at) return { estado: 'sin_datos' as const };
+  const ok = sha(`${String(doc.contenido_html ?? '')}|${por}|${at}`) === String(doc.hash);
+  return { estado: ok ? ('ok' as const) : ('alterado' as const), por, at, codigo: String(doc.hash).slice(0, 16).toUpperCase() };
+}
+
 export async function efectosDefinitivo(d: Db, user: UsuarioRow, docUuid: string, firmado: boolean) {
   const { data } = await d.from('documento').select('*, plantilla(*)').eq('uuid', docUuid).single();
   const doc = data as Record<string, unknown> & { plantilla: Record<string, unknown> | null };
@@ -382,7 +395,9 @@ export async function efectosDefinitivo(d: Db, user: UsuarioRow, docUuid: string
     contenido_html: html, numero, fecha_numero: numero ? ahora : null, estado: firmado ? 'firmado' : 'definitivo',
     hash, firmado_por: firmado ? quien : null, firmado_at: firmado ? ahora : null, date_updated: ahora,
   }).eq('id', doc.id as number);
-  await historial(d, c.id, quien, firmado ? 'Escrito firmado digitalmente' : 'Escrito definitivo', `${doc.titulo}${numero ? ` N° ${numero}` : ''} · código ${hash.slice(0, 12)}`);
+  // Trazabilidad (sql/032): quién y cuándo generó el código, para poder recalcularlo. Aparte, por si la migración no corrió.
+  await d.from('documento').update({ hash_por: quien, hash_at: ahora }).eq('id', doc.id as number);
+  await historial(d, c.id, quien, firmado ? 'Escrito firmado digitalmente' : 'Escrito definitivo', `${doc.titulo}${numero ? ` N° ${numero}` : ''} · código de verificación ${hash.slice(0, 16).toUpperCase()}`);
 
   if (pl.codigo === 'DISPOSICION_LEVANTAMIENTO') {
     await d.from('infraccion').update({ medida_vigente: 0 }).eq('id', c.id);

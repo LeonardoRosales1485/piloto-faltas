@@ -8,6 +8,7 @@ import { http } from '@/lib/api-client';
 import { fechaCorta, fechaHora, pesos } from '@/lib/dominio';
 import { useNotify } from './NotifyProvider';
 import { LoaderLogo } from './LoaderLogo';
+import { InformeTribunal } from './InformeTribunal';
 import { useCarga } from '@/lib/use-carga';
 
 type R = Record<string, any>;
@@ -169,6 +170,7 @@ export function Reportes() {
           </div>
         </>
       ) : null}
+      <InformeTribunal />
     </div>
   );
 }

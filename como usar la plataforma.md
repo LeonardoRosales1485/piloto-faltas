@@ -274,3 +274,15 @@ En **Configuración → Opciones sandbox** hay cuatro acciones. Todas piden escr
 - **Confirmación manual de pagos:** en la causa (pestaña de boletas) y en **Pagos**, **«Confirmar con comprobante»** acredita el pago con el comprobante adjunto (queda en la causa) y la declaración de responsabilidad, para cuando la acreditación se demora. La boleta queda paga y **«A conciliar»** (filtro nuevo en Pagos); con **«Conciliar»** se marca acreditada o, si no llegó, vuelve a impaga.
 - **Guía para inspectores:** `docs/GUIA-INSPECTORES.md`, para la capacitación.
 
+## Después de la prueba (fase 4, minuta 20/10/2026)
+
+> Requiere correr `sql/032_recursos_y_trazabilidad.sql` en Supabase.
+
+- **Recursos:** solapa **«Recursos»** en la causa. **«Elevar recurso»** (también en las acciones, con el fallo notificado) registra instancia, tipo, fecha y n.° de expediente y pasa la causa a «En Juzgado». Al conceder una apelación del portal, el recurso se crea solo. Con **«Agregar movimiento»** se hace el seguimiento.
+- **Sentencias:** **«Registrar sentencia»** pide el resultado y la sentencia adjunta. *Confirma* o *modifica*: anula las boletas impagas y re-emite la boleta por el monto ordenado (queda «Esp. Acreditar Pago»). *Revoca*: archivo por absolución. *Nulidad*: archivo por nulidad.
+- **Informe mensual para el Tribunal de Cuentas:** en **Reportes**, al pie. Se elige el mes y lista los pagos por fecha de acreditación, con multas, derecho de oficina, acarreo y estadía (las cuotas se prorratean). Exporta a Excel (CSV) e imprime/PDF. Marca los pagos confirmados a mano que siguen a conciliar.
+- **Acta con correcciones:** si la causa tiene subsanación, junto a «Ver acta» aparece **«Acta con correcciones (PDF)»**: el acta con los datos corregidos, la leyenda «ACTA CON CORRECCIONES» y la tabla de cambios. El acta original no se modifica.
+- **Hash y trazabilidad:** el acta lleva al pie quién la firmó, la fecha y hora y el código de verificación. Los escritos definitivos también muestran el código, quién lo generó y cuándo. En «Escritos y documentos», **«Verificar»** recalcula el código con el texto guardado y avisa si coincide.
+- **Límites de adjuntos:** PDF o imagen (JPG, PNG), hasta 3 MB por archivo, 8 archivos y 30 fojas por presentación (provisorio, en la configuración: `adjuntos_max_mb`, `adjuntos_max_archivos`, `adjuntos_max_fojas`). Las fotos se achican solas. Se controla en el portal y en el servidor (también en «Adjuntar documento», comprobantes y sentencias).
+- **Vista dividida:** en las bandejas, en pantallas anchas, el botón **«Vista dividida»** muestra la lista a la izquierda y la causa elegida a la derecha. «Abrir completa» la lleva a pantalla entera. Con «Seguir acta» apagado, el panel se cierra cuando la causa cambia de bandeja.
+

@@ -1,6 +1,7 @@
 'use client';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+import { ACCEPT_ADJUNTOS, LIMITES_DEFECTO, leerAdjunto, textoLimites, validarAdjuntos, type LimitesAdjuntos } from '@/lib/adjuntos';
 import { BotonVerActa, GaleriaFotos } from './ActaEvidencia';
 import Link from 'next/link';
 import { LoaderLogo } from './LoaderLogo';
@@ -28,9 +29,6 @@ const TIPO_PRES: Record<string, string> = { pago_voluntario: 'Pago voluntario', 
 const ESTADO_PRES: Record<string, string> = { pendiente: 'En análisis', aceptada: 'Aceptada', rechazada: 'No admitida', observada: 'Observada: complete lo que falta', reenviada: 'Reenviada' };
 const ESTADO_BOL: Record<string, string> = { emitida: 'Pendiente de pago', a_verificar: 'Pago informado: a verificar', definitiva: 'Pagada', vencida: 'Vencida' };
 
-function leer(f: File) {
-  return new Promise<string>((res) => { const r = new FileReader(); r.onload = () => res(String(r.result)); r.readAsDataURL(f); });
-}
 
 /** Causa en el portal: aviso de notificación, estado, documentos, boletas y presentaciones (PI-08 a PI-27). */
 export function PortalCausa() {
@@ -40,6 +38,7 @@ export function PortalCausa() {
   const [contacto, setContacto] = useState('');
   const [form, setForm] = useState<string | null>(null);
   const [texto, setTexto] = useState('');
+  const [limites, setLimites] = useState<LimitesAdjuntos>(LIMITES_DEFECTO);
   const [cuotas, setCuotas] = useState(3);
   const [adj, setAdj] = useState<{ titulo: string; nombre: string; raw: string }[]>([]);
   const [msg, setMsg] = useState<{ ok: boolean; t: string } | null>(null);
@@ -61,14 +60,17 @@ export function PortalCausa() {
       return;
     }
     cargar();
-    portal.get<{ textos: Record<string, string>; contacto: string }>('/api/portal/textos').then((r) => { setTextos(r.textos); setContacto(r.contacto); });
+    portal.get<{ textos: Record<string, string>; contacto: string; limites?: LimitesAdjuntos }>('/api/portal/textos').then((r) => { setTextos(r.textos); setContacto(r.contacto); if (r.limites) setLimites(r.limites); });
   }, [cargar, uuid]);
   // Se actualiza sola cuando la Dirección mueve la causa (cada 20 s y al volver a la pestaña).
   useRefresco(() => { if (portalPerfil()) portal.get<R>(`/api/portal/causa/${uuid}`).then(setD).catch(() => undefined); });
 
   async function adjuntar(titulo: string, f?: File | null) {
     if (!f) return;
-    const raw = await leer(f);
+    const raw = await leerAdjunto(f); // las fotos se achican antes de enviarlas
+    const error = validarAdjuntos([{ nombre: f.name, raw }], { ...limites, maxArchivos: 99, maxFojas: limites.maxFojas });
+    if (error) { setMsg({ ok: false, t: error }); return; }
+    setMsg(null);
     setAdj((p) => [...p.filter((a) => a.titulo !== titulo || titulo === 'Prueba'), { titulo, nombre: f.name, raw }]);
   }
 
@@ -77,6 +79,10 @@ export function PortalCausa() {
     const faltan = [!adj.some((a) => a.titulo === 'DNI frente') && 'DNI frente', !adj.some((a) => a.titulo === 'DNI dorso') && 'DNI dorso', juridica && !adj.some((a) => a.titulo === 'Estatuto') && 'Estatuto',
       (form === 'descargo' || form === 'reenviar_descargo' || form === 'apelacion') && texto.trim().length < 20 && !adj.some((a) => a.titulo === 'Escrito') && 'su presentación escrita (o el escrito firmado adjunto)'].filter(Boolean);
     if (faltan.length) { setMsg({ ok: false, t: `Falta completar: ${faltan.join(', ')}.` }); return; }
+    const excede = validarAdjuntos(adj, limites);
+    if (excede) { setMsg({ ok: false, t: excede }); return; }
+    // Límite de la plataforma por envío (≈4,5 MB en Vercel): se avisa antes en lugar de fallar al enviar.
+    if (adj.reduce((n, a) => n + a.raw.length, 0) > 4 * 1024 * 1024) { setMsg({ ok: false, t: 'Los archivos juntos superan 4 MB. Adjunte menos archivos o más livianos (por ejemplo, fotos en lugar de PDF escaneados).' }); return; }
     setEnviando(true);
     setMsg(null);
     try {
@@ -232,11 +238,12 @@ export function PortalCausa() {
             {[['DNI frente', true], ['DNI dorso', true], ...(juridica ? [['Estatuto', true]] : []), ...(conTexto ? [['Escrito', textoCorto], ['Prueba', false]] : [])].map(([t, req]) => (
               <div key={String(t)} className="col-12 col-md-6">
                 <label htmlFor={`pa-${t}`}>{String(t)} {req ? <span className="requerido">*</span> : t === 'Escrito' ? '(opcional: ya escribió su presentación)' : '(opcional)'}</label>
-                <input id={`pa-${t}`} type="file" accept="image/*,application/pdf" className="form-control" onChange={(e) => void adjuntar(String(t), e.target.files?.[0])} />
+                <input id={`pa-${t}`} type="file" accept={ACCEPT_ADJUNTOS} className="form-control" onChange={(e) => void adjuntar(String(t), e.target.files?.[0])} />
                 {adj.filter((a) => a.titulo === t).map((a) => <span key={a.nombre} className="texto-ayuda d-block">✓ {a.nombre}</span>)}
               </div>
             ))}
           </div>
+          <small className="texto-ayuda d-block mt-1">{textoLimites(limites)} Las fotos se achican solas.</small>
           {msg ? <div ref={refMsg} className={`aviso ${msg.ok ? 'aviso-ok' : 'aviso-peligro'} mt-3 mb-0`}>{msg.t}</div> : null}
           <div className="d-flex gap-2 mt-3 flex-wrap">
             <button type="button" className="btn btn-primary btn-lg" disabled={enviando} onClick={() => void presentar()}>{enviando ? 'Enviando...' : 'Enviar'}</button>

@@ -3,6 +3,7 @@
 import { InputClave } from './InputClave';
 import { useState } from 'react';
 import { BuscadorOpciones, type OpcionBuscable } from './BuscadorOpciones';
+import { ACCEPT_ADJUNTOS, leerAdjunto } from '@/lib/adjuntos';
 
 export type CampoModal =
   | { k: string; t: string; tipo: 'texto' | 'area' | 'numero' | 'fecha' | 'clave'; req?: boolean; ayuda?: string; valor?: string }
@@ -26,7 +27,7 @@ export function ModalForm({
 
   async function archivo(k: string, f?: File) {
     if (!f) return;
-    const raw = await new Promise<string>((res) => { const r = new FileReader(); r.onload = () => res(String(r.result)); r.readAsDataURL(f); });
+    const raw = await leerAdjunto(f); // las fotos se achican para respetar el límite de tamaño
     setV((p) => ({ ...p, [k]: raw, [`${k}Nombre`]: f.name }));
   }
 
@@ -64,7 +65,7 @@ export function ModalForm({
                   })}
                 </div>
               ) : c.tipo === 'archivo' ? (
-                <input id={`m-${c.k}`} type="file" className="form-control" accept="image/*,application/pdf" onChange={(e) => void archivo(c.k, e.target.files?.[0])} />
+                <input id={`m-${c.k}`} type="file" className="form-control" accept={ACCEPT_ADJUNTOS} onChange={(e) => void archivo(c.k, e.target.files?.[0])} />
               ) : (
                 c.tipo === 'clave' ? <InputClave id={`m-${c.k}`} autoComplete="new-password" value={v[c.k]} onChange={(e) => setV({ ...v, [c.k]: e.target.value })} /> : <input id={`m-${c.k}`} className="form-control" type={c.tipo === 'numero' ? 'number' : c.tipo === 'fecha' ? 'date' : 'text'} value={v[c.k]} onChange={(e) => setV({ ...v, [c.k]: e.target.value })} />
               )}

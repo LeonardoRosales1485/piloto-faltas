@@ -47,7 +47,11 @@ function bloqueQr(i: Infraccion): string {
 // ---------------------------------------------------------------------------
 
 /** `evidencia: false` imprime el acta sin la sección de imágenes (por defecto se muestran). */
-export type ActaExtras = { imagenes?: string[]; evidencia?: boolean; /** Textos del portal (leyendas legales editadas); sin ellos, las leyendas por defecto. */ textos?: Record<string, string> };
+export type ActaExtras = {
+  imagenes?: string[]; evidencia?: boolean; /** Textos del portal (leyendas legales editadas); sin ellos, las leyendas por defecto. */ textos?: Record<string, string>;
+  /** «Acta con correcciones» (minuta 20/10): el acta con la subsanación aplicada, con leyenda y detalle de los cambios. */
+  correcciones?: { fecha: number; usuario: string; motivo: string; campos: { t: string; antes: string; despues: string }[] };
+};
 
 const v = (x: unknown) => escapeHtml(String(x ?? '').trim()) || '-';
 
@@ -370,9 +374,35 @@ export function actaMunicipalHtml(i: Infraccion, extras: ActaExtras = {}): strin
 }
 
 /** Acta para imprimir según el tipo: tránsito usa el modelo de la Dirección; contravención y sustancias, el modelo municipal. */
+const fechaAr = (ms?: number | null) => (ms ? new Date(Number(ms)).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'America/Argentina/Buenos_Aires' }) : '-');
+
+/** Pie de trazabilidad de la firma (minuta 20/10): inspector, fecha y hora y código de verificación. */
+function pieFirma(i: Infraccion): string {
+  if (!i.firmaInspectorHash) return '';
+  return `<p class="at-traza">Acta firmada digitalmente por ${escapeHtml(String(i.inspectorNombre ?? 'el inspector'))}${i.inspectorLegajo ? ` (legajo ${escapeHtml(String(i.inspectorLegajo))})` : ''} el ${fechaAr(i.firmadaAt)} · Código de verificación ${escapeHtml(String(i.firmaInspectorHash).slice(0, 16).toUpperCase())}</p>`;
+}
+
+function bloqueCorrecciones(x: NonNullable<ActaExtras['correcciones']>): { arriba: string; abajo: string } {
+  const arriba = `<div class="at-correcciones">ACTA CON CORRECCIONES · Copia con los datos subsanados el ${fechaAr(x.fecha)} por ${escapeHtml(x.usuario)}. El acta original firmada no se modifica y se conserva en el legajo.</div>`;
+  const filas = x.campos.map((c) => `<tr><td>${escapeHtml(c.t)}</td><td>${escapeHtml(c.antes || '—')}</td><td><b>${escapeHtml(c.despues || '—')}</b></td></tr>`).join('');
+  const abajo = `<section class="at-seccion at-correcciones-detalle"><h2>Correcciones (subsanación)</h2><p>Motivo: ${escapeHtml(x.motivo || '-')}</p><table><thead><tr><th>Dato</th><th>En el acta original</th><th>Corregido</th></tr></thead><tbody>${filas}</tbody></table></section>`;
+  return { arriba, abajo };
+}
+
+const CSS_EXTRA = `
+  .at-traza { margin-top: 6px; font-size: 7.5pt; color: #333; text-align: center; }
+  .at-correcciones { margin-bottom: 8px; padding: 6px 8px; border: 2px solid #000; font-size: 8.5pt; font-weight: 700; text-align: center; }
+  .at-correcciones-detalle table { width: 100%; border-collapse: collapse; font-size: 8pt; }
+  .at-correcciones-detalle th, .at-correcciones-detalle td { border: 1px solid #999; padding: 2px 4px; text-align: left; }
+`;
+
 export function actaHtmlPorTipo(i: Infraccion, extras: ActaExtras = {}): { html: string; css: string } {
-  if ((i.infraccionTipoNombre ?? '') === 'multas' || /tr[aá]nsito/i.test(i.infraccionTipoNombre ?? '')) {
-    return { html: actaTransitoHtml(i, extras), css: actaTransitoCss() };
-  }
-  return { html: actaMunicipalHtml(i, extras), css: actaTransitoCss() };
+  const transito = (i.infraccionTipoNombre ?? '') === 'multas' || /tr[aá]nsito/i.test(i.infraccionTipoNombre ?? '');
+  let html = transito ? actaTransitoHtml(i, extras) : actaMunicipalHtml(i, extras);
+  const corr = extras.correcciones ? bloqueCorrecciones(extras.correcciones) : null;
+  // El html del acta es un único contenedor: la leyenda va al principio y el detalle y la trazabilidad, al final.
+  const cierre = html.lastIndexOf('</div>');
+  if (cierre >= 0) html = `${html.slice(0, cierre)}${corr?.abajo ?? ''}${pieFirma(i)}${html.slice(cierre)}`;
+  if (corr) html = html.replace(/^(\s*<div[^>]*>)/, `$1${corr.arriba}`);
+  return { html, css: actaTransitoCss() + CSS_EXTRA };
 }

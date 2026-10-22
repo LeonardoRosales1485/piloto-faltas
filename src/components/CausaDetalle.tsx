@@ -1,6 +1,7 @@
 'use client';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+import { ESTADO_RECURSO, INSTANCIAS_RECURSO, movimientosDe, RESULTADOS_RECURSO } from '@/lib/recursos';
 import { exportarApremios } from '@/lib/apremios-client';
 import { ArticulosValorizacion } from './ArticulosValorizacion';
 import Link from 'next/link';
@@ -8,7 +9,7 @@ import { LoaderLogo } from './LoaderLogo';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { http } from '@/lib/api-client';
-import { printTicket, printTicketRetencion } from '@/lib/print';
+import { printActa, printTicket, printTicketRetencion } from '@/lib/print';
 import { ESTADOS_CAUSA, TIPOS_ACTA, claveLey, esBoletaLiberacion, estadoFinal, fechaCorta, fechaHora, infoEstado, ordenarCategoriasLicencia, pagoAConciliar, pesos, puede, tipoActa } from '@/lib/dominio';
 import { useAuthUser } from '@/lib/use-auth-user';
 import type { Infraccion } from '@/lib/types';
@@ -30,7 +31,7 @@ import { EVENTO_DATOS } from '@/lib/avisos-datos';
 type R = Record<string, any>;
 type Detalle = {
   bandeja?: BandejaTrabajoId | null;
-  acta: Infraccion; actaVigente: Infraccion | null; subsanacion: R | null; subsanables: { k: string; t: string; grupo: string; valor: string }[]; memos: R[]; historial: R[]; documentos: R[]; presentaciones: R[]; boletas: R[]; notificaciones: R[]; imagenes: R[];
+  acta: Infraccion; actaVigente: Infraccion | null; subsanacion: R | null; subsanables: { k: string; t: string; grupo: string; valor: string }[]; memos: R[]; recursos?: R[]; historial: R[]; documentos: R[]; presentaciones: R[]; boletas: R[]; notificaciones: R[]; imagenes: R[];
   valorizacion: { uf: number; unidades: number; subtotal?: number; multa: number; valores?: { fijados: boolean; fecha: number | null; ufVigente: number; difiere: boolean }; leyes: R[]; ajustado: number | null; motivoAjuste: string | null };
 };
 type Modal = { titulo: string; icono?: string; campos: CampoModal[]; accion: string; textoOk?: string; textoCancelar?: string; onNo?: () => Promise<void> | void; peligro?: boolean; aviso?: string; extra?: R } | null;
@@ -54,6 +55,7 @@ const TABS = [
   { id: 'presentaciones', t: 'Presentaciones' },
   { id: 'pagos', t: 'Boletas y pagos' },
   { id: 'notificaciones', t: 'Notificaciones' },
+  { id: 'recursos', t: 'Recursos' },
   { id: 'memos', t: 'Memos internos' },
 ] as const;
 
@@ -61,8 +63,17 @@ const TIPO_PRES: Record<string, string> = { pago_voluntario: 'Pago voluntario', 
 const ESTADO_DOC: Record<string, string> = { borrador: 'Borrador', en_revision: 'En revisión', devuelto: 'Devuelto', firmado: 'Firmado', definitivo: 'Definitivo' };
 const ESTADO_BOL: Record<string, string> = { emitida: 'Emitida', a_verificar: 'A verificar', definitiva: 'Pagada (definitiva)', vencida: 'Vencida', anulada: 'Anulada' };
 
-export function CausaDetalle() {
-  const { uuid } = useParams() as { uuid: string };
+/**
+ * Causa digital. En la vista dividida de las bandejas se muestra embebida (`embebida`): no cambia la ruta ni el menú;
+ * si la causa cambia de bandeja avisa a la lista (`onCambio`) y, sin «Seguir acta», se cierra (`onCerrar`).
+ */
+export function CausaDetalle({ embebida }: { embebida?: { uuid: string; onCambio: () => void; onCerrar: () => void } } = {}) {
+  const params = useParams() as { uuid?: string };
+  const uuid = embebida?.uuid ?? String(params.uuid ?? '');
+  // En una referencia: el objeto llega nuevo en cada render y no debe volver a disparar la carga.
+  const embebidaRef = useRef(embebida);
+  embebidaRef.current = embebida;
+  const esEmbebida = Boolean(embebida);
   const router = useRouter();
   const notify = useNotify();
   const user = useAuthUser();
@@ -97,10 +108,17 @@ export function CausaDetalle() {
   const alCambiarBandeja = useCallback((nueva: BandejaTrabajoId | null) => {
     const prev = bandejaPrevia.current;
     bandejaPrevia.current = { uuid, b: nueva };
-    fijarBandejaActiva(nueva);
+    if (!esEmbebida) fijarBandejaActiva(nueva);
     if (!prev || prev.uuid !== uuid || prev.b === nueva || !nueva) return;
     const propia = Date.now() - ultimaAccion.current < 15000;
     const titulo = infoBandeja(nueva)?.titulo ?? nueva;
+    const emb = embebidaRef.current;
+    if (emb) {
+      emb.onCambio();
+      if (propia) notify.info(`La causa pasó a «${titulo}»`, seguirRef.current ? 'Sigue abierta al costado.' : 'Se cerró el panel.');
+      if (!seguirRef.current) emb.onCerrar();
+      return;
+    }
     if (seguirRef.current) {
       if (propia) notify.info(`La causa pasó a «${titulo}»`, 'Sigue abierta para continuar el trámite.');
       router.replace(`/private/causa/${uuid}?b=${nueva}`, { scroll: false });
@@ -108,7 +126,7 @@ export function CausaDetalle() {
       notify.info(`La causa pasó a «${titulo}»`, 'Volvió a la bandeja de origen.');
       router.push(`/private/causas${origen.current || prev.b ? `?b=${origen.current || prev.b}` : ''}`);
     }
-  }, [uuid, notify, router]);
+  }, [uuid, notify, router, esEmbebida]);
 
   const cargar = useCallback(() => {
     if (falloDe.current === uuid) return;
@@ -130,6 +148,29 @@ export function CausaDetalle() {
     http.get<R[]>('/api/plantillas').then(setPlantillas).catch(() => undefined);
     http.get<R>('/api/constantes/all').then((c) => { setMotivos((c.motivosArchivo ?? []).map((m: R) => m.nombre)); setLeyesCat(c.leyes ?? []); }).catch(() => undefined);
   }, [cargar]);
+
+  const modalElevar = (): NonNullable<Modal> => ({
+    titulo: 'Elevar recurso', icono: 'fa-solid fa-landmark', accion: 'elevar_recurso', textoOk: 'Elevar', extra: { fecha: true },
+    aviso: 'La causa pasa a «En Juzgado» hasta que se registre la sentencia en la solapa «Recursos».',
+    campos: [
+      { k: 'instancia', t: 'Instancia', tipo: 'select', opciones: INSTANCIAS_RECURSO.map((x) => ({ v: x, t: x })) },
+      { k: 'tipo', t: 'Tipo', tipo: 'select', opciones: [{ v: 'apelacion', t: 'Apelación' }, { v: 'nulidad', t: 'Recurso de nulidad' }, { v: 'queja', t: 'Queja' }] },
+      { k: 'fecha', t: 'Fecha de elevación', tipo: 'fecha', req: true, valor: new Date(Date.now() - 3 * 3600000).toISOString().slice(0, 10) },
+      { k: 'expediente', t: 'N.° de expediente', tipo: 'texto' },
+      { k: 'detalle', t: 'Detalle', tipo: 'area', valor: 'Apelación concedida. Se remite el legajo completo en PDF.' },
+    ],
+  });
+
+  async function verificarFirma(docUuid: string) {
+    try {
+      const r = await http.get<R>(`/api/documento/${docUuid}/verificar`);
+      if (r.estado === 'ok') notify.success('Firma verificada', `Código ${r.codigo} · ${r.por} · ${fechaHora(r.at)}. El texto no cambió desde la firma.`);
+      else if (r.estado === 'alterado') notify.error('El código no coincide', 'El texto guardado no corresponde al código de la firma.');
+      else notify.info('Sin datos para verificar', 'El escrito se firmó antes de registrar la trazabilidad (sql/032).');
+    } catch (e) {
+      notify.error('No se pudo verificar', (e as Error).message);
+    }
+  }
 
   async function accion(nombre: string, datos: R = {}, ok = 'Listo') {
     try {
@@ -241,7 +282,7 @@ export function CausaDetalle() {
     { t: 'Ajustar valorización', i: 'fa-solid fa-scale-unbalanced', ver: gestion && !final, on: () => setModal({ titulo: 'Ajustar valorización', accion: 'ajustar_monto', icono: 'fa-solid fa-scale-unbalanced', campos: [{ k: 'monto', t: 'Monto de la multa ($)', tipo: 'numero', req: true, valor: String(d.valorizacion.multa) }, { k: 'motivo', t: 'Motivo', tipo: 'area', req: true, ayuda: 'Por ejemplo: falta de exhibición de documentación acreditada luego.' }] }) },
     { t: 'Continuar procedimiento', rec: true, i: 'fa-solid fa-forward', ver: gestion && estado === 'Cuotas' && cuotasVencidas, peligro: true, on: () => setModal({ titulo: 'Caducidad del plan de cuotas', accion: 'continuar_procedimiento', campos: [], aviso: 'Hay cuotas vencidas sin pagar. La causa sigue a fallo, o a Apremios si las cuotas eran de un fallo.', textoOk: 'Continuar' }) },
     { t: 'Derivar a Apremios', rec: true, i: 'fa-solid fa-building-columns', ver: gestion && ['Fallo notificado', 'Cuotas'].includes(estado), on: () => setModal({ titulo: 'Derivar a Apremios', accion: 'derivar', extra: { destino: 'apremios' }, campos: [{ k: 'detalle', t: 'Detalle', tipo: 'area', valor: 'Vencido el plazo de 5 días hábiles sin pago ni apelación. Se remite el legajo completo en PDF.' }] }) },
-    { t: 'Derivar a Juzgado de Paz', rec: true, i: 'fa-solid fa-landmark', ver: gestion && estado === 'Fallo notificado', on: () => setModal({ titulo: 'Derivar al Juzgado de Paz', accion: 'derivar', extra: { destino: 'juzgado' }, campos: [{ k: 'detalle', t: 'Detalle', tipo: 'area', valor: 'Apelación concedida. Se remite el legajo completo en PDF.' }] }) },
+    { t: 'Elevar recurso al Juzgado', rec: true, i: 'fa-solid fa-landmark', ver: gestion && estado === 'Fallo notificado' && !(d.recursos ?? []).some((r) => r.estado !== 'resuelto'), on: () => setModal(modalElevar()) },
     { t: 'Exportar para Apremios', i: 'fa-solid fa-file-export', rec: ['Fallo notificado', 'En Apremios'].includes(estado), ver: gestion && !['Borrador', 'Anulada'].includes(estado), on: () => setModal({ titulo: 'Exportar para Apremios', icono: 'fa-solid fa-file-export', accion: 'exportar_apremios', textoOk: 'Generar PDF', aviso: 'Se genera un PDF con el remito, la carátula con el saldo adeudado a hoy y el legajo completo (sin memos internos), para enviarlo a Apremios por correo. Queda constancia en el historial.', campos: estado === 'En Apremios' ? [] : [{ k: 'derivar', t: 'Pasar la causa a «En Apremios»', tipo: 'select', opciones: [{ v: 'si', t: 'Sí, derivarla ahora' }, { v: 'no', t: 'No, solo generar el PDF' }] }] }) },
     { t: 'Registrar resultado externo', rec: true, i: 'fa-solid fa-flag-checkered', ver: gestion && infoEstado(estado).familia === 'externo', on: () => setModal({ titulo: 'Resultado informado por Juzgado de Paz o Apremios', accion: 'resultado_externo', campos: [{ k: 'estado', t: 'Resultado', tipo: 'select', opciones: ['Pago en Apremios', 'Archivo judicial', 'Archivo absolución', 'Archivo nulidad', 'Archivo prescripción'].map((x) => ({ v: x, t: x })) }, { k: 'detalle', t: 'Detalle', tipo: 'area' }] }) },
     { t: 'Presentación en mesa', i: 'fa-solid fa-person-walking', ver: gestion && !final, on: () => setModal({ titulo: 'Registrar presentación en mesa', accion: 'presentacion_mesa', campos: [{ k: 'tipo', t: 'Tipo', tipo: 'select', opciones: Object.entries(TIPO_PRES).map(([v, t]) => ({ v, t })) }, { k: 'texto', t: 'Detalle', tipo: 'area', req: true }, { k: 'cuotas', t: 'Cuotas solicitadas', tipo: 'numero' }] }) },
@@ -295,6 +336,7 @@ export function CausaDetalle() {
     if (!modal) return;
     const datos: R = { ...v, ...(modal.extra ?? {}) };
     if (modal.extra?.conv === 'archivo') { datos.archivoRaw = v.archivo; datos.archivoNombre = v.archivoNombre; }
+    if (modal.extra?.fecha) datos.fechaAt = v.fecha ? new Date(`${v.fecha}T12:00`).getTime() : Date.now();
     if (modal.extra?.conv === 'ingreso') datos.ingresoAt = new Date(`${v.ingreso}T12:00`).getTime();
     if (modal.extra?.conv === 'subsanar') {
       const { motivo, ...campos } = v;
@@ -339,7 +381,7 @@ export function CausaDetalle() {
         </div>
         <div className="tabs-causa" role="tablist">
           {TABS.map((t) => {
-            const n = t.id === 'historial' ? d.historial.length : t.id === 'documentos' ? d.documentos.length : t.id === 'presentaciones' ? d.presentaciones.length : t.id === 'pagos' ? d.boletas.length : t.id === 'notificaciones' ? d.notificaciones.length : t.id === 'memos' ? d.memos.length : 0;
+            const n = t.id === 'historial' ? d.historial.length : t.id === 'documentos' ? d.documentos.length : t.id === 'presentaciones' ? d.presentaciones.length : t.id === 'pagos' ? d.boletas.length : t.id === 'notificaciones' ? d.notificaciones.length : t.id === 'memos' ? d.memos.length : t.id === 'recursos' ? (d.recursos ?? []).length : 0;
             return (
               <button key={t.id} type="button" role="tab" aria-selected={tab === t.id} className={`tab-causa ${tab === t.id ? 'activa' : ''}`} onClick={() => setTab(t.id)}>
                 {t.t} {n ? <span className="n">{n}</span> : null}
@@ -442,6 +484,12 @@ export function CausaDetalle() {
                 ) : null}
                 <div className="botonera">
                   <BotonVerActa acta={cf} imagenes={(d.imagenes ?? []).map((x) => x.preview_raw).filter(Boolean)} />
+                  {d.subsanacion && d.actaVigente ? (
+                    <button type="button" className="btn btn-outline-secondary" title="Copia con los datos subsanados y leyenda; el acta original no se modifica" onClick={() => printActa(d.actaVigente!, {
+                      imagenes: (d.imagenes ?? []).map((x) => x.preview_raw).filter(Boolean),
+                      correcciones: { fecha: Number(d.subsanacion!.date_created), usuario: String(d.subsanacion!.usuario ?? ''), motivo: String(d.subsanacion!.motivo ?? ''), campos: Object.entries(subCampos).map(([k, x]) => ({ t: d.subsanables.find((f) => f.k === k)?.t ?? k, antes: x.antes, despues: x.despues })) },
+                    })}><i className="fa-solid fa-file-circle-check" aria-hidden="true" /> Acta con correcciones (PDF)</button>
+                  ) : null}
                   <button type="button" className="btn btn-outline-secondary" onClick={() => void printTicket(c)}><i className="fa-solid fa-print" aria-hidden="true" /> Ticket</button>
                   {c.retencionDeVehiculo ? <button type="button" className="btn btn-outline-secondary" onClick={() => void printTicketRetencion(c, 'vehiculo')}><i className="fa-solid fa-car" aria-hidden="true" /> Ticket retención vehículo</button> : null}
                   {c.retencionDeLicencia ? <button type="button" className="btn btn-outline-secondary" onClick={() => void printTicketRetencion(c, 'licencia')}><i className="fa-solid fa-id-card" aria-hidden="true" /> Ticket retención licencia</button> : null}
@@ -472,6 +520,9 @@ export function CausaDetalle() {
                     </div>
                     <div className="d-flex gap-2 flex-wrap">
                       {doc.tipo === 'escrito' ? <Link className="btn btn-sm btn-outline-primary" href={`/private/escrito/${doc.uuid}`}>{['borrador', 'devuelto'].includes(doc.estado) ? 'Editar' : 'Ver'}</Link> : <a className="btn btn-sm btn-outline-primary" href={`/private/escrito/${doc.uuid}`}>Ver</a>}
+                      {doc.tipo === 'escrito' && ['firmado', 'definitivo'].includes(doc.estado) ? (
+                        <button type="button" className="btn btn-sm btn-outline-secondary" title="Recalcula el código de verificación con el texto guardado" onClick={() => void verificarFirma(doc.uuid)}><i className="fa-solid fa-fingerprint" aria-hidden="true" /> Verificar</button>
+                      ) : null}
                       {doc.tipo === 'escrito' && ['firmado', 'definitivo'].includes(doc.estado) && ['Fallo', 'Resolución', 'Disposición'].includes(doc.plantilla?.categoria) && gestion && !d.notificaciones.some((n) => n.documento_id === doc.id) ? (
                         <button type="button" className="btn btn-sm btn-success" onClick={() => void accion('notificar_documento', { documentoUuid: doc.uuid }, 'Notificación iniciada')}>Notificar</button>
                       ) : null}
@@ -519,6 +570,39 @@ export function CausaDetalle() {
                 ))}
                 {!d.boletas.length ? <li><span className="texto-ayuda">Sin boletas emitidas.</span></li> : null}
               </ul>
+            ) : null}
+
+            {tab === 'recursos' ? (
+              <div>
+                <p className="texto-ayuda">Apelaciones elevadas al Juzgado u otra instancia: elevación, seguimiento y sentencia. La sentencia re-emite la boleta por el monto ordenado o archiva la causa (absolución o nulidad).</p>
+                {gestion && !final && !(d.recursos ?? []).some((r) => r.estado !== 'resuelto') ? (
+                  <button type="button" className="btn btn-primary mb-3" onClick={() => setModal(modalElevar())}><i className="fa-solid fa-landmark" aria-hidden="true" /> Elevar recurso</button>
+                ) : null}
+                <ul className="lista-items">
+                  {(d.recursos ?? []).map((r) => (
+                    <li key={r.uuid} className="d-block">
+                      <div className="d-flex justify-content-between flex-wrap gap-2">
+                        <div>
+                          <div className="li-titulo"><i className="fa-solid fa-landmark me-1" aria-hidden="true" /> {r.instancia}{r.expediente ? ` · Expte. ${r.expediente}` : ''}</div>
+                          <div className="li-sub">Elevado el {fechaCorta(r.fecha_elevacion)} por {r.creado_por} · <strong>{ESTADO_RECURSO[r.estado] ?? r.estado}</strong>{r.resultado ? ` · ${RESULTADOS_RECURSO[r.resultado] ?? r.resultado}` : ''}{r.monto_ordenado ? ` · ${pesos(Number(r.monto_ordenado))}` : ''}</div>
+                        </div>
+                        {gestion && r.estado !== 'resuelto' ? (
+                          <div className="d-flex gap-2 flex-wrap">
+                            <button type="button" className="btn btn-sm btn-outline-secondary" onClick={() => setModal({ titulo: 'Movimiento del recurso', icono: 'fa-solid fa-list', accion: 'movimiento_recurso', extra: { recursoUuid: r.uuid, fecha: true }, campos: [{ k: 'fecha', t: 'Fecha', tipo: 'fecha', req: true }, { k: 'texto', t: 'Movimiento', tipo: 'area', req: true, ayuda: 'Por ejemplo: «Se recibió en el Juzgado», «Pase a sentencia», «Se pidió informe».' }, { k: 'expediente', t: 'N.° de expediente (si cambió o no se cargó)', tipo: 'texto' }] })}>Agregar movimiento</button>
+                            <button type="button" className="btn btn-sm btn-success" onClick={() => setModal({ titulo: 'Registrar sentencia', icono: 'fa-solid fa-gavel', accion: 'resolver_recurso', textoOk: 'Registrar sentencia', extra: { recursoUuid: r.uuid, conv: 'archivo' }, aviso: 'Confirma o modifica: se anulan las boletas impagas y se re-emite la boleta por el monto ordenado. Revoca o nulidad: la causa se archiva.', campos: [{ k: 'resultado', t: 'Resultado', tipo: 'select', req: true, opciones: [{ v: '', t: 'Seleccione…' }, ...Object.entries(RESULTADOS_RECURSO).map(([v, t]) => ({ v, t }))] }, { k: 'monto', t: 'Monto que ordena la sentencia ($)', tipo: 'numero', valor: String(d.valorizacion.multa || ''), ayuda: 'Solo si confirma o modifica el monto.' }, { k: 'archivo', t: 'Sentencia (PDF o imagen)', tipo: 'archivo', req: true }, { k: 'detalle', t: 'Detalle', tipo: 'area' }] })}>Registrar sentencia</button>
+                          </div>
+                        ) : null}
+                      </div>
+                      <ul className="timeline mt-2 mb-0">
+                        {movimientosDe(r).slice().reverse().map((m, i) => (
+                          <li key={i}><div className="t-fecha">{fechaCorta(m.fecha)} · {m.usuario}</div><div className="t-detalle">{m.texto}</div></li>
+                        ))}
+                      </ul>
+                    </li>
+                  ))}
+                  {!(d.recursos ?? []).length ? <li><span className="texto-ayuda">No hay recursos elevados.</span></li> : null}
+                </ul>
+              </div>
             ) : null}
 
             {tab === 'memos' ? (
