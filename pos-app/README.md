@@ -18,6 +18,8 @@ App Android mínima (Flutter) que abre el Sistema de Faltas a pantalla completa 
 `lib/impresoras.dart` elige la vía según el equipo:
 
 - **Senraise** (tiene instalado `recieptservice.com.recieptservice` o el modelo dice Senraise/H10): SDK de Senraise, como siempre.
+- **Nyx** (servicio `net.nyx.printerservice` o `com.incar.printerservice`; el **Symcode MJ-Q50** reporta fabricante «NB55»):
+  plugin [`nyx_printer_v2`](https://pub.dev/packages/nyx_printer_v2), en `lib/impresora_nyx.dart` (texto, QR y logo, 58 mm).
 - **Otros:** impresora interna vinculada por **Bluetooth** (dirección `00:11:22:33:44:55` o un nombre tipo
   «InnerPrinter»/«Printer»), con comandos **ESC/POS** armados en `lib/ticket_escpos.dart` (logo, textos, QR nativo,
   tildes con la tabla WPC1252). El canal nativo está en `android-extra/MainActivity.kt` (se copia al compilar).

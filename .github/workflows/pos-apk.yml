@@ -48,7 +48,7 @@ jobs:
           done
           sed -i 's#android:label="[^"]*"#android:label="Faltas"#' $M
           # Impresora: ver si está el servicio de Senraise (Android 11+ exige declararlo) y canal propio (MainActivity)
-          grep -q 'recieptservice.com.recieptservice' $M || sed -i 's#<application#<queries><package android:name="recieptservice.com.recieptservice" /><package android:name="woyou.aidlservice.jiuiv5" /></queries>\n    <application#' $M
+          grep -q 'recieptservice.com.recieptservice' $M || sed -i 's#<application#<queries><package android:name="recieptservice.com.recieptservice" /><package android:name="woyou.aidlservice.jiuiv5" /><package android:name="net.nyx.printerservice" /><package android:name="com.incar.printerservice" /></queries>\n    <application#' $M
           cp android-extra/MainActivity.kt android/app/src/main/kotlin/ar/gob/malvinasargentinas/faltas_pos/MainActivity.kt
           # ota_update: provider para instalar versiones nuevas
           grep -q OtaUpdateFileProvider $M || python3 -c "import sys;m=sys.argv[1];x=open(m).read();open(m,'w').write(x.replace('</application>', open('android-extra/provider.xml').read()+'    </application>',1))" $M

@@ -123,10 +123,10 @@ export function hayImpresoraPos(): boolean {
 
 /**
  * Ajustes de la impresora de ESTE equipo (pantalla «Prueba de impresora»: mantener apretada la versión al pie del login).
- * Se guardan en el navegador del POS. `impresora`: auto | senraise | bluetooth; `mac`: dispositivo Bluetooth elegido;
+ * Se guardan en el navegador del POS. `impresora`: auto | senraise | nyx | bluetooth; `mac`: dispositivo Bluetooth elegido;
  * `columnas`: 32 (58 mm) o 48 (80 mm); `sinAcentos`, `qrTam`, `sinLogo`: para afinar impresoras ESC/POS.
  */
-export type AjustesImpresora = { impresora?: 'auto' | 'senraise' | 'bluetooth'; mac?: string; columnas?: number; sinAcentos?: boolean; qrTam?: number; sinLogo?: boolean };
+export type AjustesImpresora = { impresora?: 'auto' | 'senraise' | 'nyx' | 'bluetooth'; mac?: string; columnas?: number; sinAcentos?: boolean; qrTam?: number; sinLogo?: boolean };
 const CLAVE_IMPRESORA = 'faltas.impresora';
 export function leerAjustesImpresora(): AjustesImpresora {
   try { return JSON.parse(localStorage.getItem(CLAVE_IMPRESORA) ?? '{}') as AjustesImpresora; } catch { return {}; }

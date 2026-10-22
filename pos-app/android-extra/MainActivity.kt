@@ -37,6 +37,7 @@ class MainActivity : FlutterActivity() {
                         "android" to (Build.VERSION.RELEASE ?: ""),
                         "senraise" to instalado("recieptservice.com.recieptservice"),
                         "sunmi" to instalado("woyou.aidlservice.jiuiv5"),
+                        "nyx" to (instalado("net.nyx.printerservice") || instalado("com.incar.printerservice")),
                     )
                 )
                 "vinculados" -> {

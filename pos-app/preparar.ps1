@@ -12,7 +12,7 @@ if ($Paso -eq 'manifest') {
   $x = $x -replace 'android:label="[^"]*"', 'android:label="Faltas"'
   # Impresora: ver si está el servicio de Senraise (Android 11+ exige declararlo)
   if ($x -notmatch 'recieptservice\.com\.recieptservice') {
-    $x = $x -replace '<application', "<queries><package android:name=`"recieptservice.com.recieptservice`" /><package android:name=`"woyou.aidlservice.jiuiv5`" /></queries>`n    <application"
+    $x = $x -replace '<application', "<queries><package android:name=`"recieptservice.com.recieptservice`" /><package android:name=`"woyou.aidlservice.jiuiv5`" /><package android:name=`"net.nyx.printerservice`" /><package android:name=`"com.incar.printerservice`" /></queries>`n    <application"
   }
   if ($x -notmatch 'OtaUpdateFileProvider') {
     $prov = [IO.File]::ReadAllText((Join-Path $PSScriptRoot 'android-extra\provider.xml'))

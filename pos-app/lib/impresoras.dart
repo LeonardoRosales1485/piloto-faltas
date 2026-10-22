@@ -1,17 +1,20 @@
 import 'package:flutter/services.dart';
 import 'package:permission_handler/permission_handler.dart';
 
+import 'impresora_nyx.dart';
 import 'impresora_ticket.dart';
 import 'ticket_escpos.dart';
 
 /// Elige con qué imprimir según el equipo:
 /// - Senraise H10S: SDK de Senraise (impresora_ticket.dart), como siempre.
-/// - Otros POS (ej. Symcode MJ-Q50): impresora interna vinculada por Bluetooth, con comandos ESC/POS.
-/// La web puede forzar una vía con `impresora: 'senraise' | 'bluetooth'` y elegir el dispositivo con `mac`
+/// - Symcode MJ-Q50 (NB55) y otros con el servicio «Nyx» (net.nyx.printerservice): impresora_nyx.dart.
+/// - Otros POS: impresora interna vinculada por Bluetooth, con comandos ESC/POS.
+/// La web puede forzar una vía con `impresora: 'senraise' | 'nyx' | 'bluetooth'` y elegir el dispositivo con `mac`
 /// (pantalla «Prueba de impresora», manteniendo apretada la versión al pie del login).
 class Impresoras {
   static const _canal = MethodChannel('faltas/impresora');
   final ImpresoraTicket _senraise = ImpresoraTicket();
+  final ImpresoraNyx _nyx = ImpresoraNyx();
   Map<String, dynamic>? _equipo;
 
   /// Dirección habitual de la impresora interna «virtual» de los POS Android (Sunmi y compatibles).
@@ -22,7 +25,7 @@ class Impresoras {
     try {
       return _equipo ??= Map<String, dynamic>.from(await _canal.invokeMethod('equipo') as Map);
     } catch (_) {
-      return _equipo = {'fabricante': '', 'marca': '', 'modelo': '', 'android': '', 'senraise': false, 'sunmi': false};
+      return _equipo = {'fabricante': '', 'marca': '', 'modelo': '', 'android': '', 'senraise': false, 'sunmi': false, 'nyx': false};
     }
   }
 
@@ -57,7 +60,7 @@ class Impresoras {
       'equipo': e,
       'vinculados': l,
       'errorBluetooth': errorBt,
-      'via': _esSenraise(e) ? 'senraise' : interna != null ? 'bluetooth' : 'ninguna',
+      'via': _esSenraise(e) ? 'senraise' : e['nyx'] == true ? 'nyx' : interna != null ? 'bluetooth' : 'ninguna',
       'impresoraBluetooth': interna,
     };
   }
@@ -70,6 +73,10 @@ class Impresoras {
       // El plugin de Senraise no responde si el servicio no existe: tiempo límite para no colgar la web.
       await _senraise.imprimir(t).timeout(const Duration(seconds: 25));
       return 'senraise';
+    }
+    if (modo == 'nyx' || (modo == 'auto' && e['nyx'] == true)) {
+      await _nyx.imprimir(t).timeout(const Duration(seconds: 30));
+      return 'nyx';
     }
     final l = await vinculados();
     final elegido = '${t['mac'] ?? ''}';

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { guardarAjustesImpresora, imprimirPrueba, infoImpresora, leerAjustesImpresora, type AjustesImpresora } from '@/lib/print';
 
 type Info = {
-  equipo?: { fabricante?: string; marca?: string; modelo?: string; android?: string; senraise?: boolean; sunmi?: boolean };
+  equipo?: { fabricante?: string; marca?: string; modelo?: string; android?: string; senraise?: boolean; sunmi?: boolean; nyx?: boolean };
   vinculados?: { nombre: string; mac: string }[];
   errorBluetooth?: string | null;
   via?: string;
@@ -12,7 +12,7 @@ type Info = {
   error?: string;
 };
 
-const VIA: Record<string, string> = { senraise: 'Impresora Senraise (SDK)', bluetooth: 'Impresora interna por Bluetooth (ESC/POS)', ninguna: 'No se encontró impresora' };
+const VIA: Record<string, string> = { senraise: 'Impresora Senraise (SDK)', nyx: 'Impresora Nyx del equipo (MJ-Q50)', bluetooth: 'Impresora interna por Bluetooth (ESC/POS)', ninguna: 'No se encontró impresora' };
 
 /**
  * Prueba de impresora del POS (oculta: se abre manteniendo apretada la versión al pie del login).
@@ -57,7 +57,7 @@ export function PruebaImpresora({ onCerrar }: { onCerrar: () => void }) {
             <>
               <dl className="ficha mb-3">
                 <div><dt>Equipo</dt><dd>{[eq?.fabricante, eq?.marca, eq?.modelo].filter(Boolean).join(' · ') || '-'} · Android {eq?.android || '-'}</dd></div>
-                <div><dt>Servicios</dt><dd>Senraise: {eq?.senraise ? 'sí' : 'no'} · Sunmi: {eq?.sunmi ? 'sí' : 'no'}</dd></div>
+                <div><dt>Servicios</dt><dd>Senraise: {eq?.senraise ? 'sí' : 'no'} · Nyx: {eq?.nyx ? 'sí' : 'no'} · Sunmi: {eq?.sunmi ? 'sí' : 'no'}</dd></div>
                 <div><dt>Vía automática</dt><dd><strong>{VIA[info.via ?? ''] ?? info.via}</strong>{info.impresoraBluetooth ? ` · ${info.impresoraBluetooth.nombre} (${info.impresoraBluetooth.mac})` : ''}</dd></div>
                 <div><dt>Bluetooth vinculados</dt><dd>{info.errorBluetooth ? `Error: ${info.errorBluetooth}` : (info.vinculados ?? []).length ? (info.vinculados ?? []).map((d) => `${d.nombre || 'sin nombre'} (${d.mac})`).join(' · ') : 'ninguno'}</dd></div>
               </dl>
@@ -67,6 +67,7 @@ export function PruebaImpresora({ onCerrar }: { onCerrar: () => void }) {
                   <select id="pi-via" className="form-select" value={a.impresora ?? 'auto'} onChange={(e) => cambiar({ impresora: e.target.value as AjustesImpresora['impresora'] })}>
                     <option value="auto">Automática</option>
                     <option value="senraise">Senraise (SDK)</option>
+                    <option value="nyx">Nyx (MJ-Q50)</option>
                     <option value="bluetooth">Bluetooth (ESC/POS)</option>
                   </select>
                 </div>
@@ -93,7 +94,7 @@ export function PruebaImpresora({ onCerrar }: { onCerrar: () => void }) {
                   <label className="d-flex gap-2 align-items-center"><input type="checkbox" className="form-check-input" checked={Boolean(a.sinLogo)} onChange={(e) => cambiar({ sinLogo: e.target.checked })} /> Sin logo</label>
                 </div>
               </div>
-              <p className="texto-ayuda mt-2 mb-0">Papel, QR, tildes y logo aplican a la vía Bluetooth. Si el Bluetooth está apagado o la impresora interna no figura como vinculada, actívela en los ajustes de Android.</p>
+              <p className="texto-ayuda mt-2 mb-0">Papel y tildes aplican a la vía Bluetooth; QR y logo, a Nyx y Bluetooth. Si el Bluetooth está apagado o la impresora interna no figura como vinculada, actívela en los ajustes de Android.</p>
             </>
           )}
           {estado ? <div className={`aviso mt-3 mb-0 ${estado.tipo === 'error' ? 'aviso-alerta' : estado.tipo === 'ok' ? 'aviso-ok' : 'aviso-info'}`} role="status">{estado.texto}</div> : null}
