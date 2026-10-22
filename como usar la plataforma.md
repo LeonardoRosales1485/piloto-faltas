@@ -169,7 +169,7 @@ Lo mismo con la **licencia retenida**: con la multa paga o la causa resuelta, el
 - **Valores y tarifas** (usuario tributario): unidad fija, estadía, acarreo, etc.
 - **Configuración** (admin): plantillas de escritos, ordenanzas, textos del portal y feriados.
 - **Usuarios** (admin, en Configuración): alta, edición, cambio de contraseña y baja de usuarios. Las bajas no borran: el usuario queda inactivo.
-- **Funciones opcionales** (admin, en Configuración): funciones que no son requerimiento del piloto y están ocultas por defecto. Hoy: **Seguimiento GPS** (mapa de inspectores). Al activarla aparece en el menú y el botón «GPS» en Inspectores; la página se recarga para aplicar el cambio.
+- **Funciones opcionales** (admin, en Configuración): funciones que no son requerimiento del piloto y están ocultas por defecto. Hoy: **Seguimiento GPS** (mapa de inspectores). Al activarla aparece en el menú y el botón «GPS» en Inspectores. También **Depuración en el POS** («easter egg» para pruebas): con esto activo, 7 toques seguidos sobre «Mis borradores» le muestran al inspector todas las actas de sus tipos; se sale con «Salir» o cerrando la pestaña. La página se recarga para aplicar el cambio.
 - **Roadmap de la causa**: arriba a la derecha, en el detalle de cada causa, se ve en qué etapa está (labrada, notificación, descargo/pago, fallo, cierre).
 - **Auditoría** (Directora y admin): quién hizo qué y cuándo.
 

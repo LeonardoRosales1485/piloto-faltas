@@ -122,6 +122,7 @@ Avance: **20 / 20**
 | Minuta 20/10 · Liberación de vehículos: boletas de acarreo y estadía válidas por 48 h (`liberacion_validez_horas`); estadía desde el día 1 (tramos 1–7, 8–30, 31+; `estadia_dias_sin_cargo` = 0); entrega presencial con titularidad, formulario 08, seguro y licencia tildados | — |
 | Minuta 20/10 · «Solo Tránsito» en Configuración › Funciones opcionales: oculta contravenciones y sustancias en el back office y en la app de inspectores, sin borrar nada | — |
 | App del POS: versión 1.0.1 y publicación «obligatoria» opcional (`compilar-apk.bat` lo pregunta; `publicar.mjs … forzar`): los POS ya instalados la muestran sin «Ahora no». La app sigue buscando la actualización solo al abrirse | — |
+| Inspector: vuelve el «easter egg» de 7 toques sobre «Mis borradores» (ver todas las actas de sus tipos), pero apagado por defecto: se habilita en Configuración › Funciones opcionales › «Depuración en el POS» (permiso depuracionPos; el servidor también lo verifica). Así se respeta la minuta 20/10 (inspector sin listado) fuera de las pruebas | — |
 
 ## Fuera del alcance del prototipo
 

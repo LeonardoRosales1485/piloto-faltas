@@ -4,7 +4,7 @@ import { TablaVista } from './TablaVista';
 import Link from 'next/link';
 import { LoaderLogo } from './LoaderLogo';
 import { useParams } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { actaHtmlPorTipo } from '@/lib/acta-oficial';
 import { apiClient } from '@/lib/api-client';
 import { actaPublicaUrl, printTicket } from '@/lib/print';
@@ -12,7 +12,8 @@ import { useLayout } from '@/lib/layout-context';
 import type { FiltrosInfraccion, Infraccion, Paginado } from '@/lib/types';
 import { useNotify } from './NotifyProvider';
 import { EstadoChip } from './EstadoChip';
-import { ESTADOS_CAUSA, TIPOS_ACTA, tipoActa } from '@/lib/dominio';
+import { ESTADOS_CAUSA, TIPOS_ACTA, puede, tipoActa } from '@/lib/dominio';
+import { useAuthUser } from '@/lib/use-auth-user';
 
 const SIZE = 10;
 const ESTADOS = ['Borrador', ...ESTADOS_CAUSA.map((e) => e.nombre)];
@@ -241,18 +242,42 @@ export function ListaInfracciones() {
   const [periodo, setPeriodo] = useState<Periodo>('todos');
   const [filtros, setFiltros] = useState(vacios);
   const [aplicados, setAplicados] = useState(vacios);
+  // «Easter egg» de depuración: 7 toques seguidos sobre la lista muestran todas las actas de sus tipos, no solo los
+  // borradores propios. Solo si el admin activó «Depuración en el POS» (Configuración › Funciones opcionales);
+  // el servidor vuelve a verificarlo. Dura hasta cerrar la pestaña o tocar «Salir».
+  const usuario = useAuthUser();
+  const notifyDbg = useNotify();
+  const depuracionHabilitada = puede(usuario, 'depuracionPos');
+  const [debugTodas, setDebugTodas] = useState(false);
+  useEffect(() => { try { if (sessionStorage.getItem('faltas_debug_todas') === '1') setDebugTodas(true); } catch { /* sin storage */ } }, []);
+  const toques = useRef<{ n: number; t: number }>({ n: 0, t: 0 });
+  function alTocarLista(e: React.MouseEvent) {
+    if (!depuracionHabilitada) return;
+    if ((e.target as HTMLElement).closest('button, a, input, select, textarea, label')) return;
+    const ahora = Date.now();
+    toques.current = ahora - toques.current.t < 1000 ? { n: toques.current.n + 1, t: ahora } : { n: 1, t: ahora };
+    if (toques.current.n >= 7) {
+      toques.current = { n: 0, t: 0 };
+      const nuevo = !debugTodas;
+      try { if (nuevo) sessionStorage.setItem('faltas_debug_todas', '1'); else sessionStorage.removeItem('faltas_debug_todas'); } catch { /* sin storage */ }
+      setDebugTodas(nuevo);
+      notifyDbg.success(nuevo ? 'Modo depuración' : 'Modo normal', nuevo ? 'Se muestran todas las actas.' : 'Solo sus borradores.');
+    }
+  }
+  const verTodas = debugTodas && depuracionHabilitada;
+
   const cargar = useCallback(
     (page: number, f: FiltrosInfraccion) => {
       setCargando(true);
       apiClient
-        .infracciones(tipo, f, page, SIZE)
+        .infracciones(tipo, f, page, SIZE, verTodas)
         .then((res) => {
           setPaginado(res);
           setCargando(false);
         })
         .catch(() => setCargando(false));
     },
-    [tipo],
+    [tipo, verTodas],
   );
 
   useEffect(() => {
@@ -338,7 +363,13 @@ export function ListaInfracciones() {
   };
 
   return (
-    <div className="pagina">
+    <div className="pagina" onClick={alTocarLista}>
+      {verTodas ? (
+        <div className="aviso aviso-alerta d-flex justify-content-between align-items-center gap-2 mb-2">
+          <span><i className="fa-solid fa-bug" aria-hidden="true" /> Modo depuración: se muestran todas las actas.</span>
+          <button type="button" className="btn btn-sm btn-outline-secondary" onClick={() => { try { sessionStorage.removeItem('faltas_debug_todas'); } catch { /* sin storage */ } setDebugTodas(false); }}>Salir</button>
+        </div>
+      ) : null}
       <div className="filtros-card filtros-card-compacto mb-2">
         <button
           type="button"

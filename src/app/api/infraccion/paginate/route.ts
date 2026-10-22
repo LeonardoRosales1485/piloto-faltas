@@ -1,4 +1,4 @@
-import { modulosDe } from '@/lib/dominio';
+import { modulosDe, puede } from '@/lib/dominio';
 import { NextRequest } from 'next/server';
 import { requireUser } from '@/lib/auth';
 import { jsonFail, jsonOk } from '@/lib/http-data';
@@ -48,7 +48,10 @@ export async function POST(req: NextRequest) {
     query = applyInfraccionFiltros(query as never, body) as typeof query;
     // Inspector: solo sus borradores, nunca las actas ya firmadas (minuta 20/10: sin listado ni historial de lo labrado,
     // para evitar revisiones indebidas, filtraciones o presiones en la vía pública).
-    if (user.rol === 'Inspector') query = query.eq('inspector_username', user.username).eq('estado_faltas', 'Borrador');
+    // Excepción: «debugTodas» (7 toques en la lista, «easter egg» para pruebas) solo si el admin activó
+    // «Depuración en el POS» en Configuración › Funciones opcionales (permiso depuracionPos).
+    const depuracion = Boolean((body as { debugTodas?: boolean }).debugTodas) && puede(user, 'depuracionPos');
+    if (user.rol === 'Inspector' && !depuracion) query = query.eq('inspector_username', user.username).eq('estado_faltas', 'Borrador');
     // Inspector: solo los tipos de acta habilitados (tipo de inspector + permisos «Actas de …»).
     if (user.rol === 'Inspector') query = query.in('infraccion_tipo_nombre', modulosDe(user));
     query = applyOrdenes(query as never, body.ordenes) as typeof query;
