@@ -2,6 +2,8 @@ import { NextRequest } from 'next/server';
 import { valorizacion } from '@/lib/causa-srv';
 import { loadInfraccionByUuid } from '@/lib/load-infraccion';
 import { causaPorUuid, handle } from '@/lib/srv';
+import { conBandejas } from '@/lib/bandejas-srv';
+import type { FilaCausa } from '@/lib/bandejas';
 import { CAMPOS_SUBSANABLES, subsanacionDe, valorDe } from '@/lib/subsanacion';
 
 type Ctx = { params: Promise<{ uuid: string }> };
@@ -24,7 +26,10 @@ export async function GET(req: NextRequest, ctx: Ctx) {
       loadInfraccionByUuid(uuid, { vigente: true }),
       db.from('memo').select('*').eq('infraccion_id', c.id).order('id', { ascending: false }),
     ]);
+    // Bandeja de trabajo en la que está la causa (para «Seguir acta»).
+    const { lista } = await conBandejas(db, [c as unknown as FilaCausa]);
     return {
+      bandeja: lista[0]?.bandeja ?? null,
       acta,
       actaVigente: sub ? actaVigente : null,
       subsanacion: sub,

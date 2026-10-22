@@ -257,3 +257,11 @@ En **Configuración → Opciones sandbox** hay cuatro acciones. Todas piden escr
 - **Causa:** ya no existe «Desestimar»; el dominio, el lugar de la falta y el ejido no se pueden corregir.
 - **Liberación:** la boleta de acarreo y estadía vale 48 horas; para registrar la entrega hay que tildar titularidad, formulario 08, seguro y licencia.
 - **Solo Tránsito:** en *Configuración › Funciones opcionales*, oculta contravenciones y sustancias para la prueba piloto.
+
+## Bandejas de trabajo y «Seguir acta» (fase 2, minuta 20/10/2026)
+
+- **Bandejas:** el menú lateral tiene un grupo **Bandejas** con un contador por bandeja, como los correos no leídos. El sistema ubica cada causa en **una sola** bandeja según lo que tiene pendiente: *Nuevas*, *En notificación*, *Para notificar por cédula* (más de 10 días sin entrar al portal), *Descargos y presentaciones*, *Pagos a acreditar*, *Para fallo*, *Para revisión* (escritos en borrador o devueltos), *Para firma*, *Medidas y retenciones*; y de consulta *En plazo*, *Gestión externa* y *Archivo*. «Todas las causas» conserva los filtros de antes.
+- **Resumen:** arriba de la lista aparece «Tiene para hacer: …» con la cantidad de cada bandeja con tareas y un enlace a cada una.
+- **Búsqueda:** dentro de una bandeja, el buscador recorre todas las causas y muestra en qué bandeja está cada una.
+- **Seguir acta:** interruptor en la cabecera de la causa (queda guardado en el navegador, activado por defecto). Si una acción hace que la causa cambie de bandeja, la causa sigue abierta y el menú marca la bandeja nueva; desactivado, vuelve a la bandeja de origen.
+

@@ -10,6 +10,8 @@ import { inicioPara, inspectorForbidden } from '@/lib/role-guard';
 import { modulosDe, puede, ROL_ETIQUETA, tipoIdDe, tiposPermitidos, type Permiso } from '@/lib/dominio';
 import { useAuthUser } from '@/lib/use-auth-user';
 import { BotonContraste } from './BotonContraste';
+import { BANDEJAS_TRABAJO, type BandejaTrabajoId } from '@/lib/bandejas';
+import { useBandejaActiva, useContadoresBandejas } from '@/lib/bandeja-activa';
 import { BotonTexto, ControlTexto } from './ControlTexto';
 
 interface MenuChild {
@@ -17,6 +19,11 @@ interface MenuChild {
   route: string;
   /** Si se indica, el ítem solo se ve con ese permiso. */
   permiso?: Permiso;
+  /** Bandeja de trabajo: contador (como los no leídos) y resaltado. */
+  bandeja?: BandejaTrabajoId;
+  contador?: number;
+  /** Bandeja con tareas (contador destacado); las de consulta muestran el número atenuado. */
+  trabajo?: boolean;
 }
 
 interface MenuGroup {
@@ -30,7 +37,17 @@ interface MenuGroup {
 type MenuItem = MenuGroup & { permiso: Permiso };
 
 const GRUPOS: MenuItem[] = [
-  { id: 'causas', titulo: 'Causas', icono: 'fa-solid fa-folder-tree', route: '/private/causas', permiso: 'verCausas' },
+  // Bandejas de trabajo con contadores (minuta 20/10, modelo correo): el sistema ubica cada causa en una bandeja.
+  {
+    id: 'causas',
+    titulo: 'Bandejas',
+    icono: 'fa-solid fa-folder-tree',
+    permiso: 'verCausas',
+    children: [
+      ...BANDEJAS_TRABAJO.map((b) => ({ titulo: b.titulo, route: `/private/causas?b=${b.id}`, bandeja: b.id as BandejaTrabajoId, trabajo: b.trabajo })),
+      { titulo: 'Todas las causas', route: '/private/causas' },
+    ],
+  },
   { id: 'presentaciones', titulo: 'Presentaciones', icono: 'fa-solid fa-inbox', route: '/private/presentaciones', permiso: 'verPresentaciones' },
   { id: 'escritos', titulo: 'Escritos y firma', icono: 'fa-solid fa-file-signature', route: '/private/escritos', permiso: 'verEscritos' },
   { id: 'pagos', titulo: 'Pagos', icono: 'fa-solid fa-money-check-dollar', route: '/private/pagos', permiso: 'verPagos' },
@@ -137,8 +154,13 @@ function ShellInner({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
 
-  // Menús desplegables contraídos por defecto (se abren al tocarlos).
-  const [abiertos, setAbiertos] = useState<Record<string, boolean>>({});
+  // Bandejas: contadores en vivo y la bandeja abierta (la marca la lista o la causa con «Seguir acta»).
+  const conteos = useContadoresBandejas(puede(user?.rol, 'verCausas'));
+  const bandejaActiva = useBandejaActiva();
+  const enCausas = pathname.startsWith('/private/causa');
+
+  // Menús desplegables contraídos por defecto (se abren al tocarlos). «Bandejas» arranca abierto.
+  const [abiertos, setAbiertos] = useState<Record<string, boolean>>({ causas: true });
   const [sidebarAbierta, setSidebarAbierta] = useState(false);
   const [drawerAbierto, setDrawerAbierto] = useState(false);
   const [tema, setTema] = useState<'light' | 'dark'>('light');
@@ -227,14 +249,20 @@ function ShellInner({ children }: { children: ReactNode }) {
     return conHijos.filter((g) => (g.id === 'config' ? Boolean(g.children?.length) : puede(user?.rol, g.permiso)) && (g.permiso !== 'labrar' || modulos.includes(g.id))).map((g) =>
       g.id === 'ordenanzas' && alcance
         ? { ...g, children: g.children?.filter((c) => alcance.includes(tipoIdDe(c.route!.split('/').pop()))) }
-        : g,
+        : g.id === 'causas'
+          ? { ...g, children: g.children?.map((c) => (c.bandeja ? { ...c, contador: conteos[c.bandeja] ?? 0 } : c)) }
+          : g,
     );
-  }, [user]);
+  }, [user, conteos]);
+  // Total de causas con tareas (bandejas de trabajo): globo en el ícono del menú angosto.
+  const totalTrabajo = BANDEJAS_TRABAJO.filter((b) => b.trabajo).reduce((s, b) => s + (conteos[b.id] ?? 0), 0);
+  const linkActivo = (c: MenuChild) => (c.bandeja ? enCausas && bandejaActiva === c.bandeja : c.route === '/private/causas' ? pathname === '/private/causas' && !bandejaActiva : pathname === c.route);
 
   const margen = layout.isMobile ? 0 : 72;
 
   function grupoActivo(grupo: MenuGroup) {
     if (grupo.route) return pathname.startsWith(grupo.route);
+    if (grupo.id === 'causas') return enCausas;
     return grupo.children?.some((c) => pathname === c.route || pathname.startsWith(`${c.route}/`)) ?? false;
   }
 
@@ -338,10 +366,14 @@ function ShellInner({ children }: { children: ReactNode }) {
                     <Link
                       key={child.route}
                       href={child.route}
-                      className={`sidebar-link ${pathname === child.route ? 'active' : ''}`}
+                      className={`sidebar-link ${linkActivo(child) ? 'active' : ''} ${child.bandeja ? 'sidebar-link-bandeja' : ''}`}
+                      aria-current={linkActivo(child) ? 'page' : undefined}
                       onClick={() => layout.isMobile && setDrawerAbierto(false)}
                     >
-                      {child.titulo}
+                      <span>{child.titulo}</span>
+                      {child.bandeja ? (
+                        <span className={`sidebar-contador ${child.trabajo && child.contador ? 'con-tareas' : ''}`} aria-label={`${child.contador ?? 0} causas`}>{child.contador ?? 0}</span>
+                      ) : null}
                     </Link>
                   ))}
                 </div>
@@ -510,8 +542,9 @@ function ShellInner({ children }: { children: ReactNode }) {
                     <i className={g.icono} aria-hidden="true" />
                   </Link>
                 ) : (
-                  <button key={g.id} type="button" data-grupo={g.id} className={`rail-btn ${grupoActivo(g) ? 'active' : ''}`} title={g.titulo} aria-label={g.titulo} onClick={() => { setAbiertos((p) => ({ ...p, [g.id]: true })); setSidebarAbierta(true); }}>
+                  <button key={g.id} type="button" data-grupo={g.id} className={`rail-btn ${grupoActivo(g) ? 'active' : ''}`} title={g.id === 'causas' && totalTrabajo ? `${g.titulo}: ${totalTrabajo} causas con tareas` : g.titulo} aria-label={g.id === 'causas' && totalTrabajo ? `${g.titulo}: ${totalTrabajo} causas con tareas` : g.titulo} onClick={() => { setAbiertos((p) => ({ ...p, [g.id]: true })); setSidebarAbierta(true); }}>
                     <i className={g.icono} aria-hidden="true" />
+                    {g.id === 'causas' && totalTrabajo ? <span className="rail-contador" aria-hidden="true">{totalTrabajo > 99 ? '99+' : totalTrabajo}</span> : null}
                   </button>
                 ),
               )}

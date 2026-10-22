@@ -4,7 +4,9 @@ import { TablaVista } from './TablaVista';
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { http } from '@/lib/api-client';
-import { BANDEJAS, type BandejaId } from '@/lib/bandejas';
+import { BANDEJAS, BANDEJAS_TRABAJO, infoBandeja, type BandejaId, type BandejaTrabajoId } from '@/lib/bandejas';
+import { fijarBandejaActiva } from '@/lib/bandeja-activa';
+import { useSearchParams } from 'next/navigation';
 import { ESTADOS_CAUSA, TIPOS_ACTA, fechaCorta, modulosDe, pesos, puede, tipoActa, type ModuloActa } from '@/lib/dominio';
 import { EstadoChip } from './EstadoChip';
 import { Plazo } from './Plazo';
@@ -16,10 +18,14 @@ import { getUser } from '@/lib/auth-client';
 import { useRefresco } from '@/lib/use-refresco';
 
 type Fila = Record<string, string | number | null> & { uuid: string };
-type Resp = { content: Fila[]; totalElements: number; totalPages: number; page: number; conteos: Record<string, number> };
+type Resp = { content: Fila[]; totalElements: number; totalPages: number; page: number; conteos: Record<string, number>; conteosTrabajo?: Record<BandejaTrabajoId, number> };
 
 /** Bandejas de trabajo de Faltas: por situación de la causa, con búsqueda y filtros (SF-02, SF-03). */
 export function CausasBandeja() {
+  // Bandeja de trabajo del menú lateral (?b=…). Sin ella, la vista «Todas las causas» con filtros de consulta.
+  const sp = useSearchParams();
+  const trabajo = (infoBandeja(sp.get('b'))?.id ?? null) as BandejaTrabajoId | null;
+  useEffect(() => { fijarBandejaActiva(trabajo); }, [trabajo]);
   const [bandeja, setBandeja] = useState<BandejaId>('activas');
   const [texto, setTexto] = useState('');
   const [tipo, setTipo] = useState('');
@@ -41,8 +47,9 @@ export function CausasBandeja() {
 
   const cargar = useCallback((silencioso = false) => {
     if (!silencioso) setCargando(true);
-    http.post<Resp>('/api/causas', { bandeja, texto, tipo, estado, anio, page, size: 15 }).then(setR).catch(() => undefined).finally(() => setCargando(false));
-  }, [bandeja, texto, tipo, estado, anio, page]);
+    http.post<Resp>('/api/causas', { bandeja, trabajo: trabajo ?? undefined, texto, tipo, estado, anio, page, size: 15 }).then(setR).catch(() => undefined).finally(() => setCargando(false));
+  }, [bandeja, trabajo, texto, tipo, estado, anio, page]);
+  useEffect(() => { setPage(0); setEstado(''); }, [trabajo]);
   useRefresco(() => cargar(true));
 
   useEffect(() => {
@@ -50,8 +57,13 @@ export function CausasBandeja() {
     return () => clearTimeout(t);
   }, [cargar, texto]);
 
-  const info = BANDEJAS.find((b) => b.id === bandeja)!;
-  const activos = (bandeja !== 'activas' ? 1 : 0) + (estado ? 1 : 0) + (tipo ? 1 : 0) + (anio ? 1 : 0);
+  const infoTrabajo = infoBandeja(trabajo);
+  const info = infoTrabajo ? { id: infoTrabajo.id, titulo: texto ? `Búsqueda en todas las bandejas` : infoTrabajo.titulo, ayuda: texto ? 'La búsqueda recorre todas las causas, no solo esta bandeja.' : infoTrabajo.ayuda } : BANDEJAS.find((b) => b.id === bandeja)!;
+  // Resumen al entrar (minuta 20/10): qué hay para hacer, con enlace a cada bandeja. Quien firma ve primero «Para firma».
+  const firma = puede(getUser()?.rol, 'firmar');
+  const resumen = BANDEJAS_TRABAJO.filter((b) => b.trabajo && (r?.conteosTrabajo?.[b.id] ?? 0) > 0)
+    .sort((a, b) => (firma ? Number(b.id === 'firma') - Number(a.id === 'firma') : 0));
+  const activos = (!trabajo && bandeja !== 'activas' ? 1 : 0) + (estado ? 1 : 0) + (tipo ? 1 : 0) + (anio ? 1 : 0);
 
   // Menú de filtros: se elige una opción, se aplica a la lista y el menú se cierra.
   const [menuAbierto, setMenuAbierto] = useState(false);
@@ -68,7 +80,19 @@ export function CausasBandeja() {
 
   return (
     <div className="pagina">
-      <h1 className="visually-hidden">Causas</h1>
+      <h1 className="visually-hidden">{infoTrabajo ? `Bandeja: ${infoTrabajo.titulo}` : 'Causas'}</h1>
+      {r?.conteosTrabajo ? (
+        <div className="aviso aviso-info resumen-bandejas mb-2" role="status">
+          {resumen.length ? (
+            <>
+              <span className="rb-titulo"><i className="fa-solid fa-list-check" aria-hidden="true" /> Tiene para hacer:</span>
+              {resumen.map((b) => (
+                <Link key={b.id} href={`/private/causas?b=${b.id}`} className="rb-item"><b>{r.conteosTrabajo![b.id]}</b> {b.titulo.toLowerCase()}</Link>
+              ))}
+            </>
+          ) : <span><i className="fa-solid fa-circle-check" aria-hidden="true" /> No hay causas con tareas pendientes.</span>}
+        </div>
+      ) : null}
       <div className="filtros-barra mb-2">
         <div className="filtros-menu" ref={menuRef}>
           <button type="button" className={`btn btn-filtros ${menuAbierto ? 'abierto' : ''}`} aria-expanded={menuAbierto} onClick={() => setMenuAbierto((v) => !v)}>
@@ -78,6 +102,7 @@ export function CausasBandeja() {
           </button>
           {menuAbierto ? (
             <div className="filtros-panel" role="dialog" aria-label="Filtros de causas">
+              {!trabajo ? (
               <div className="filtros-seccion">
                 <div className="filtros-titulo">Bandeja</div>
                 <div className="filtros-chips">
@@ -88,6 +113,7 @@ export function CausasBandeja() {
                   ))}
                 </div>
               </div>
+              ) : null}
               <div className="filtros-seccion">
                 <div className="filtros-titulo">Estado</div>
                 <div className="filtros-chips">
@@ -121,7 +147,7 @@ export function CausasBandeja() {
           ) : null}
         </div>
         <div className="filtros-aplicados">
-          <span className="filtro-aplicado fijo" title={info.ayuda}>{info.titulo} <span className="n">{r?.conteos?.[bandeja] ?? '·'}</span></span>
+          <span className="filtro-aplicado fijo" title={info.ayuda}>{info.titulo} <span className="n">{infoTrabajo ? (r?.totalElements ?? '·') : (r?.conteos?.[bandeja] ?? '·')}</span></span>
           {estado ? <button type="button" className="filtro-aplicado" onClick={() => { setEstado(''); setPage(0); }} aria-label={`Quitar estado ${estado}`}>{estado} <i className="fa-solid fa-xmark" aria-hidden="true" /></button> : null}
           {anio ? <button type="button" className="filtro-aplicado" onClick={() => { setAnio(''); setPage(0); }} aria-label="Quitar año">Año {anio} <i className="fa-solid fa-xmark" aria-hidden="true" /></button> : null}
           {tipo ? <button type="button" className="filtro-aplicado" onClick={() => { setTipo(''); setPage(0); }} aria-label="Quitar tipo">{TIPOS_ACTA[tipo as keyof typeof TIPOS_ACTA]?.corto ?? tipo} <i className="fa-solid fa-xmark" aria-hidden="true" /></button> : null}
@@ -176,14 +202,14 @@ export function CausasBandeja() {
                 <tr key={c.uuid}>
                   {gestion ? <td><input type="checkbox" className="form-check-input" aria-label={`Seleccionar ${c.legajo_numero_acta}`} checked={sel.has(c.uuid)} onChange={() => alternar(c)} /></td> : null}
                   <td>
-                    <Link href={`/private/causa/${c.uuid}`} className="fw-semibold">{c.legajo_numero_acta}</Link>
+                    <Link href={`/private/causa/${c.uuid}${trabajo ? `?b=${trabajo}` : ''}`} className="fw-semibold">{c.legajo_numero_acta}</Link>
                     <div className="texto-ayuda">{TIPOS_ACTA[tipoActa(String(c.infraccion_tipo_nombre))].corto}</div>
                   </td>
                   <td>{c.legajo_number}/{c.legajo_anio}</td>
                   <td>{fechaCorta(String(c.legajo_fecha ?? ''))}</td>
                   <td>{c.infractor_razon_social || c.infractor_nombre || 'NN'}<div className="texto-ayuda">{c.infractor_cuit || c.infractor_documento_numero}</div></td>
                   <td>{c.vehiculo_numero_dominio || '-'}</td>
-                  <td><EstadoChip estado={String(c.estado_faltas)} medida={Number(c.medida_vigente) === 1} />{c.marca ? <div className="marca-causa">{String(c.marca)}</div> : null}</td>
+                  <td><EstadoChip estado={String(c.estado_faltas)} medida={Number(c.medida_vigente) === 1} />{c.marca ? <div className="marca-causa">{String(c.marca)}</div> : null}{c.bandeja && (!trabajo || texto) ? <div className="texto-ayuda">Bandeja: {infoBandeja(String(c.bandeja))?.titulo}</div> : null}</td>
                   <td><Plazo vence={c.vence_plazo_at ? Number(c.vence_plazo_at) : null} estado={String(c.estado_faltas ?? "")} /></td>
                   <td className="text-end">{pesos(c.monto_estimado == null ? null : Number(c.monto_estimado))}</td>
                 </tr>

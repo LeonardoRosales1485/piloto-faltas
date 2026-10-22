@@ -1,12 +1,13 @@
 import { NextRequest } from 'next/server';
-import { BANDEJAS, enBandeja, vencidoSinPresentacion, type BandejaId, type FilaCausa } from '@/lib/bandejas';
+import { BANDEJAS, enBandeja, vencidoSinPresentacion, type BandejaId, type BandejaTrabajoId, type FilaCausa } from '@/lib/bandejas';
+import { conBandejas } from '@/lib/bandejas-srv';
 import { HIST_VENCIDO } from '@/lib/camino';
 import { handle } from '@/lib/srv';
 import { tipoVisible } from '@/lib/dominio';
 
-type Body = { bandeja?: BandejaId; texto?: string; tipo?: string; estado?: string; anio?: string; page?: number; size?: number };
+type Body = { bandeja?: BandejaId; /** Bandeja de trabajo (menú lateral); si viene, manda sobre `bandeja`. */ trabajo?: BandejaTrabajoId; texto?: string; tipo?: string; estado?: string; anio?: string; page?: number; size?: number };
 
-const CAMPOS = 'id, uuid, infraccion_tipo_id, estado_faltas, infraccion_tipo_nombre, legajo_numero_acta, legajo_number, legajo_anio, legajo_fecha, infractor_nombre, infractor_razon_social, infractor_documento_numero, infractor_cuit, vehiculo_numero_dominio, medida_vigente, vence_plazo_at, notificada_at, firmada_at, monto_estimado, inspector_nombre, date_created';
+const CAMPOS = 'id, uuid, infraccion_tipo_id, estado_faltas, infraccion_tipo_nombre, legajo_numero_acta, legajo_number, legajo_anio, legajo_fecha, infractor_nombre, infractor_razon_social, infractor_documento_numero, infractor_cuit, vehiculo_numero_dominio, medida_vigente, vence_plazo_at, notificada_at, firmada_at, monto_estimado, inspector_nombre, date_created, retencion_de_vehiculo, vehiculo_liberado_at';
 
 export async function POST(req: NextRequest) {
   const body = (await req.json()) as Body;
@@ -33,14 +34,19 @@ export async function POST(req: NextRequest) {
     const conteos: Record<string, number> = {};
     for (const b of BANDEJAS) conteos[b.id] = filas.filter((f) => enB(f, b.id)).length;
     const t = (body.texto ?? '').toLowerCase().trim();
-    let lista = filas.filter((f) => enB(f, body.bandeja ?? 'activas'));
+    // Bandejas de trabajo: cada causa en una sola, calculada por el sistema (minuta 20/10).
+    const conB = await conBandejas(db, filas);
+    const bandejaDe = new Map(conB.lista.map((f) => [f.id, f.bandeja]));
+    let lista = body.trabajo
+      ? (t ? filas : filas.filter((f) => bandejaDe.get(f.id) === body.trabajo))
+      : filas.filter((f) => enB(f, body.bandeja ?? 'activas'));
     if (body.tipo) lista = lista.filter((f) => f.infraccion_tipo_nombre === body.tipo);
     if (body.estado) lista = lista.filter((f) => f.estado_faltas === body.estado);
     if (body.anio) lista = lista.filter((f) => String(f.legajo_anio ?? '') === String(body.anio));
     if (t) lista = lista.filter((f) => [f.legajo_numero_acta, f.legajo_number, `${f.legajo_number}/${f.legajo_anio}`, f.legajo_anio, f.infractor_nombre, f.infractor_razon_social, f.infractor_documento_numero, f.infractor_cuit, f.vehiculo_numero_dominio].some((v) => String(v ?? '').toLowerCase().includes(t)));
     const size = body.size ?? 15;
     const page = body.page ?? 0;
-    const marcar = (f: FilaCausa) => ({ ...f, marca: pendientes.has(f.id) ? 'Presentación a resolver' : vencidoSinPresentacion(f, ahora, conPresentacion) ? 'Sin presentación (vencido el plazo)' : null });
-    return { content: lista.slice(page * size, page * size + size).map(marcar), totalElements: lista.length, totalPages: Math.max(1, Math.ceil(lista.length / size)), page, size, conteos, cuotasVencidas: [...cuotasVencidas] };
+    const marcar = (f: FilaCausa) => ({ ...f, bandeja: bandejaDe.get(f.id) ?? null, marca: pendientes.has(f.id) ? 'Presentación a resolver' : vencidoSinPresentacion(f, ahora, conPresentacion) ? 'Sin presentación (vencido el plazo)' : null });
+    return { content: lista.slice(page * size, page * size + size).map(marcar), totalElements: lista.length, totalPages: Math.max(1, Math.ceil(lista.length / size)), page, size, conteos, conteosTrabajo: conB.conteos, cuotasVencidas: [...cuotasVencidas] };
   }, 'verCausas');
 }

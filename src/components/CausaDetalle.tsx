@@ -23,9 +23,13 @@ import { caminoInfractor, descargoPendiente } from '@/lib/camino';
 import { estadosOrigen, previstaPara, tiposDePlantilla } from '@/lib/plantillas';
 import { proximoPaso, type AccionPaso } from '@/lib/proximo-paso';
 import { useRefresco } from '@/lib/use-refresco';
+import { infoBandeja, type BandejaTrabajoId } from '@/lib/bandejas';
+import { fijarBandejaActiva, useSeguirActa } from '@/lib/bandeja-activa';
+import { EVENTO_DATOS } from '@/lib/avisos-datos';
 
 type R = Record<string, any>;
 type Detalle = {
+  bandeja?: BandejaTrabajoId | null;
   acta: Infraccion; actaVigente: Infraccion | null; subsanacion: R | null; subsanables: { k: string; t: string; grupo: string; valor: string }[]; memos: R[]; historial: R[]; documentos: R[]; presentaciones: R[]; boletas: R[]; notificaciones: R[]; imagenes: R[];
   valorizacion: { uf: number; unidades: number; subtotal?: number; multa: number; valores?: { fijados: boolean; fecha: number | null; ufVigente: number; difiere: boolean }; leyes: R[]; ajustado: number | null; motivoAjuste: string | null };
 };
@@ -64,16 +68,46 @@ export function CausaDetalle() {
   const [error, setError] = useState<string | null>(null);
   const cargadaDe = useRef<string | null>(null);
   const falloDe = useRef<string | null>(null);
+  // «Seguir acta» (minuta 20/10, propuesta de Pablo): cuando una acción hace que la causa cambie de bandeja, la pantalla
+  // la sigue (queda abierta y el menú marca la bandeja nueva); desactivado, se vuelve a la bandeja de origen.
+  const [seguir, setSeguir] = useSeguirActa();
+  const seguirRef = useRef(seguir);
+  seguirRef.current = seguir;
+  const bandejaPrevia = useRef<{ uuid: string; b: BandejaTrabajoId | null } | null>(null);
+  const ultimaAccion = useRef(0);
+  useEffect(() => {
+    const f = () => { ultimaAccion.current = Date.now(); };
+    window.addEventListener(EVENTO_DATOS, f);
+    return () => window.removeEventListener(EVENTO_DATOS, f);
+  }, []);
+  const origen = useRef<string | null>(null);
+  useEffect(() => { origen.current = new URLSearchParams(window.location.search).get('b'); }, [uuid]);
+  const alCambiarBandeja = useCallback((nueva: BandejaTrabajoId | null) => {
+    const prev = bandejaPrevia.current;
+    bandejaPrevia.current = { uuid, b: nueva };
+    fijarBandejaActiva(nueva);
+    if (!prev || prev.uuid !== uuid || prev.b === nueva || !nueva) return;
+    const propia = Date.now() - ultimaAccion.current < 15000;
+    const titulo = infoBandeja(nueva)?.titulo ?? nueva;
+    if (seguirRef.current) {
+      if (propia) notify.info(`La causa pasó a «${titulo}»`, 'Sigue abierta para continuar el trámite.');
+      router.replace(`/private/causa/${uuid}?b=${nueva}`, { scroll: false });
+    } else if (propia) {
+      notify.info(`La causa pasó a «${titulo}»`, 'Volvió a la bandeja de origen.');
+      router.push(`/private/causas${origen.current || prev.b ? `?b=${origen.current || prev.b}` : ''}`);
+    }
+  }, [uuid, notify, router]);
+
   const cargar = useCallback(() => {
     if (falloDe.current === uuid) return;
     http.get<Detalle>(`/api/causa/${uuid}`)
-      .then((x) => { cargadaDe.current = uuid; setError(null); setD(x); })
+      .then((x) => { cargadaDe.current = uuid; setError(null); setD(x); alCambiarBandeja(x.bandeja ?? null); })
       .catch((e: Error) => {
         if (cargadaDe.current === uuid) { notify.error('No se pudo cargar la causa', e.message); return; }
         falloDe.current = uuid;
         setError(e.message);
       });
-  }, [uuid, notify]);
+  }, [uuid, notify, alCambiarBandeja]);
   const reintentar = () => { falloDe.current = null; setError(null); cargar(); };
 
   // Sin F5: se recarga sola tras cualquier acción, al volver a la pestaña y cada 20 s (portal, otros usuarios).
@@ -283,6 +317,12 @@ export function CausaDetalle() {
           <Plazo vence={c.vencePlazoAt} estado={estado} ocultarSinPlazo />
           <span className="sub">
             {TIPOS_ACTA[tipo].titulo} · Legajo {c.legajoNumber}/{c.legajoAnio} · {c.infractorRazonSocial || c.infractorNombre || 'NN'} · En el portal se ve como «{infoEstado(estado).portal}»
+          </span>
+          <span className="sub d-flex flex-wrap align-items-center gap-3">
+            {d.bandeja ? <span><i className="fa-solid fa-folder-open" aria-hidden="true" /> Bandeja: <a href={`/private/causas?b=${d.bandeja}`} onClick={(e) => { e.preventDefault(); router.push(`/private/causas?b=${d.bandeja}`); }}>{infoBandeja(d.bandeja)?.titulo}</a></span> : null}
+            <label className="form-check form-switch seguir-acta m-0" title="Si una acción cambia la bandeja de la causa, la causa queda abierta y el menú marca la bandeja nueva. Desactivado, vuelve a la bandeja de origen.">
+              <input type="checkbox" role="switch" className="form-check-input" checked={seguir} onChange={(e) => setSeguir(e.target.checked)} /> Seguir acta
+            </label>
           </span>
         </div>
         <div className="tabs-causa" role="tablist">
