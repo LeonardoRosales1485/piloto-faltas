@@ -126,6 +126,7 @@ Avance: **20 / 20**
 | Inspector: vuelve el «easter egg» de 7 toques sobre «Mis borradores» (ver todas las actas de sus tipos), pero apagado por defecto: se habilita en Configuración › Funciones opcionales › «Depuración en el POS» (permiso depuracionPos; el servidor también lo verifica). Así se respeta la minuta 20/10 (inspector sin listado) fuera de las pruebas | — |
 | Minuta 20/10, fase 2 · Bandejas de trabajo con contadores (propuesta de Pablo, modelo correo): el sistema ubica cada causa en una sola bandeja (Nuevas, En notificación, Para notificar por cédula, Descargos y presentaciones, Pagos a acreditar, Para fallo, Para revisión, Para firma, Medidas y retenciones; de consulta En plazo, Gestión externa y Archivo) con códigos de la especificación (`ACTA_NUEVA`, `PENDIENTE_FIRMA`, …). Menú lateral «Bandejas» con contador por bandeja y globo en el menú angosto; resumen «Tiene para hacer» arriba de la lista; búsqueda global desde cualquier bandeja. `dias_espera_portal` (10) define cuándo pasa a cédula | — |
 | Minuta 20/10, fase 2 · «Seguir acta»: interruptor en la cabecera de la causa (en el navegador, activado por defecto). Si una acción cambia la bandeja, la causa queda abierta y el menú marca la nueva; desactivado, vuelve a la bandeja de origen | — |
+| Menú «Bandejas»: «Todas las causas» pasa a ser el primer ítem | — |
 
 ## Fuera del alcance del prototipo
 

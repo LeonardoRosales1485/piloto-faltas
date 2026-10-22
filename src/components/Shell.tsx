@@ -44,8 +44,8 @@ const GRUPOS: MenuItem[] = [
     icono: 'fa-solid fa-folder-tree',
     permiso: 'verCausas',
     children: [
-      ...BANDEJAS_TRABAJO.map((b) => ({ titulo: b.titulo, route: `/private/causas?b=${b.id}`, bandeja: b.id as BandejaTrabajoId, trabajo: b.trabajo })),
       { titulo: 'Todas las causas', route: '/private/causas' },
+      ...BANDEJAS_TRABAJO.map((b) => ({ titulo: b.titulo, route: `/private/causas?b=${b.id}`, bandeja: b.id as BandejaTrabajoId, trabajo: b.trabajo })),
     ],
   },
   { id: 'presentaciones', titulo: 'Presentaciones', icono: 'fa-solid fa-inbox', route: '/private/presentaciones', permiso: 'verPresentaciones' },
