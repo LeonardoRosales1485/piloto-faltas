@@ -88,7 +88,7 @@ export function accionesDisponibles(c: CausaRow, pres: Presentacion[], boletasAc
   // Descargo
   if (!preFallo || e === 'Descargo') out.descargo = no(e === 'Descargo' ? 'Su descargo está en análisis.' : 'Ya no corresponde en este estado de la causa.');
   else if (e === 'Causa observada') out.descargo = no('Use «Reenviar descargo».');
-  else if (presentoDescargo) out.descargo = no(descargoRechazado ? 'Su descargo fue rechazado: no se puede presentar otro.' : 'Ya presentó un descargo.');
+  else if (presentoDescargo) out.descargo = no(descargoRechazado ? 'Su descargo no fue admitido: no se puede presentar otro.' : 'Ya presentó un descargo.');
   else if (transito && (tiene('pago_voluntario') || conBoletas)) out.descargo = no('En tránsito no puede presentar descargo si pidió el pago voluntario.');
   else out.descargo = si;
 

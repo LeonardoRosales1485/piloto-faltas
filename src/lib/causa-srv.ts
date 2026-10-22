@@ -2,7 +2,7 @@
  * Operaciones de la causa: notificación, escritos, presentaciones, boletas, fallo y archivo.
  * Todo cambio de estado pasa por cambiarEstado() y deja historial.
  */
-import { ahoraArgentina, claveLey, esContravencional, fechaCorta, pesos, resolverLeyes, TIPOS_ACTA, tipoActa } from './dominio';
+import { ahoraArgentina, claveLey, esContravencional, estadoFinal, fechaCorta, pesos, resolverLeyes, TIPOS_ACTA, tipoActa } from './dominio';
 import { claseVehiculo, tarifaAcarreo } from './tarifas';
 import { causaVigente, leyesVigentes, subsanacionDe } from './subsanacion';
 import {
@@ -77,9 +77,11 @@ export async function valoresVigentes(d: Db, c: CausaRow): Promise<ValoresLabrad
  * La multa es la suma de subtotales, salvo un ajuste global del monto («Ajustar valorización»).
  */
 export async function valorizacion(d: Db, c: CausaRow) {
-  // Se usan los valores del momento del labrado; los vigentes solo si la causa no los tiene (borradores, datos viejos).
+  // Decisión 22/10/2026: mientras la causa está abierta se usan siempre los valores vigentes (UF y múltiplos); el monto
+  // queda fijo recién en la boleta emitida o en el pago. Los valores del labrado (sql/023) quedan como dato histórico y
+  // solo se muestran en causas cerradas.
   const ufVigente = await configNum(d, 'finanza_unidad_fija', 2000);
-  const lab = leerValoresLabrado(c);
+  const lab = estadoFinal(c.estado_faltas) ? leerValoresLabrado(c) : null;
   const uf = lab?.uf ?? ufVigente;
   const base = await leyesDeCausa(d, c.id);
   const aj = await ajustesLeyes(d, c.id);

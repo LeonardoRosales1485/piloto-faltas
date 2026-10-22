@@ -11,8 +11,17 @@ import { useNotify } from './NotifyProvider';
 import { Plazo } from './Plazo';
 
 type R = Record<string, any>;
-export const TIPO_PRESENTACION: Record<string, string> = { pago_voluntario: 'Pago voluntario', boleta: 'Boleta sin beneficio', cuotas: 'Plan de cuotas', descargo: 'Descargo', apelacion: 'Apelación' };
-const ESTADO: Record<string, string> = { pendiente: 'Pendiente', aceptada: 'Aceptada', observada: 'Observada', rechazada: 'Rechazada' };
+export const TIPO_PRESENTACION: Record<string, string> = { pago_voluntario: 'Pedido de pago (en plazo)', boleta: 'Pedido de pago (fuera de plazo)', cuotas: 'Plan de cuotas', descargo: 'Descargo', apelacion: 'Apelación' };
+// Términos procesales (minuta 20/10): «Observada / pase a subsanar» y «No admitida» en lugar de «Rechazada».
+const ESTADO: Record<string, string> = { pendiente: 'Pendiente', aceptada: 'Aceptada', observada: 'Observada (pase a subsanar)', rechazada: 'No admitida' };
+/** Pedidos de documentación frecuentes al observar un descargo (se suman a la respuesta). */
+const PEDIDOS_DOC = [
+  'Falta el poder que acredite la representación del apoderado.',
+  'Falta copia legible del DNI (frente y dorso).',
+  'Falta documentación del vehículo (cédula o título).',
+  'Falta la firma del escrito de descargo.',
+  'Faltan las pruebas que menciona en el descargo.',
+];
 type Accion = 'aceptar' | 'rechazar' | 'observar';
 
 /**
@@ -37,7 +46,9 @@ export function TarjetaPresentacion({ p, causa, adjuntos = [], gestion, destacad
   async function ok(v: Record<string, string>) {
     if (!resolver) return;
     try {
-      await http.post('/api/presentacion/resolver', { uuid: p.uuid, accion: resolver, respuesta: v.respuesta, cuotas: v.cuotas ? Number(v.cuotas) : undefined });
+      const respuesta = [...String(v.pedido ?? '').split(',').filter(Boolean), (v.respuesta ?? '').trim()].filter(Boolean).join(' ');
+      if (resolver === 'observar' && !respuesta) { notify.error('Falta la respuesta', 'Indique qué documentación falta o escriba la respuesta.'); return; }
+      await http.post('/api/presentacion/resolver', { uuid: p.uuid, accion: resolver, respuesta, cuotas: v.cuotas ? Number(v.cuotas) : undefined, conDescuento: v.descuento ? v.descuento === 'si' : undefined });
       setResolver(null);
       onResuelta(p, resolver);
     } catch (e) {
@@ -72,13 +83,13 @@ export function TarjetaPresentacion({ p, causa, adjuntos = [], gestion, destacad
       {p.estado === 'pendiente' && gestion ? (
         <div className="d-flex gap-2 flex-wrap mt-2">
           <button type="button" className="btn btn-sm btn-success" onClick={() => setResolver('aceptar')}>{p.tipo === 'apelacion' ? 'Conceder' : 'Aceptar'}</button>
-          {p.tipo === 'descargo' && !p.reenvio_de ? <button type="button" className="btn btn-sm btn-warning" onClick={() => setResolver('observar')}>Observar</button> : null}
-          <button type="button" className="btn btn-sm btn-outline-danger" onClick={() => setResolver('rechazar')}>Rechazar</button>
+          {p.tipo === 'descargo' && !p.reenvio_de ? <button type="button" className="btn btn-sm btn-warning" onClick={() => setResolver('observar')}>Observar (pase a subsanar)</button> : null}
+          <button type="button" className="btn btn-sm btn-outline-danger" onClick={() => setResolver('rechazar')}>No admitir</button>
         </div>
       ) : null}
       {resolver ? (
         <ModalForm
-          titulo={`${resolver === 'aceptar' ? (p.tipo === 'apelacion' ? 'Conceder' : 'Aceptar') : resolver === 'observar' ? 'Observar' : 'Rechazar'} · ${TIPO_PRESENTACION[p.tipo]}`}
+          titulo={`${resolver === 'aceptar' ? (p.tipo === 'apelacion' ? 'Conceder' : 'Aceptar') : resolver === 'observar' ? 'Observar (pase a subsanar)' : 'No admitir'} · ${TIPO_PRESENTACION[p.tipo]}`}
           icono="fa-solid fa-gavel"
           aviso={
             resolver === 'aceptar'
@@ -89,7 +100,10 @@ export function TarjetaPresentacion({ p, causa, adjuntos = [], gestion, destacad
           }
           campos={[
             ...(resolver === 'aceptar' && p.tipo === 'cuotas' ? [{ k: 'cuotas', t: 'Cantidad de cuotas otorgadas', tipo: 'numero' as const, req: true, valor: String(p.cuotas_solicitadas ?? 3) }] : []),
-            { k: 'respuesta', t: 'Respuesta al infractor', tipo: 'area' as const, req: resolver !== 'aceptar' },
+            // Pedido de pago (minuta 20/10): la Dirección define si concede el beneficio del pago voluntario o exige el monto pleno.
+            ...(resolver === 'aceptar' && (p.tipo === 'pago_voluntario' || p.tipo === 'boleta') ? [{ k: 'descuento', t: 'Monto a cobrar', tipo: 'select' as const, req: true, valor: p.tipo === 'pago_voluntario' ? 'si' : 'no', opciones: [{ v: 'si', t: 'Con el descuento del pago voluntario' }, { v: 'no', t: 'Monto pleno (sin descuento)' }], ayuda: p.tipo === 'boleta' ? 'Lo pidió fuera de plazo: puede conceder igual el beneficio.' : undefined }] : []),
+            ...(resolver === 'observar' ? [{ k: 'pedido', t: 'Documentación que falta', tipo: 'multi' as const, opciones: PEDIDOS_DOC.map((x) => ({ v: x, t: x })), ayuda: 'Se agrega a la respuesta. Opcional.' }] : []),
+            { k: 'respuesta', t: 'Respuesta al infractor', tipo: 'area' as const, req: resolver !== 'aceptar' && resolver !== 'observar' },
           ]}
           peligro={resolver === 'rechazar'}
           onCancel={() => setResolver(null)}

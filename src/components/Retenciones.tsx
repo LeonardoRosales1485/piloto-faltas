@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import { http } from '@/lib/api-client';
-import { fechaCorta, pesos } from '@/lib/dominio';
+import { fechaCorta, pesos, REQUISITOS_LIBERACION } from '@/lib/dominio';
 import { useCarga } from '@/lib/use-carga';
 import { LoaderLogo } from './LoaderLogo';
 import { useNotify } from './NotifyProvider';
@@ -38,6 +38,8 @@ export function Retenciones() {
   const [enviando, setEnviando] = useState(false);
   const [registrar, setRegistrar] = useState<R | null>(null);
   const [detalleLib, setDetalleLib] = useState('');
+  // Requisitos de la entrega presencial (minuta 20/10): todos tildados para registrar la liberación.
+  const [requisitos, setRequisitos] = useState<string[]>([]);
   const [cargando, seguir] = useCarga();
 
   const cargar = useCallback((silencioso = false) => {
@@ -76,7 +78,7 @@ export function Retenciones() {
     if (!registrar) return;
     setEnviando(true);
     try {
-      await http.post<R>('/api/causa/accion', { uuid: registrar.uuid, accion: 'registrar_liberacion', datos: { detalle: detalleLib, sinBoleta: !registrar.boletaEmitida } });
+      await http.post<R>('/api/causa/accion', { uuid: registrar.uuid, accion: 'registrar_liberacion', datos: { detalle: detalleLib, sinBoleta: !registrar.boletaEmitida, requisitos } });
       notify.success('Vehículo liberado', `Se registró la liberación del acta ${registrar.acta}.`);
       setRegistrar(null);
       cargar();
@@ -149,7 +151,7 @@ export function Retenciones() {
                             </button>
                           ) : null}
                           {x.fase === 'listo' || (x.fase === 'retenido' && x.disposicion === 'firmada') ? (
-                            <button type="button" className={`btn btn-sm ${x.fase === 'listo' ? 'btn-success' : 'btn-outline-secondary'}`} onClick={() => { setRegistrar(x); setDetalleLib(''); }}>
+                            <button type="button" className={`btn btn-sm ${x.fase === 'listo' ? 'btn-success' : 'btn-outline-secondary'}`} onClick={() => { setRegistrar(x); setDetalleLib(''); setRequisitos([]); }}>
                               <i className="fa-solid fa-lock-open" aria-hidden="true" /> Registrar liberación
                             </button>
                           ) : null}
@@ -218,6 +220,14 @@ export function Retenciones() {
               {registrar.boletaEmitida
                 ? <p>La boleta de acarreo y estadía está acreditada y la disposición de levantamiento está firmada. Se registra la entrega del vehículo con fecha y hora de hoy.</p>
                 : <div className="aviso aviso-alerta mb-3"><i className="fa-solid fa-triangle-exclamation" aria-hidden="true" /> No se emitió la boleta de acarreo y estadía. Confirme solo si corresponde liberar el vehículo sin cobrarla (la disposición de levantamiento ya está firmada).</div>}
+              <fieldset className="mb-3">
+                <legend className="fs-6 fw-semibold mb-1">Entrega presencial: el interesado acreditó</legend>
+                {REQUISITOS_LIBERACION.map((r) => (
+                  <label key={r} className="form-check d-block">
+                    <input type="checkbox" className="form-check-input" checked={requisitos.includes(r)} onChange={(ev) => setRequisitos((p) => (ev.target.checked ? [...p, r] : p.filter((x) => x !== r)))} /> {r}
+                  </label>
+                ))}
+              </fieldset>
               <div className="form-group mb-0">
                 <label htmlFor="ret-detalle">Constancia o detalle (opcional)</label>
                 <input id="ret-detalle" className="form-control" value={detalleLib} placeholder="Ej.: retiró el titular con DNI y cédula" onChange={(ev) => setDetalleLib(ev.target.value)} />
@@ -225,7 +235,7 @@ export function Retenciones() {
             </div>
             <div className="modal-fake-footer">
               <button type="button" className="btn btn-outline-secondary" onClick={() => setRegistrar(null)}>Cancelar</button>
-              <button type="button" className="btn btn-success" disabled={enviando} onClick={() => void confirmarRegistro()}>{registrar.boletaEmitida ? 'Registrar liberación' : 'Liberar sin boleta'}</button>
+              <button type="button" className="btn btn-success" disabled={enviando || requisitos.length < REQUISITOS_LIBERACION.length} onClick={() => void confirmarRegistro()}>{registrar.boletaEmitida ? 'Registrar liberación' : 'Liberar sin boleta'}</button>
             </div>
           </div>
         </div>

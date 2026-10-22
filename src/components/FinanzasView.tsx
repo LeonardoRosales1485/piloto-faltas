@@ -33,7 +33,7 @@ const ESTADIAS: { t: string; base: 'auto' | 'moto' | 'camion'; i: string }[] = [
   { t: 'Camiones', base: 'camion', i: 'fa-solid fa-truck' },
 ];
 const TRAMOS: { sufijo: '3a7' | '8a30' | 'mas31_por_dia'; t: string }[] = [
-  { sufijo: '3a7', t: '3 a 7 días' }, { sufijo: '8a30', t: '8 a 30 días' }, { sufijo: 'mas31_por_dia', t: '+31 por día' },
+  { sufijo: '3a7', t: '1 a 7 días' }, { sufijo: '8a30', t: '8 a 30 días' }, { sufijo: 'mas31_por_dia', t: '+31 por día' },
 ];
 
 const vacias = (): Valores => Object.fromEntries(CLAVES.map((k) => [k, ''])) as Valores;

@@ -8,7 +8,7 @@ import { useCarga } from '@/lib/use-carga';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import { fechaCorta } from '@/lib/dominio';
-import { guardarSesion, nombrePerfil, portal, portalPerfil, type Perfil } from '@/lib/portal-client';
+import { guardarPerfil, guardarSesion, nombrePerfil, portal, portalPerfil, type Perfil } from '@/lib/portal-client';
 
 type R = Record<string, any>;
 
@@ -118,7 +118,13 @@ function Causas({ perfil }: { perfil: Perfil }) {
 export function PortalInicio() {
   const sp = useSearchParams();
   const [perfil, setPerfil] = useState<Perfil | null | undefined>(undefined);
-  useEffect(() => setPerfil(portalPerfil()), []);
+  useEffect(() => {
+    const local = portalPerfil();
+    setPerfil(local);
+    // El perfil guardado al iniciar sesión puede estar desactualizado (p. ej. la DD.JJ. se constituyó después o en otro
+    // dispositivo): se toma el del servidor, así lo ya declarado no se vuelve a ofrecer.
+    if (local) portal.get<Perfil>('/api/portal/yo').then((p) => { guardarPerfil(p); setPerfil(p); }).catch(() => undefined);
+  }, []);
   if (perfil === undefined) return null;
   return perfil ? <Causas perfil={perfil} /> : <Login volver={sp.get('volver')} />;
 }

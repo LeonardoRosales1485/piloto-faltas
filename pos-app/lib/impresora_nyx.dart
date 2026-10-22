@@ -41,6 +41,10 @@ class ImpresoraNyx {
     campo('REPARTICIÓN', '${t['reparticion'] ?? '-'}');
     texto('-' * 16, tam: 22, alinear: _centro);
     texto('IMPORTANTE: no debe abonar monto de dinero alguno a la autoridad que confeccionó la presente acta.', tam: 20, negrita: true, alinear: _centro);
+    // Leyendas legales (boleta de inculpado, advertencia de compactación): las arma la web según el acta.
+    for (final l in ((t['leyendas'] as List?)?.map((e) => '$e') ?? const <String>[])) {
+      texto(l, tam: 18, alinear: _centro);
+    }
     if ('${t['url'] ?? ''}'.isNotEmpty) pasos.add({'tipo': 'qr', 'texto': '${t['url']}', 'lado': qr, 'alinear': _centro});
     texto('Escanee para ver el acta digital', tam: 20, negrita: true, alinear: _centro);
     if ('${t['codigo'] ?? ''}'.isNotEmpty) texto('Código: ${t['codigo']}', tam: 20, alinear: _centro);

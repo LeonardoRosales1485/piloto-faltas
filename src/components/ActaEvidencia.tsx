@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { actaHtmlPorTipo } from '@/lib/acta-oficial';
 import { hayImpresoraPos, printActa } from '@/lib/print';
 import type { Infraccion } from '@/lib/types';
+import { textosLeyendas } from '@/lib/leyendas';
 
 const CLAVE = 'faltas-piloto:mostrar-evidencia';
 
@@ -19,6 +20,8 @@ export function useMostrarEvidencia(): [boolean, (v: boolean) => void] {
 export function BotonVerActa({ acta, imagenes, texto = 'Ver acta (PDF)', className = 'btn btn-outline-primary' }: { acta: Infraccion; imagenes: string[]; texto?: string; className?: string }) {
   const [evidencia, setEvidencia] = useMostrarEvidencia();
   const [modal, setModal] = useState(false);
+  // Leyendas legales editadas en «Textos del portal» (si no llegan, salen las por defecto).
+  useEffect(() => { void textosLeyendas(); }, []);
   // En la app del POS y en pantallas táctiles el acta se ve en un modal: abrir la ventana de impresión deja al
   // usuario atrapado en el visor del WebView (y el POS no imprime A4). En escritorio sigue abriendo el PDF.
   const ver = () => {

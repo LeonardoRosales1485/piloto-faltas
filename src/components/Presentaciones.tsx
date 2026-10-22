@@ -12,7 +12,7 @@ import { useNotify } from './NotifyProvider';
 import { useRefresco } from '@/lib/use-refresco';
 
 type R = Record<string, any>;
-const FILTROS = [{ v: 'pendiente', t: 'Pendientes' }, { v: 'aceptada', t: 'Aceptadas' }, { v: 'observada', t: 'Observadas' }, { v: 'rechazada', t: 'Rechazadas' }, { v: 'todas', t: 'Todas' }];
+const FILTROS = [{ v: 'pendiente', t: 'Pendientes' }, { v: 'aceptada', t: 'Aceptadas' }, { v: 'observada', t: 'Observadas (pase a subsanar)' }, { v: 'rechazada', t: 'No admitidas' }, { v: 'todas', t: 'Todas' }];
 
 /** Bandeja única de presentaciones (SF-26 a SF-31). */
 export function Presentaciones() {

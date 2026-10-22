@@ -4,7 +4,9 @@ import { emitirBoletas, generarEscrito, efectosDefinitivo } from '@/lib/causa-sr
 import { esContravencional } from '@/lib/dominio';
 import { cambiarEstado, causaPorId, check, enviarCorreo, handle, historial, nombreUsuario } from '@/lib/srv';
 
-type Body = { uuid: string; accion: 'aceptar' | 'rechazar' | 'observar'; respuesta?: string; cuotas?: number };
+type Body = { uuid: string; accion: 'aceptar' | 'rechazar' | 'observar'; respuesta?: string; cuotas?: number;
+  /** Pedidos de pago (minuta 20/10): la Dirección decide si concede el descuento del pago voluntario o cobra el monto pleno. */
+  conDescuento?: boolean };
 
 const NOMBRE: Record<string, string> = { pago_voluntario: 'pago voluntario', boleta: 'boleta de pago', cuotas: 'plan de cuotas', descargo: 'descargo', apelacion: 'apelación' };
 
@@ -25,13 +27,14 @@ export async function POST(req: NextRequest) {
     const aNombre = p.ciudadano ? (p.ciudadano.razon_social || `${p.ciudadano.nombre} ${p.ciudadano.apellido}`) : String(c.infractor_razon_social || c.infractor_nombre || '');
     if (body.accion === 'aceptar') {
       if (tipo === 'pago_voluntario' || tipo === 'boleta' || tipo === 'cuotas') {
-        const modo = tipo === 'pago_voluntario' ? 'voluntario' : tipo === 'cuotas' ? 'cuotas' : 'total';
+        const conDescuento = typeof body.conDescuento === 'boolean' ? body.conDescuento : tipo === 'pago_voluntario';
+        const modo = tipo === 'cuotas' ? 'cuotas' : conDescuento ? 'voluntario' : 'total';
         const cuotas = tipo === 'cuotas' ? Number(body.cuotas ?? p.cuotas_solicitadas ?? 1) : 1;
         const emision = await emitirBoletas(db, c, modo, cuotas, aNombre, quien);
         // Compromiso de pago desde plantilla, a nombre de quien firma (SF-52, SF-53)
         const codigo = esContravencional(c.infraccion_tipo_nombre)
           ? (c.estado_faltas === 'Fallo notificado' ? 'COMPROMISO_FALLO_CONTRAVENCION' : 'COMPROMISO_CONTRAVENCION_PV')
-          : (tipo === 'pago_voluntario' ? 'COMPROMISO_TRANSITO_INFRACTOR_PV' : 'COMPROMISO_FALLO_TRANSITO');
+          : (modo === 'voluntario' ? 'COMPROMISO_TRANSITO_INFRACTOR_PV' : 'COMPROMISO_FALLO_TRANSITO');
         const { data: pl } = await db.from('plantilla').select('id').eq('codigo', codigo).maybeSingle();
         if (pl) {
           const g = await generarEscrito(db, user, c, (pl as { id: number }).id);
@@ -72,11 +75,11 @@ export async function POST(req: NextRequest) {
     } else if (body.accion === 'observar') {
       await cambiarEstado(db, c, 'Causa observada', quien, 'Descargo observado', respuesta);
     } else {
-      await historial(db, c.id, quien, `Solicitud de ${NOMBRE[tipo] ?? tipo} rechazada`, respuesta);
+      await historial(db, c.id, quien, `Solicitud de ${NOMBRE[tipo] ?? tipo} no admitida`, respuesta);
     }
     await db.from('presentacion').update({ estado: body.accion === 'aceptar' ? 'aceptada' : body.accion === 'observar' ? 'observada' : 'rechazada', respuesta: respuesta || 'Aceptada', resuelta_por: quien, resuelta_at: Date.now() }).eq('id', p.id as number);
     if (p.ciudadano?.email) {
-      await enviarCorreo(db, p.ciudadano.email, `Respuesta a su ${NOMBRE[tipo] ?? 'presentación'} · Acta ${c.legajo_numero_acta}`, `${body.accion === 'aceptar' ? 'Su solicitud fue aceptada.' : body.accion === 'observar' ? 'Su descargo fue observado. Puede reenviarlo una única vez desde el portal.' : 'Su solicitud fue rechazada.'} ${respuesta}${body.accion === 'aceptar' && tipo !== 'descargo' && tipo !== 'apelacion' ? ' La boleta está disponible en el portal.' : ''}`, c.id);
+      await enviarCorreo(db, p.ciudadano.email, `Respuesta a su ${NOMBRE[tipo] ?? 'presentación'} · Acta ${c.legajo_numero_acta}`, `${body.accion === 'aceptar' ? 'Su solicitud fue aceptada.' : body.accion === 'observar' ? 'Su descargo fue observado (pase a subsanar). Complete lo que falta y reenvíelo una única vez desde el portal.' : 'Su solicitud no fue admitida.'} ${respuesta}${body.accion === 'aceptar' && tipo !== 'descargo' && tipo !== 'apelacion' ? ' La boleta está disponible en el portal.' : ''}`, c.id);
     }
     return { ok: true };
   }, 'resolverPresentaciones');

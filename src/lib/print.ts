@@ -1,4 +1,5 @@
 import type { Infraccion } from './types';
+import { LEYENDAS_DEFECTO, leyendasDelActa, textosLeyendas } from './leyendas';
 import { actaHtmlPorTipo, actaPublicaUrl, svgQr, type ActaExtras } from './acta-oficial';
 
 function abrirVentana(titulo: string, cuerpo: string, estilos: string, ancho = 820): void {
@@ -83,6 +84,7 @@ function ticketCss(): string {
     .t-art li { font-size: 11pt; font-weight: 700; line-height: 1.3; padding-left: 4mm; text-indent: -4mm; }
     .t-art li::before { content: '• '; }
     .t-aviso { margin: 3mm 0; padding: 2mm; border: 2px solid #000; font-size: 10pt; font-weight: 800; line-height: 1.3; text-align: center; }
+    .t-leyenda-legal { margin: 2mm 0; font-size: 9pt; line-height: 1.3; text-align: justify; }
     .t-qr svg { width: 46mm; height: 46mm; display: block; margin: 1mm auto; }
     .t-leyenda { margin: 1mm 0 0; font-size: 10pt; font-weight: 800; text-align: center; }
     .t-codigo { margin: .5mm 0 0; font-size: 9pt; font-weight: 700; text-align: center; letter-spacing: .08em; }
@@ -92,9 +94,25 @@ function ticketCss(): string {
 /** Datos del ticket (los mismos para la impresión web y para la impresión nativa en el POS). */
 export type DatosTicket = {
   titulo: string; numero: string; fecha: string; lugar: string; dominio: string; articulos: string[]; reparticion: string; url: string; codigo: string;
+  /** Leyendas legales que corresponden al acta (boleta de inculpado, compactación). */
+  leyendas: string[];
 };
 
-export function datosTicket(infraccion: Infraccion): DatosTicket {
+/**
+ * Artículos del ticket con la descripción coloquial primero y la cita de la norma después (minuta 20/10:
+ * «Falta VTV» antes que «Ordenanza … · Art. …»). Sin descripción en el catálogo, queda la cita sola.
+ */
+export function articulosParaCiudadano(infraccion: Infraccion): string[] {
+  const claves = Array.isArray(infraccion.leyesNombre) ? infraccion.leyesNombre.filter(Boolean) : [];
+  const detalle = infraccion.leyesDetalle ?? [];
+  return claves.map((k, n) => {
+    const d = detalle.find((x) => (x.articulo ? `${x.nombre} · ${x.articulo}` : x.nombre) === k) ?? detalle[n];
+    const desc = String(d?.descripcion ?? '').trim();
+    return desc ? `${desc} (${k})` : k;
+  });
+}
+
+export function datosTicket(infraccion: Infraccion, textos: Record<string, string> = {}): DatosTicket {
   const lugar = [infraccion.domicilioInfraccionCalle, infraccion.domicilioInfraccionNumero].filter(Boolean).join(' ')
     + (infraccion.domicilioInfraccionLocalidadNombre ? `, ${infraccion.domicilioInfraccionLocalidadNombre}` : '');
   const tipo = infraccion.infraccionTipoNombre;
@@ -104,10 +122,11 @@ export function datosTicket(infraccion: Infraccion): DatosTicket {
     fecha: formatearFechaTicket(infraccion.legajoFecha),
     lugar: lugar || '-',
     dominio: String(infraccion.vehiculoNumeroDominio || '').toUpperCase(),
-    articulos: (Array.isArray(infraccion.leyesNombre) ? infraccion.leyesNombre.filter(Boolean) : []),
+    articulos: articulosParaCiudadano(infraccion),
     reparticion: tipo === 'contravenciones' ? 'CONTRAVENCIONES' : tipo === 'sustancias' ? 'SUSTANCIAS ALIMENTICIAS' : 'TRÁNSITO',
     url: infraccion.uuid ? actaPublicaUrl(infraccion.uuid) : window.location.origin,
     codigo: String(infraccion.firmaInspectorHash ?? '').slice(0, 8).toUpperCase(),
+    leyendas: leyendasDelActa(infraccion, textos),
   };
 }
 
@@ -157,7 +176,7 @@ export async function imprimirPrueba(a: AjustesImpresora): Promise<string> {
   const t: DatosTicket = {
     titulo: 'TICKET DE PRUEBA', numero: 'T-000000', fecha: formatearFechaTicket(new Date().toISOString()), lugar: 'Av. Pte. Perón 1500, Los Polvorines',
     dominio: 'AB123CD', articulos: ['Ordenanza 261/2022 · Art. 45 (prueba de tildes: ñ á é í ó ú)'], reparticion: 'TRÁNSITO',
-    url: `${window.location.origin}/acta/prueba`, codigo: 'PRUEBA',
+    url: `${window.location.origin}/acta/prueba`, codigo: 'PRUEBA', leyendas: [LEYENDAS_DEFECTO.leyenda_compactacion],
   };
   const r = await llamarPos<{ ok?: boolean; via?: string; error?: string } | null>(pos, 'imprimirTicket', { ...t, ...a });
   if (r?.ok === false) throw new Error(r.error || 'No se pudo imprimir');
@@ -231,7 +250,7 @@ function confirmarImpresion(numero: string): Promise<boolean> {
 }
 
 export async function printTicket(infraccion: Infraccion, confirmar = true): Promise<void> {
-  const t = datosTicket(infraccion);
+  const t = datosTicket(infraccion, await textosLeyendas());
   if (confirmar && !(await confirmarImpresion(t.numero))) return;
   // En el POS Senraise (app del inspector) imprime directo con la impresora térmica, sin diálogo.
   const pos = puentePos();
@@ -259,6 +278,7 @@ export async function printTicket(infraccion: Infraccion, confirmar = true): Pro
     <div class="t-campo"><span class="t-label">DISPOSICIÓN LEGAL INFRINGIDA</span><ul class="t-art">${(t.articulos.length ? t.articulos : ['-']).map((a) => `<li>${escapeHtml(a)}</li>`).join('')}</ul></div>
     ${campo('REPARTICIÓN', t.reparticion)}
     <div class="t-aviso">IMPORTANTE: no debe abonar monto de dinero alguno a la autoridad que confeccionó la presente acta.</div>
+    ${t.leyendas.map((l) => `<p class="t-leyenda-legal">${escapeHtml(l)}</p>`).join('')}
     <div class="t-qr">${svgQr(t.url)}</div>
     <p class="t-leyenda">Escanee para ver el acta digital</p>
     ${t.codigo ? `<p class="t-codigo">Código: ${t.codigo}</p>` : ''}

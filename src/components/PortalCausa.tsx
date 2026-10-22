@@ -10,20 +10,22 @@ import { crearDocx } from '@/lib/docx-simple';
 import { fechaCorta, fechaHora, pesos } from '@/lib/dominio';
 import { portal, portalPerfil } from '@/lib/portal-client';
 import { useRefresco } from '@/lib/use-refresco';
+import { articulosParaCiudadano } from '@/lib/print';
 
 type R = Record<string, any>;
 
 const ACCIONES: { k: string; t: string; d: string; i: string; aviso?: string }[] = [
-  { k: 'pago_voluntario', t: 'Pagar con descuento (pago voluntario)', d: 'Pide la boleta con el beneficio del pago voluntario.', i: 'fa-solid fa-percent', aviso: 'advertencia_pago_voluntario' },
+  // «Pago» neutro (minuta 20/10): un solo botón, también vencido el plazo. Internamente es un pedido de pago voluntario
+  // (en plazo) o de boleta (fuera de plazo); la Dirección de Faltas decide si concede el descuento.
+  { k: 'pago', t: 'Pago', d: 'Pide la boleta para pagar. La Dirección de Faltas le informa el monto que corresponde.', i: 'fa-solid fa-file-invoice-dollar', aviso: 'advertencia_pago_voluntario' },
   { k: 'descargo', t: 'Presentar descargo', d: 'Explique su versión de los hechos y adjunte pruebas.', i: 'fa-solid fa-scale-balanced', aviso: 'advertencia_descargo_transito' },
   { k: 'reenviar_descargo', t: 'Reenviar descargo', d: 'Corrija lo que le observaron. Solo se puede reenviar una vez.', i: 'fa-solid fa-rotate' },
-  { k: 'boleta', t: 'Solicitar boleta', d: 'Pide la boleta para pagar el total.', i: 'fa-solid fa-file-invoice-dollar' },
   { k: 'cuotas', t: 'Pedir plan de cuotas', d: 'Pague en cuotas mensuales. Faltas define la cantidad.', i: 'fa-solid fa-calendar-days', aviso: 'advertencia_cuotas' },
   { k: 'apelacion', t: 'Presentar apelación', d: 'La revisa el Juzgado de Paz. Plazo: 5 días hábiles desde la notificación del fallo.', i: 'fa-solid fa-landmark' },
 ];
 
 const TIPO_PRES: Record<string, string> = { pago_voluntario: 'Pago voluntario', boleta: 'Boleta', cuotas: 'Plan de cuotas', descargo: 'Descargo', apelacion: 'Apelación' };
-const ESTADO_PRES: Record<string, string> = { pendiente: 'En análisis', aceptada: 'Aceptada', rechazada: 'Rechazada', observada: 'Observada', reenviada: 'Reenviada' };
+const ESTADO_PRES: Record<string, string> = { pendiente: 'En análisis', aceptada: 'Aceptada', rechazada: 'No admitida', observada: 'Observada: complete lo que falta', reenviada: 'Reenviada' };
 const ESTADO_BOL: Record<string, string> = { emitida: 'Pendiente de pago', a_verificar: 'Pago informado: a verificar', definitiva: 'Pagada', vencida: 'Vencida' };
 
 function leer(f: File) {
@@ -78,7 +80,8 @@ export function PortalCausa() {
     setEnviando(true);
     setMsg(null);
     try {
-      await portal.post('/api/portal/presentar', { causaUuid: uuid, tipo: form, texto, cuotas, adjuntos: adj });
+      const tipo = form === 'pago' ? ((d?.acciones as Record<string, { ok: boolean }> | undefined)?.pago_voluntario?.ok ? 'pago_voluntario' : 'boleta') : form;
+      await portal.post('/api/portal/presentar', { causaUuid: uuid, tipo, texto, cuotas, adjuntos: adj });
       setMsg({ ok: true, t: 'Recibimos su presentación. Le avisaremos por correo cuando la Dirección de Faltas responda.' });
       setForm(null); setTexto(''); setAdj([]);
       cargar();
@@ -146,7 +149,10 @@ export function PortalCausa() {
     );
   }
 
-  const acciones = (d.acciones ?? {}) as Record<string, { ok: boolean; motivo?: string }>;
+  let acciones = (d.acciones ?? {}) as Record<string, { ok: boolean; motivo?: string }>;
+  // «Pago» toma el pedido que corresponda hoy: pago voluntario si está habilitado; si no, boleta.
+  const tipoPago = acciones.pago_voluntario?.ok ? 'pago_voluntario' : 'boleta';
+  acciones = { ...acciones, pago: acciones[tipoPago] ?? { ok: false, motivo: acciones.boleta?.motivo ?? acciones.pago_voluntario?.motivo } };
   const disponibles = ACCIONES.filter((a) => acciones[a.k]?.ok);
   const noDisponibles = ACCIONES.filter((a) => !acciones[a.k]?.ok && a.k !== 'reenviar_descargo');
   const conTexto = form === 'descargo' || form === 'reenviar_descargo' || form === 'apelacion';
@@ -169,7 +175,7 @@ export function PortalCausa() {
           <div><dt>Estado</dt><dd>{r.estadoVisible}</dd></div>
           <div><dt>Notificada</dt><dd>{fechaHora(r.notificadaAt)}</dd></div>
           <div><dt>{r.estado === 'Fallo notificado' ? 'Plazo para pagar o apelar' : 'Plazo para pagar o presentar descargo'}</dt><dd>{r.venceAt ? `Hasta el ${fechaCorta(r.venceAt)}` : '-'}</dd></div>
-          <div><dt>Artículos</dt><dd>{(d.acta?.leyesNombre ?? []).join(', ')}</dd></div>
+          <div><dt>Infracción</dt><dd>{d.acta ? articulosParaCiudadano(d.acta).map((a) => <div key={a}>{a}</div>) : null}</dd></div>
         </dl>
         {(d.imagenes ?? []).length ? <div className="mt-3"><div className="texto-ayuda mb-1">Imágenes de la infracción</div><GaleriaFotos imagenes={(d.imagenes as R[]).map((x) => x.preview_raw)} alto={80} /></div> : null}
         {r.medidaVigente ? <div className="aviso aviso-peligro mt-2 mb-0"><i className="fa-solid fa-triangle-exclamation" aria-hidden="true" /> Esta acta tiene una <strong>medida preventiva vigente</strong> ({[d.acta?.retencionDeLicencia ? 'retención de licencia' : '', d.acta?.retencionDeVehiculo ? 'retención de vehículo' : '', ...(d.acta?.medidasPreventivas ?? [])].filter(Boolean).join(', ')}). Sigue vigente aunque pague, hasta que la Dirección de Faltas disponga su levantamiento.</div> : null}
@@ -185,9 +191,9 @@ export function PortalCausa() {
             <div className="portal-caminos">
               <p className="mb-2">Tiene <strong>tres caminos</strong>{r.venceAt ? <> hasta el <strong>{fechaCorta(r.venceAt)}</strong>{(() => { const dias = Math.ceil((Number(r.venceAt) - Date.now()) / 86400000); return dias > 0 ? ` (quedan ${dias} días)` : ''; })()}</> : null}. Elija uno solo:</p>
               <ol>
-                <li><strong>Pago voluntario</strong>: paga con el descuento y termina el trámite.{d.resumen.tipo === 'multas' ? ' Si lo elige, ya no puede presentar descargo.' : ''}</li>
+                <li><strong>Pago</strong>: pide la boleta y termina el trámite; mientras esté en plazo, con el beneficio del pago voluntario.{d.resumen.tipo === 'multas' ? ' Si lo elige, ya no puede presentar descargo.' : ''}</li>
                 <li><strong>Descargo</strong>: explica su versión y adjunta pruebas.{d.resumen.tipo === 'multas' ? ' Si lo presenta, ya no puede hacer el pago voluntario.' : ''} La Dirección lo analiza antes de dictar el fallo.</li>
-                <li><strong>No hacer nada</strong>: vencido el plazo pierde el beneficio del pago voluntario y la Dirección dicta el fallo con lo que consta en el acta.</li>
+                <li><strong>No hacer nada</strong>: vencido el plazo la Dirección dicta el fallo con lo que consta en el acta. Puede seguir pidiendo el pago; la Dirección define si mantiene el beneficio.</li>
               </ol>
             </div>
           ) : null}
@@ -215,7 +221,7 @@ export function PortalCausa() {
       {form ? (
         <div className="portal-card" ref={refForm} style={{ scrollMarginTop: 16 }}>
           <h2>{ACCIONES.find((a) => a.k === form)?.t}</h2>
-          {ACCIONES.find((a) => a.k === form)?.aviso && (form !== 'descargo' || d.resumen.tipo === 'multas') ? <div className="aviso aviso-alerta">{textos[ACCIONES.find((a) => a.k === form)!.aviso!]}</div> : null}
+          {ACCIONES.find((a) => a.k === form)?.aviso && (form !== 'descargo' || d.resumen.tipo === 'multas') && (form !== 'pago' || tipoPago === 'pago_voluntario') ? <div className="aviso aviso-alerta">{textos[ACCIONES.find((a) => a.k === form)!.aviso!]}</div> : null}
           {form === 'cuotas' ? <div className="form-group mb-3"><label htmlFor="pc-c">Cantidad de cuotas que solicita</label><input id="pc-c" type="number" min={2} max={12} className="form-control" style={{ maxWidth: 140 }} value={cuotas} onChange={(e) => setCuotas(Number(e.target.value))} /></div> : null}
           <div className="form-group mb-3">
             <label htmlFor="pc-t">{conTexto ? <>Su presentación {sinEscrito ? <span className="requerido">*</span> : null}</> : 'Comentario (opcional)'}</label>

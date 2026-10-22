@@ -1,8 +1,8 @@
 import { NextRequest } from 'next/server';
 import { efectoNotificacionPositiva, emitirBoletas, evaluarArchivoPorPago, generarEscrito, notificarActa, notificarDocumento, valorizacion, valoresVigentes } from '@/lib/causa-srv';
-import { ESTADOS, esBoletaLiberacion, estadoFinal, puede, pesos } from '@/lib/dominio';
+import { ESTADOS, esBoletaLiberacion, estadoFinal, puede, pesos, REQUISITOS_LIBERACION } from '@/lib/dominio';
 import { descargoPendiente } from '@/lib/camino';
-import { calculoLiberacion, claseVehiculo, diasEnDeposito, tarifaEstadia } from '@/lib/tarifas';
+import { calculoLiberacion, claseVehiculo, diasEnDeposito, tarifaEstadia, validezLiberacionMs } from '@/lib/tarifas';
 import { CAMPOS_SUBSANABLES, subsanacionDe, valorDe } from '@/lib/subsanacion';
 import { accionesDisponibles, type Presentacion } from '@/lib/portal-srv';
 import {
@@ -27,17 +27,14 @@ export async function POST(req: NextRequest) {
       case 'cambiar_estado': {
         check(puede(user.rol, 'cambiarEstadoManual'), 'Sin permiso', 403);
         check(ESTADOS.some((e) => e.nombre === txt('estado')), 'Estado inválido');
+        check(txt('estado') !== 'Desestimada', 'Las causas ya no se desestiman (minuta 20/10).');
         check(txt('motivo'), 'Indique el motivo del cambio manual');
         await cambiarEstado(db, c, txt('estado'), quien, 'Cambio manual de estado', txt('motivo'));
         return { ok: true };
       }
-      case 'desestimar': {
-        check(puede(user.rol, 'archivar'), 'Sin permiso', 403);
-        check(txt('motivo'), 'Indique el motivo');
-        check(!estadoFinal(c.estado_faltas), 'La causa ya está cerrada');
-        await cambiarEstado(db, c, 'Desestimada', quien, 'Causa desestimada', txt('motivo'));
-        return { ok: true };
-      }
+      case 'desestimar':
+        // Minuta 20/10: no se desestiman causas; se cierran por fallo, archivo formal o nulidad fundada.
+        throw new HttpError(410, 'Las causas ya no se desestiman: ciérrela con fallo, archivo o nulidad.');
       case 'subsanar': {
         check(puede(user.rol, 'subsanar'), 'Sin permiso', 403);
         check(!(await subsanacionDe(db, c.id)), 'La causa ya tiene una subsanación: no se puede hacer otra.', 409);
@@ -219,7 +216,7 @@ export async function POST(req: NextRequest) {
         const { reservar } = await import('@/lib/acta-srv');
         const num = await reservar(db, `BOL-${new Date().getFullYear()}`);
         await db.from('infraccion').update({ estadia_ingreso_at: ingreso }).eq('id', c.id);
-        await db.from('boleta').insert({ uuid: uuid(), infraccion_id: c.id, numero: `M2000-${String(num).padStart(7, '0')}`, concepto: `Estadía en depósito (${dias} días) · Acta ${c.legajo_numero_acta}`, detalle_json: JSON.stringify({ dias, tramo: est.tramo }), monto: est.monto, vencimiento: Date.now() + 5 * 86400000, a_nombre_de: txt('aNombre') || c.infractor_nombre, estado: 'emitida', date_created: Date.now() });
+        await db.from('boleta').insert({ uuid: uuid(), infraccion_id: c.id, numero: `M2000-${String(num).padStart(7, '0')}`, concepto: `Estadía en depósito (${dias} días) · Acta ${c.legajo_numero_acta}`, detalle_json: JSON.stringify({ dias, tramo: est.tramo }), monto: est.monto, vencimiento: Date.now() + (await validezLiberacionMs(db)), a_nombre_de: txt('aNombre') || c.infractor_nombre, estado: 'emitida', date_created: Date.now() });
         await historial(db, c.id, quien, 'Boleta de estadía emitida', `${dias} días (${est.tramo}): ${pesos(est.monto)}`);
         return { ok: true };
       }
@@ -273,13 +270,9 @@ export async function POST(req: NextRequest) {
         await historial(db, c.id, quien, 'Presentación registrada en mesa', `${txt('tipo')}: ${txt('texto')}`);
         return { ok: true };
       }
-      case 'corregir_ejido': {
-        check(gestion, 'Sin permiso', 403);
-        check(['dentro', 'fuera'].includes(txt('ejido')), 'Ejido inválido');
-        await db.from('infraccion').update({ ejido: txt('ejido') }).eq('id', c.id);
-        await historial(db, c.id, quien, 'Ejido corregido', txt('ejido') === 'dentro' ? 'Dentro del ejido urbano' : 'Fuera del ejido urbano');
-        return { ok: true };
-      }
+      case 'corregir_ejido':
+        // Minuta 20/10: dominio, lugar de la falta y ejido son inalterables una vez firmada el acta.
+        throw new HttpError(410, 'El ejido del acta no se puede modificar.');
       case 'memo': {
         check(puede(user.rol, 'memos'), 'Sin permiso', 403);
         const texto = txt('texto');
@@ -303,7 +296,7 @@ export async function POST(req: NextRequest) {
         const { reservar } = await import('@/lib/acta-srv');
         const num = await reservar(db, `BOL-${new Date().getFullYear()}`);
         const aNombre = txt('aNombre') || String(c.infractor_razon_social || c.infractor_nombre || '');
-        await db.from('boleta').insert({ uuid: uuid(), infraccion_id: c.id, numero: `M2000-${String(num).padStart(7, '0')}`, concepto: `Liberación de vehículo: acarreo y estadía (${calc.dias} días) · Acta ${c.legajo_numero_acta}`, detalle_json: JSON.stringify({ liberacion: true, ...calc }), monto: calc.total, vencimiento: Date.now() + 5 * 86400000, a_nombre_de: aNombre, estado: 'emitida', date_created: Date.now() });
+        await db.from('boleta').insert({ uuid: uuid(), infraccion_id: c.id, numero: `M2000-${String(num).padStart(7, '0')}`, concepto: `Liberación de vehículo: acarreo y estadía (${calc.dias} días) · Acta ${c.legajo_numero_acta}`, detalle_json: JSON.stringify({ liberacion: true, ...calc }), monto: calc.total, vencimiento: Date.now() + (await validezLiberacionMs(db)), a_nombre_de: aNombre, estado: 'emitida', date_created: Date.now() });
         // La liberación todavía no se registra: falta el pago de esta boleta y la disposición de levantamiento firmada.
         await db.from('infraccion').update({ estadia_ingreso_at: ingreso, vehiculo_liberacion_json: JSON.stringify(calc) }).eq('id', c.id);
         await historial(db, c.id, quien, 'Boleta de acarreo y estadía emitida', `${calc.claseNombre} · ${calc.dias} días · acarreo ${pesos(calc.acarreo)} + estadía ${pesos(calc.estadia)} (${calc.tramo}) = ${pesos(calc.total)}. La liberación se registra con la boleta paga y la disposición de levantamiento firmada.`);
@@ -326,9 +319,13 @@ export async function POST(req: NextRequest) {
         const lib = ((bolLib ?? []) as { estado: string; detalle_json: string | null }[]).filter((b) => esBoletaLiberacion(b));
         if (lib.length) check(lib.every((b) => b.estado === 'definitiva'), 'La boleta de acarreo y estadía todavía no está acreditada', 409);
         else check(d.sinBoleta === true, 'No se emitió la boleta de acarreo y estadía: confirme que se libera sin cobrarla', 409);
+        // Entrega presencial en la sede de Faltas (minuta 20/10): se acreditan los requisitos uno por uno.
+        const requisitos = (Array.isArray(d.requisitos) ? d.requisitos : []).map(String);
+        const faltan = REQUISITOS_LIBERACION.filter((r) => !requisitos.includes(r));
+        check(!faltan.length, `Falta acreditar: ${faltan.join(', ').toLowerCase()}`, 409);
         const n = (disp as { numero: string | null }[])[0].numero;
         await db.from('infraccion').update({ vehiculo_liberado_at: Date.now() }).eq('id', c.id);
-        await historial(db, c.id, quien, 'Vehículo liberado', `Disposición de levantamiento${n ? ` N° ${n}` : ''}${lib.length ? ' · acarreo y estadía pagos' : ' · sin boleta de acarreo y estadía'}${txt('detalle') ? ` · ${txt('detalle')}` : ''}`);
+        await historial(db, c.id, quien, 'Vehículo liberado', `Disposición de levantamiento${n ? ` N° ${n}` : ''}${lib.length ? ' · acarreo y estadía pagos' : ' · sin boleta de acarreo y estadía'} · Entrega presencial: ${REQUISITOS_LIBERACION.join(', ').toLowerCase()} acreditados${txt('detalle') ? ` · ${txt('detalle')}` : ''}`);
         return { ok: true };
       }
       case 'correo_infractor': {

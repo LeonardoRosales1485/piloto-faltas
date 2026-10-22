@@ -46,9 +46,10 @@ export async function POST(req: NextRequest) {
 
     let query = supabase.from('infraccion').select('*', { count: 'exact' });
     query = applyInfraccionFiltros(query as never, body) as typeof query;
-    // Inspector: solo sus borradores. «debugTodas» (7 toques en la lista) lo levanta temporalmente para depurar en el piloto.
-    if (user.rol === 'Inspector' && !(body as { debugTodas?: boolean }).debugTodas) query = query.eq('inspector_username', user.username).eq('estado_faltas', 'Borrador');
-    // Inspector: solo los tipos de acta habilitados (tipo de inspector + permisos «Actas de …»), también en depuración.
+    // Inspector: solo sus borradores, nunca las actas ya firmadas (minuta 20/10: sin listado ni historial de lo labrado,
+    // para evitar revisiones indebidas, filtraciones o presiones en la vía pública).
+    if (user.rol === 'Inspector') query = query.eq('inspector_username', user.username).eq('estado_faltas', 'Borrador');
+    // Inspector: solo los tipos de acta habilitados (tipo de inspector + permisos «Actas de …»).
     if (user.rol === 'Inspector') query = query.in('infraccion_tipo_nombre', modulosDe(user));
     query = applyOrdenes(query as never, body.ordenes) as typeof query;
     query = query.range(from, to);

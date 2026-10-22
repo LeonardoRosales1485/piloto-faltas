@@ -1,3 +1,4 @@
+import { leyendasDelActa } from './leyendas';
 import QRCode from 'qrcode';
 import type { Infraccion } from './types';
 import { ordenarCategoriasLicencia } from './dominio';
@@ -46,7 +47,7 @@ function bloqueQr(i: Infraccion): string {
 // ---------------------------------------------------------------------------
 
 /** `evidencia: false` imprime el acta sin la sección de imágenes (por defecto se muestran). */
-export type ActaExtras = { imagenes?: string[]; evidencia?: boolean };
+export type ActaExtras = { imagenes?: string[]; evidencia?: boolean; /** Textos del portal (leyendas legales editadas); sin ellos, las leyendas por defecto. */ textos?: Record<string, string> };
 
 const v = (x: unknown) => escapeHtml(String(x ?? '').trim()) || '-';
 
@@ -96,6 +97,7 @@ export function actaTransitoCss(): string {
     .at-firma .digital { font-size: 7pt; color: #333; padding-bottom: 2px; }
     .at-firma .titulo { font-size: 7pt; text-transform: uppercase; color: #666; margin: 3px 0 2px; }
     .at-firma .dato { font-size: 8.5pt; }
+    .at-leyenda { margin-top: 8px; padding: 5px 7px; border: 1.5px solid #000; font-size: 8pt; font-weight: 700; text-align: justify; }
     .at-legal { margin-top: 10px; padding-top: 6px; border-top: 1px solid #999; font-size: 7pt; font-style: italic; text-transform: uppercase; color: #555; text-align: justify; }
     @media print { .acta-transito { width: 100%; padding: 0; } }
   `;
@@ -118,7 +120,7 @@ export function actaTransitoHtml(i: Infraccion, extras: ActaExtras = {}): string
         return { nombre, articulo: (art ?? '').replace(/^Art\.\s*/, ''), descripcion: '' };
       });
   const filasArt = articulos.length
-    ? articulos.map((a) => `<tr><td>${v(String(a.articulo).replace(/^Art\.\s*/, ''))}</td><td>${v(a.descripcion)}</td><td>${v(a.nombre)}</td></tr>`).join('')
+    ? articulos.map((a) => `<tr><td><b>${v(a.descripcion)}</b></td><td>${v(String(a.articulo).replace(/^Art\.\s*/, ''))}</td><td>${v(a.nombre)}</td></tr>`).join('')
     : '<tr><td>-</td><td>-</td><td>-</td></tr>';
 
   const conAlcoholemia = Boolean(meta.alcoholemia || meta.alcoholimetroMarca || meta.alcoholimetroValor);
@@ -207,7 +209,7 @@ export function actaTransitoHtml(i: Infraccion, extras: ActaExtras = {}): string
     <section class="at-seccion">
       <h2>Disposición legal infringida</h2>
       <table class="at-tabla">
-        <thead><tr><th style="width:14%">Artículo</th><th style="width:52%">Descripción</th><th>Ley/Ordenanza</th></tr></thead>
+        <thead><tr><th style="width:52%">Infracción</th><th style="width:14%">Artículo</th><th>Ley/Ordenanza</th></tr></thead>
         <tbody>${filasArt}</tbody>
       </table>
       <div class="at-fila" style="margin-top:6px">${campo('Observación', i.observaciones)}</div>
@@ -238,6 +240,7 @@ export function actaTransitoHtml(i: Infraccion, extras: ActaExtras = {}): string
       </div>
     </div>
 
+    ${(extras.textos ? leyendasDelActa(i, extras.textos) : leyendasDelActa(i)).map((l) => `<p class="at-leyenda">${escapeHtml(l)}</p>`).join('')}
     <p class="at-legal">La presente acta será elevada para su juzgamiento a la Dirección de Faltas de Malvinas Argentinas (Centro Cívico Los Polvorines, Remedios de Escalada 3345), donde podrá ofrecer descargo y ejercer su derecho de defensa en los términos de (30) días corridos contados a partir de la fecha de su confección. (Art. 72 bis Ley 24.449)</p>
   </div>`;
 }
@@ -263,7 +266,7 @@ export function actaMunicipalHtml(i: Infraccion, extras: ActaExtras = {}): strin
         return { nombre, articulo: (art ?? '').replace(/^Art\.\s*/, ''), descripcion: '' };
       });
   const filasArt = articulos.length
-    ? articulos.map((a) => `<tr><td>${v(String(a.articulo).replace(/^Art\.\s*/, ''))}</td><td>${v(a.descripcion)}</td><td>${v(a.nombre)}</td></tr>`).join('')
+    ? articulos.map((a) => `<tr><td><b>${v(a.descripcion)}</b></td><td>${v(String(a.articulo).replace(/^Art\.\s*/, ''))}</td><td>${v(a.nombre)}</td></tr>`).join('')
     : '<tr><td>-</td><td>-</td><td>-</td></tr>';
   const medidas = (i.medidasPreventivas ?? []).filter(Boolean);
   const conVehiculo = sustancias && Boolean(i.vehiculoNumeroDominio || i.vehiculoTipoNombre);
@@ -333,7 +336,7 @@ export function actaMunicipalHtml(i: Infraccion, extras: ActaExtras = {}): strin
     <section class="at-seccion">
       <h2>Normas infringidas</h2>
       <table class="at-tabla">
-        <thead><tr><th style="width:14%">Artículo</th><th style="width:52%">Descripción</th><th>Norma</th></tr></thead>
+        <thead><tr><th style="width:52%">Infracción</th><th style="width:14%">Artículo</th><th>Norma</th></tr></thead>
         <tbody>${filasArt}</tbody>
       </table>
       <div class="at-fila" style="margin-top:6px">${campo('Observación', i.observaciones)}</div>
@@ -361,6 +364,7 @@ export function actaMunicipalHtml(i: Infraccion, extras: ActaExtras = {}): strin
       </div>
     </div>
 
+    ${(extras.textos ? leyendasDelActa(i, extras.textos) : leyendasDelActa(i)).map((l) => `<p class="at-leyenda">${escapeHtml(l)}</p>`).join('')}
     <p class="at-legal">La presente acta será elevada para su juzgamiento a la Dirección de Faltas de Malvinas Argentinas (Centro Cívico Los Polvorines, Remedios de Escalada 3345), donde podrá ofrecer descargo y ejercer su derecho de defensa en el plazo que fija la normativa vigente, contado a partir de su notificación.</p>
   </div>`;
 }

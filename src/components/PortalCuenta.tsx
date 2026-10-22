@@ -17,6 +17,10 @@ export function PortalRegistro() {
   const [codigoPiloto, setCodigoPiloto] = useState('');
   const [codigo, setCodigo] = useState('');
   const [error, setError] = useState('');
+  // DD.JJ. de domicilio electrónico al validar el correo (primer ingreso): una vez aceptada no se vuelve a pedir.
+  const [ddjj, setDdjj] = useState(false);
+  const [textoDdjj, setTextoDdjj] = useState('');
+  useEffect(() => { portal.get<{ textos: Record<string, string> }>('/api/portal/textos').then((r) => setTextoDdjj(r.textos.ddjj_domicilio ?? '')).catch(() => undefined); }, []);
   // Errores por campo (id del input → mensaje), anunciados con aria-invalid + aria-describedby (A11Y-011).
   const [errores, setErrores] = useState<Record<string, string>>({});
   const set = (k: string, v: string) => {
@@ -70,7 +74,7 @@ export function PortalRegistro() {
   async function validar() {
     setError('');
     try {
-      const r = await portal.post<{ token: string; perfil: Perfil }>('/api/portal/verificar', { email: f.email, codigo });
+      const r = await portal.post<{ token: string; perfil: Perfil }>('/api/portal/verificar', { email: f.email, codigo, ddjj });
       guardarSesion(r.token, r.perfil);
       window.location.href = volver || '/portal/perfil?nuevo=1';
     } catch (er) { setError((er as Error).message); }
@@ -84,6 +88,11 @@ export function PortalRegistro() {
         <div className="codigo-piloto mb-3">Piloto: el correo es simulado. Su código es <strong>{codigoPiloto}</strong>.</div>
         <label htmlFor="r-cod">Código</label>
         <input id="r-cod" className="form-control form-control-lg mb-2" inputMode="numeric" value={codigo} onChange={(e) => setCodigo(e.target.value)} aria-invalid={error ? true : undefined} aria-describedby={error ? 'r-cod-error' : undefined} />
+        <fieldset className="mb-3">
+          <legend className="fs-6 fw-semibold">Domicilio electrónico (opcional)</legend>
+          {textoDdjj ? <div className="aviso aviso-info small" style={{ whiteSpace: 'pre-wrap' }}>{textoDdjj}</div> : null}
+          <label className="form-check"><input type="checkbox" className="form-check-input" checked={ddjj} onChange={(e) => setDdjj(e.target.checked)} /> Declaro bajo juramento que este correo es mi domicilio electrónico: las notificaciones que reciba en él se tendrán por válidas. No se le volverá a pedir.</label>
+        </fieldset>
         {error ? <div id="r-cod-error" className="aviso aviso-peligro" role="alert">{error}</div> : null}
         <button type="button" className="btn btn-primary btn-lg w-100" onClick={() => void validar()}>Validar y entrar</button>
       </div>

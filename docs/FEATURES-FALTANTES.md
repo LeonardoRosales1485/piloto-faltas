@@ -121,8 +121,9 @@ Hoy se puede abrir (y dejar notificada) una causa ajena o pagar una boleta ajena
 
 ## C. Portal de inspectores y playón
 
-### C1. Consulta de actas del inspector · M · ⬜
-Hoy el inspector solo ve sus borradores (modo depuración temporal). Informe 6.a.
+### C1. Consulta de actas del inspector · M · ❌ Cancelada (minuta 20/10/2026)
+**Decisión:** el inspector no tiene listado ni historial de las actas labradas (evita revisiones indebidas, filtraciones o presiones en la vía pública). Solo ve sus borradores; se quitó el modo depuración.
+Hoy el inspector solo ve sus borradores. Informe 6.a.
 - ¿Ve solo sus actas firmadas o todas las de su dependencia? ✍️
 - ¿Qué datos ve: n.° de acta, infractor, DNI, medidas, estado de la causa? ¿Montos no? ✍️
 - ¿Por cuánto tiempo hacia atrás (p. ej. últimos 90 días)? ✍️

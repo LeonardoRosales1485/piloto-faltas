@@ -6,7 +6,10 @@ import type { CausaRow, Db } from './srv';
  */
 export type CampoSub = { k: string; t: string; grupo: string };
 
-/** Campos corregibles. `meta.x` = dato dentro de metadata_json; `leyes` = artículos (lista de claves). */
+/**
+ * Campos corregibles. `meta.x` = dato dentro de metadata_json; `leyes` = artículos (lista de claves).
+ * Inalterables (minuta 20/10): dominio, lugar de la falta y ejido no se subsanan.
+ */
 export const CAMPOS_SUBSANABLES: CampoSub[] = [
   { k: 'infractor_nombre', t: 'Nombre y apellido', grupo: 'Infractor' },
   { k: 'infractor_razon_social', t: 'Razón social', grupo: 'Infractor' },
@@ -17,14 +20,10 @@ export const CAMPOS_SUBSANABLES: CampoSub[] = [
   { k: 'infractor_departamento', t: 'Piso / depto.', grupo: 'Infractor' },
   { k: 'infractor_localidad_nombre', t: 'Localidad', grupo: 'Infractor' },
   { k: 'infractor_partido_nombre', t: 'Partido', grupo: 'Infractor' },
-  { k: 'vehiculo_numero_dominio', t: 'Dominio', grupo: 'Vehículo' },
   { k: 'vehiculo_tipo_nombre', t: 'Tipo de vehículo', grupo: 'Vehículo' },
   { k: 'meta.marca', t: 'Marca', grupo: 'Vehículo' },
   { k: 'meta.modelo', t: 'Modelo', grupo: 'Vehículo' },
   { k: 'vehiculo_numero_licencia', t: 'N.° de licencia', grupo: 'Vehículo' },
-  { k: 'domicilio_infraccion_calle', t: 'Calle del lugar de infracción', grupo: 'Lugar de infracción' },
-  { k: 'domicilio_infraccion_numero', t: 'Altura del lugar de infracción', grupo: 'Lugar de infracción' },
-  { k: 'domicilio_infraccion_localidad_nombre', t: 'Localidad del lugar de infracción', grupo: 'Lugar de infracción' },
   { k: 'leyes', t: 'Artículos', grupo: 'Artículos' },
   { k: 'observaciones', t: 'Observaciones', grupo: 'Otros' },
 ];

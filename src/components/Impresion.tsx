@@ -4,6 +4,7 @@
 import { useEffect, useState } from 'react';
 import { http } from '@/lib/api-client';
 import { actaHtmlPorTipo } from '@/lib/acta-oficial';
+import { textosLeyendas } from '@/lib/leyendas';
 import { CSS_HOJA, firmaHtml, membreteHtml, pieHtml } from '@/lib/membrete';
 import { fechaHora } from '@/lib/dominio';
 import { aplicarValores, mostrarDocumento } from '@/lib/campos';
@@ -19,7 +20,7 @@ export function hoja(doc: R) {
 /** Hojas del legajo de una causa (acta, escritos y adjuntos en orden, historial y, si se pide, memos internos). */
 export async function partesLegajo(d: R, { memos }: { memos: boolean }): Promise<string[]> {
   const partes: string[] = [];
-  const acta = actaHtmlPorTipo(d.acta, { imagenes: (d.imagenes ?? []).map((x: R) => x.preview_raw).filter(Boolean) });
+  const acta = actaHtmlPorTipo(d.acta, { imagenes: (d.imagenes ?? []).map((x: R) => x.preview_raw).filter(Boolean), textos: await textosLeyendas() });
   partes.push(`<section class="hoja"><style>${acta.css}</style>${acta.html}</section>`);
   const docs = [...d.documentos].reverse();
   for (const doc of docs) {

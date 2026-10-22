@@ -164,6 +164,11 @@ class TicketEscPos {
     _separador();
     _alinear(1);
     _texto('IMPORTANTE: no debe abonar monto de dinero alguno a la autoridad que confeccionó la presente acta.', negrita: true);
+    // Leyendas legales (boleta de inculpado, advertencia de compactación): las arma la web según el acta.
+    for (final l in ((t['leyendas'] as List?)?.map((e) => '$e') ?? const <String>[])) {
+      _b.addByte(0x0A);
+      _texto(l);
+    }
     _b.addByte(0x0A);
     if ('${t['url'] ?? ''}'.isNotEmpty) _qr('${t['url']}');
     _b.addByte(0x0A);

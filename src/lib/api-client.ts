@@ -124,9 +124,8 @@ export const apiClient = {
     return get<Constantes>('/api/constantes/all');
   },
 
-  infracciones(tipo: string, filtros: FiltrosInfraccion, page = 0, size = 10, debugTodas = false) {
+  infracciones(tipo: string, filtros: FiltrosInfraccion, page = 0, size = 10) {
     const body = paginate(page, size);
-    if (debugTodas) (body as { debugTodas?: boolean }).debugTodas = true;
     addFiltro(body, 't', 'infraccion_tipo_id', '=', tipo === 'contravenciones' ? 2 : tipo === 'sustancias' ? 3 : 1);
     addFiltro(body, 't', 'infractor_nombre', 'like', filtros.nombreInfractor);
     addFiltro(body, 't', 'legajo_numero_acta', 'like', filtros.acta);

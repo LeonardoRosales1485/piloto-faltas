@@ -5,7 +5,7 @@
 --   2. Nombres de usuario actuales (025): «Abogada de Contravenciones» → «Responsable Contravenciones»,
 --      «Operador Mesa» → «Agente de Tránsito».
 --   3. Valores del labrado fijos en las actas firmadas (como 023), con la UF y los múltiplos vigentes.
---   4. Ejemplos de lo nuevo: memos internos, una subsanación de datos y un monto ajustado por artículo.
+--   4. Ejemplos de lo nuevo: memos internos, una subsanación de datos (altura del domicilio) y un monto ajustado por artículo.
 --   5. «Cargar» también corre la fecha de los valores del labrado (va dentro de valores_labrado_json).
 -- Para verlo: Configuración → Opciones sandbox → «Cargar» en Datos de sistema.
 -- =============================================================================
@@ -102,21 +102,22 @@ BEGIN
       'detalle', 'Se pidió informe a Habilitaciones sobre la vigencia de la habi…', 'estado_anterior', NULL, 'estado_nuevo', NULL));
   END IF;
 
-  -- 4b. Subsanación de datos (una por causa) con su constancia: dominio mal tipeado en T-001002.
+  -- 4b. Subsanación de datos (una por causa) con su constancia: altura del domicilio mal tipeada en T-001002.
+  --     (El dominio, el lugar de la falta y el ejido no se subsanan: minuta 20/10/2026.)
   SELECT e INTO i_sub FROM jsonb_array_elements(s -> 'infraccion') e WHERE e ->> 'legajo_numero_acta' = 'T-001002';
-  IF i_sub IS NOT NULL AND coalesce(i_sub ->> 'vehiculo_numero_dominio', '') <> '' THEN
+  IF i_sub IS NOT NULL THEN
     html := '<p style="text-align:center"><strong>CONSTANCIA DE SUBSANACIÓN</strong></p><p>Acta T-001002 · Legajo ' || coalesce(i_sub ->> 'legajo_number', '') || '/' || coalesce(i_sub ->> 'legajo_anio', '')
-      || '.</p><p><strong>Motivo:</strong> Error de tipeo en el dominio: la cédula del vehículo presentada por la infractora dice AD456GN.</p>'
+      || '.</p><p><strong>Motivo:</strong> Error de tipeo en la altura del domicilio: el DNI presentado por la infractora dice 557.</p>'
       || '<table border="1" cellpadding="4" style="border-collapse:collapse;width:100%"><thead><tr><th>Dato</th><th>Decía</th><th>Debe decir</th></tr></thead><tbody>'
-      || '<tr><td>Dominio</td><td>' || (i_sub ->> 'vehiculo_numero_dominio') || '</td><td>AD456GN</td></tr></tbody></table>'
+      || '<tr><td>Altura</td><td>' || coalesce(nullif(i_sub ->> 'infractor_calle_altura', ''), '—') || '</td><td>557</td></tr></tbody></table>'
       || '<p>El acta firmada no se modifica: esta constancia integra el legajo y los datos corregidos se usan en adelante.</p><p>Agente de Tránsito · ' || fecha_txt || '</p>';
     docs := docs || jsonb_build_array(jsonb_build_object('id', 1001, 'uuid', gen_random_uuid()::text, 'infraccion_id', (i_sub ->> 'id')::bigint, 'tipo', 'escrito',
       'titulo', 'Constancia de subsanación', 'contenido_html', html, 'estado', 'definitivo', 'modo_edicion', 'campos', 'creado_por', 'Agente de Tránsito', 'date_created', ca - dia, 'date_updated', ca - dia));
     subs := subs || jsonb_build_array(jsonb_build_object('id', 1, 'uuid', gen_random_uuid()::text, 'infraccion_id', (i_sub ->> 'id')::bigint,
-      'campos_json', jsonb_build_object('vehiculo_numero_dominio', jsonb_build_object('antes', i_sub ->> 'vehiculo_numero_dominio', 'despues', 'AD456GN'))::text,
-      'motivo', 'Error de tipeo en el dominio: la cédula del vehículo presentada por la infractora dice AD456GN.', 'usuario', 'Agente de Tránsito', 'documento_id', 1001, 'date_created', ca - dia));
+      'campos_json', jsonb_build_object('infractor_calle_altura', jsonb_build_object('antes', coalesce(i_sub ->> 'infractor_calle_altura', ''), 'despues', '557'))::text,
+      'motivo', 'Error de tipeo en la altura del domicilio: el DNI presentado por la infractora dice 557.', 'usuario', 'Agente de Tránsito', 'documento_id', 1001, 'date_created', ca - dia));
     hist := hist || jsonb_build_array(jsonb_build_object('id', 1003, 'infraccion_id', (i_sub ->> 'id')::bigint, 'fecha', ca - dia, 'usuario', 'Agente de Tránsito', 'accion', 'Subsanación de datos',
-      'detalle', 'Dominio. Motivo: Error de tipeo en el dominio: la cédula del vehículo presentada por la infractora dice AD456GN.', 'estado_anterior', NULL, 'estado_nuevo', NULL));
+      'detalle', 'Altura. Motivo: Error de tipeo en la altura del domicilio: el DNI presentado por la infractora dice 557.', 'estado_anterior', NULL, 'estado_nuevo', NULL));
   END IF;
 
   -- 4c. Monto ajustado por artículo: múltiplo a la mitad del catálogo en el Art. 45 de T-001010 (atenuante).

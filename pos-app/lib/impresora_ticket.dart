@@ -46,6 +46,11 @@ class ImpresoraTicket {
     await _separador();
     await _p.setAlignment(_centro);
     await _texto('IMPORTANTE: no debe abonar monto de dinero alguno a la autoridad que confeccionó la presente acta.', tam: 24, negrita: true);
+    // Leyendas legales (boleta de inculpado, advertencia de compactación): las arma la web según el acta.
+    for (final l in ((t['leyendas'] as List?)?.map((e) => '$e') ?? const <String>[])) {
+      await _p.nextLine(1);
+      await _texto(l, tam: 22);
+    }
 
     // QR nativo (nítido): módulo 8, corrección de errores nivel 2
     await _p.nextLine(1);

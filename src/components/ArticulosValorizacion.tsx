@@ -54,16 +54,18 @@ export function ArticulosValorizacion({ leyes, uf, subtotal, multa, ajustado, mo
           </span>
           {valores.difiere && editable && onActualizarValores ? <button type="button" className="btn btn-sm btn-warning" onClick={onActualizarValores}><i className="fa-solid fa-rotate" aria-hidden="true" /> Actualizar a valores vigentes</button> : null}
         </div>
+      ) : valores ? (
+        <div className="aviso aviso-info"><i className="fa-solid fa-arrows-rotate" aria-hidden="true" /> Valores vigentes (UF {pesos(valores.ufVigente)}): se actualizan solos mientras la causa está abierta. El monto queda fijo al emitir la boleta.</div>
       ) : null}
       <div className="table-responsive">
         <table className="table custom-table align-middle">
-          <thead><tr><th>Norma</th><th>Artículo</th><th>Descripción</th><th className="text-end" style={{ minWidth: 110 }}>Múltiplo (UF)</th><th className="text-end" style={{ minWidth: 150 }}>Subtotal</th>{editando ? <th className="text-center">Manual</th> : null}</tr></thead>
+          <thead><tr><th>Infracción</th><th>Artículo</th><th>Norma</th><th className="text-end" style={{ minWidth: 110 }}>Múltiplo (UF)</th><th className="text-end" style={{ minWidth: 150 }}>Subtotal</th>{editando ? <th className="text-center">Manual</th> : null}</tr></thead>
           <tbody>
             {leyes.map((l) => {
               const r = f[l.clave];
               return (
                 <tr key={l.clave}>
-                  <td>{l.nombre}</td><td>{l.articulo}</td><td>{l.descripcion}</td>
+                  <td><strong>{l.descripcion || '—'}</strong></td><td>{l.articulo}</td><td>{l.nombre}</td>
                   <td className="text-end">
                     {editando && r ? <input className="form-control form-control-sm text-end" inputMode="decimal" value={r.multiplo} disabled={r.manual} onChange={(e) => set(l.clave, { multiplo: soloNumero(e.target.value) })} aria-label={`Múltiplo ${l.nombre} ${l.articulo}`} />
                       : <>{l.multiplicador}{l.ajustada && !l.manual ? <span className="dato-subsanado ms-1" title={`Catálogo: ${l.multiploCatalogo}`}>ajustado</span> : null}</>}

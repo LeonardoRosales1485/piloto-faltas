@@ -18,8 +18,10 @@ export async function tarifaAcarreo(d: Db, clase: ClaseVehiculo) {
 }
 
 /**
- * Estadía según días en depósito (tramos de stg): hasta 2 días sin cargo; 3 a 7 días y 8 a 30 días = monto del tramo;
- * desde el día 31, el monto del tramo 8–30 más el valor diario por cada día siguiente.
+ * Estadía según días en depósito (minuta 20/10, provisorio hasta confirmar): 1 a 7 días y 8 a 30 días = monto del
+ * tramo; desde el día 31, el monto del tramo 8–30 más el valor diario por cada día siguiente. Los días sin cargo al
+ * comienzo se configuran en «Valores y tarifas» (`estadia_dias_sin_cargo`, 0 por defecto; stg usaba 2).
+ * Las claves de configuración del primer tramo siguen llamándose `_3a7` para no migrar datos.
  */
 export async function tarifaEstadia(d: Db, clase: ClaseVehiculo, dias: number) {
   const defs = { auto: [28600, 84915, 4220], moto: [12333, 42460, 2110], camion: [42460, 128480, 6345] }[clase];
@@ -28,10 +30,17 @@ export async function tarifaEstadia(d: Db, clase: ClaseVehiculo, dias: number) {
     configNum(d, `finanza_estadia_${clase}_8a30`, defs[1]),
     configNum(d, `finanza_estadia_${clase}_mas31_por_dia`, defs[2]),
   ]);
-  if (dias < 3) return { monto: 0, tramo: 'Sin cargo (menos de 3 días)' };
-  if (dias <= 7) return { monto: t1, tramo: '3 a 7 días' };
+  const sinCargo = Math.max(0, Math.min(6, await configNum(d, 'estadia_dias_sin_cargo', 0)));
+  if (dias <= sinCargo) return { monto: 0, tramo: `Sin cargo (hasta ${sinCargo} día${sinCargo === 1 ? '' : 's'})` };
+  if (dias <= 7) return { monto: t1, tramo: `${sinCargo + 1} a 7 días` };
   if (dias <= 30) return { monto: t2, tramo: '8 a 30 días' };
   return { monto: t2 + (dias - 30) * diario, tramo: `8 a 30 días + ${dias - 30} día(s) desde el 31` };
+}
+
+/** Validez de las boletas de liberación (acarreo y estadía), en horas: 48 por defecto (minuta 20/10). */
+export async function validezLiberacionMs(d: Db) {
+  const horas = Math.max(1, await configNum(d, 'liberacion_validez_horas', 48));
+  return horas * 3600000;
 }
 
 export function diasEnDeposito(desde: number, hasta = Date.now()) {

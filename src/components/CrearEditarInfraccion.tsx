@@ -160,6 +160,9 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
     [form.leyesNombre, leyes],
   );
 
+  // Ticket con la descripción coloquial de cada artículo antes de la cita (minuta 20/10).
+  const paraTicket = () => ({ ...form, leyesDetalle: leyesSeleccionadas.map((l) => ({ nombre: l.nombre, articulo: l.articulo ?? '', descripcion: l.descripcion ?? '' })) });
+
   const leyesVisibles = useMemo(() => {
     const q = busquedaLey.toLowerCase().trim();
     if (!q) return leyes;
@@ -356,7 +359,7 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
             <div className="acta-confirmada-acciones">
             <div className="botonera">
               <BotonVerActa acta={form as Infraccion} imagenes={imagenes.map((x) => x.previewRaw ?? '').filter(Boolean)} texto="Ver acta" className="btn btn-outline-primary btn-lg" />
-              <button type="button" className="btn btn-outline-primary btn-lg" onClick={() => void printTicket(form)}>
+              <button type="button" className="btn btn-outline-primary btn-lg" onClick={() => void printTicket(paraTicket())}>
                 <i className="fa-solid fa-print" aria-hidden="true" /> Imprimir ticket
               </button>
             </div>
@@ -374,8 +377,8 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
               {form.situacionInfractor !== 'nn' ? fila('Domicilio', [[form.infractorDomicilio, form.infractorCalleAltura, form.infractorDepartamento].filter(Boolean).join(' '), form.infractorLocalidadNombre, form.infractorPartidoNombre].filter(Boolean).join(' · ')) : null}
               {form.vehiculoNumeroLicencia ? fila('Licencia de conducir', form.vehiculoNumeroLicencia) : null}
               {form.vehiculoLicenciaCategorias?.length ? fila('Categorías de la licencia', ordenarCategoriasLicencia(form.vehiculoLicenciaCategorias).join(' · ')) : null}
+              {form.vehiculoMunicipalidadEmisora ? fila('Municipio emisor de la licencia', form.vehiculoMunicipalidadEmisora) : null}
               {tipo !== 'contravenciones' ? fila('Vehículo', [form.vehiculoNumeroDominio, form.vehiculoTipoNombre, form.metadata?.marca, form.metadata?.modelo].filter(Boolean).join(' · ')) : null}
-              {form.vehiculoMunicipalidadEmisora ? fila('Municipio emisor', form.vehiculoMunicipalidadEmisora) : null}
               {form.sustanciasDescripcion ? fila('Sustancias', form.sustanciasDescripcion) : null}
               {fila('Medidas', [form.retencionDeLicencia ? 'Retención de licencia' : '', form.retencionDeVehiculo ? 'Retención de vehículo' : '', ...(form.medidasPreventivas ?? [])].filter(Boolean).join(' · ') || 'Ninguna')}
               {form.metadata?.alcoholemia ? fila('Alcoholemia', form.metadata.alcoholemia) : null}
@@ -442,7 +445,7 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
                   <i className="fa-solid fa-lock" aria-hidden="true" /> El acta está firmada y no se puede modificar. Las correcciones se registran desde la causa como subsanación.
                 </div>
                 <div className="botonera">
-                  <button type="button" className="btn btn-primary btn-lg" onClick={() => void printTicket(form)}>
+                  <button type="button" className="btn btn-primary btn-lg" onClick={() => void printTicket(paraTicket())}>
                     <i className="fa-solid fa-print" aria-hidden="true" /> Imprimir ticket
                   </button>
                   <BotonVerActa acta={form as Infraccion} imagenes={imagenes.map((x) => x.previewRaw ?? '').filter(Boolean)} className="btn btn-outline-primary btn-lg" />
@@ -759,11 +762,21 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
                 </Campo>
               </div>
               {tipo === 'multas' ? (
+                <>
                 <div className="col-12 col-md-4">
                   <Campo id="vehiculoNumeroLicencia" label="N.° de licencia de conducir">
                     {inp('vehiculoNumeroLicencia', soloNumeros('vehiculoNumeroLicencia'))}
                   </Campo>
                 </div>
+                {/* Municipio que emitió la licencia (minuta 20/10: pasa del paso «Vehículo» a este). */}
+                <div className="col-12 col-md-4">
+                  <Campo id="vehiculoMunicipalidadEmisora" label="Municipio emisor">
+                    {habilitado ? (
+                      <BuscadorOpciones id="vehiculoMunicipalidadEmisora" libre valor={form.vehiculoMunicipalidadEmisora ?? ''} placeholder="Buscar municipio… (ej.: Merlo)" opciones={opcMunicipios} onChange={(v) => patch({ vehiculoMunicipalidadEmisora: v })} />
+                    ) : <input id="vehiculoMunicipalidadEmisora" className="form-control" disabled value={form.vehiculoMunicipalidadEmisora ?? ''} />}
+                  </Campo>
+                </div>
+                </>
               ) : null}
               {tipo === 'multas' ? (
                 <div className="col-12">
@@ -817,13 +830,6 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
                       {habilitado && form.metadata?.marca && form.metadata.marca !== NO_DESCRIBE ? (
                         <BuscadorOpciones id="vehiculoModelo" libre valor={form.metadata?.modelo ?? ''} placeholder="Buscar modelo…" opciones={opcModelos} onChange={(v) => patchMeta('modelo', v)} />
                       ) : <input id="vehiculoModelo" className="form-control" disabled value={form.metadata?.modelo ?? ''} placeholder={habilitado ? 'Elija primero la marca' : ''} />}
-                    </Campo>
-                  </div>
-                  <div className="col-6">
-                    <Campo id="vehiculoMunicipalidadEmisora" label="Municipio emisor">
-                      {habilitado ? (
-                        <BuscadorOpciones id="vehiculoMunicipalidadEmisora" libre valor={form.vehiculoMunicipalidadEmisora ?? ''} placeholder="Buscar municipio… (ej.: Merlo)" opciones={opcMunicipios} onChange={(v) => patch({ vehiculoMunicipalidadEmisora: v })} />
-                      ) : <input id="vehiculoMunicipalidadEmisora" className="form-control" disabled value={form.vehiculoMunicipalidadEmisora ?? ''} />}
                     </Campo>
                   </div>
                 </>
@@ -1007,7 +1013,7 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
                   <div><dt>Fecha</dt><dd>{form.legajoFecha?.replace('T', ' ')}</dd></div>
                   <div><dt>Lugar de infracción</dt><dd>{[form.domicilioInfraccionCalle, form.domicilioInfraccionNumero].filter(Boolean).join(' ') || <span className="texto-error">Falta</span>}{form.entreCalle1 ? ` (entre ${form.entreCalle1} y ${form.entreCalle2 ?? ''})` : ''}</dd></div>
                   <div><dt>Infractor</dt><dd>{form.situacionInfractor === 'nn' ? 'No identificado (NN)' : (esJuridica ? `${form.infractorRazonSocial ?? ''} · CUIT ${form.infractorCuit ?? ''}` : `${form.infractorNombre || '—'} · ${form.infractorDocumentoTipoNombre ?? ''} ${form.infractorDocumentoNumero ?? ''}`)}</dd></div>
-                  {tipo === 'multas' && (form.vehiculoNumeroLicencia || form.vehiculoLicenciaCategorias?.length) ? <div><dt>Licencia</dt><dd>{[form.vehiculoNumeroLicencia ? `N.° ${form.vehiculoNumeroLicencia}` : '', form.vehiculoLicenciaCategorias?.length ? `Categorías ${ordenarCategoriasLicencia(form.vehiculoLicenciaCategorias).join(', ')}` : ''].filter(Boolean).join(' · ')}</dd></div> : null}
+                  {tipo === 'multas' && (form.vehiculoNumeroLicencia || form.vehiculoLicenciaCategorias?.length || form.vehiculoMunicipalidadEmisora) ? <div><dt>Licencia</dt><dd>{[form.vehiculoNumeroLicencia ? `N.° ${form.vehiculoNumeroLicencia}` : '', form.vehiculoLicenciaCategorias?.length ? `Categorías ${ordenarCategoriasLicencia(form.vehiculoLicenciaCategorias).join(', ')}` : '', form.vehiculoMunicipalidadEmisora ? `Emitida por ${form.vehiculoMunicipalidadEmisora}` : ''].filter(Boolean).join(' · ')}</dd></div> : null}
                   {tipo !== 'contravenciones' ? <div><dt>Vehículo</dt><dd>{form.vehiculoNumeroDominio || '-'} {form.vehiculoTipoNombre ?? ''}</dd></div> : null}
                   <div><dt>Artículos</dt><dd>{leyesSeleccionadas.map((l) => claveLey(l)).join(' · ') || <span className="texto-error">Falta</span>}</dd></div>
                   <div><dt>Medidas</dt><dd>{[form.retencionDeLicencia ? 'Retención de licencia' : '', form.retencionDeVehiculo ? 'Retención de vehículo' : '', form.acarreo ? 'Acarreo' : '', ...(form.medidasPreventivas ?? [])].filter(Boolean).join(' · ') || 'Ninguna'}</dd></div>

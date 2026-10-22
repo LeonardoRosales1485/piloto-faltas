@@ -245,3 +245,15 @@ En **Configuración → Opciones sandbox** hay cuatro acciones. Todas piden escr
 - **Resetear usuarios:** deja solo los usuarios de prueba (admin, inspectores, Directora y Agente de tránsito, Responsable y Agente de contravenciones y de sustancias, Tributario y Becario) con sus contraseñas originales.
 - **Cargar datos dummy:** borra todo y carga un conjunto de prueba con las fechas corridas al día de hoy. **Datos de sistema** trae 26 actas en todas las bandejas (con fotos, firmas, escritos, pagos, memos, una subsanación y un monto ajustado); **Foto guardada** es el estado que el Administrador guardó con «Guardar estado actual como dummy» (hay una sola).
 
+## Cambios de la reunión del 20/10/2026 (fase 1)
+
+- **Labrado:** «Municipio emisor» (de la licencia) está ahora en el paso del infractor, junto a la licencia.
+- **Inspectores:** solo ven sus borradores. Las actas firmadas no se pueden volver a consultar desde la app.
+- **Ticket y acta:** cada artículo muestra primero la descripción del hecho y después la norma. Con retención de licencia sale la leyenda de **boleta de citación del inculpado**; con retención de vehículo, la **advertencia de compactación** (textos provisorios, editables en *Configuración › Textos del portal*).
+- **Portal:** un solo botón **«Pago»** (también vencido el plazo). La DD.JJ. de domicilio electrónico se ofrece al validar el correo y no se vuelve a pedir.
+- **Pedidos de pago:** al aceptarlos, la Dirección elige «Con el descuento del pago voluntario» o «Monto pleno».
+- **Montos:** mientras la causa está abierta se calculan con los valores vigentes; quedan fijos al emitir la boleta.
+- **Descargos:** «Observar (pase a subsanar)» con pedidos de documentación frecuentes; «No admitir» reemplaza a «Rechazar».
+- **Causa:** ya no existe «Desestimar»; el dominio, el lugar de la falta y el ejido no se pueden corregir.
+- **Liberación:** la boleta de acarreo y estadía vale 48 horas; para registrar la entrega hay que tildar titularidad, formulario 08, seguro y licencia.
+- **Solo Tránsito:** en *Configuración › Funciones opcionales*, oculta contravenciones y sustancias para la prueba piloto.

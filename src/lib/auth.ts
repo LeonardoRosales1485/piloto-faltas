@@ -1,7 +1,7 @@
-import { modulosConPermisos, modulosDe, tiposPermitidos } from './dominio';
+import { modulosDe, tiposPermitidos } from './dominio';
 import { NextRequest } from 'next/server';
 import { subjectFromToken } from './jwt';
-import { cargarAcceso, permisosActuales } from './permisos-srv';
+import { aplicarAcceso, cargarAcceso, permisosActuales } from './permisos-srv';
 import { createServerClient } from './supabase-server';
 import type { Usuario, UsuarioRow } from './types';
 
@@ -33,11 +33,9 @@ export async function requireUser(req: NextRequest): Promise<UsuarioRow> {
     throw Object.assign(new Error('Sin sesión'), { status: 401 });
   }
   const user = data as UsuarioRow;
-  const acceso = await cargarAcceso(supabase, user.username, user.rol);
-  user.permisos = acceso.permisos;
-  user.modulosEfectivos = modulosConPermisos(user, acceso.permisos, acceso.delUsuario);
+  aplicarAcceso(user, await cargarAcceso(supabase, user.username, user.rol));
   // El resto de la request (puede(), handle()) usa estos permisos efectivos.
-  permisosActuales.enterWith({ rol: user.rol, permisos: user.permisos });
+  permisosActuales.enterWith({ rol: user.rol, permisos: user.permisos ?? [] });
   return user;
 }
 

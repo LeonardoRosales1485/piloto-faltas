@@ -175,6 +175,9 @@ export const FUNCIONES_OPCIONALES: readonly { llave: string; permiso: Permiso; t
   { llave: 'mostrar_seguimiento_gps', permiso: 'seguimientoGps', titulo: 'Seguimiento GPS', detalle: 'Mapa con la posición y el recorrido de los inspectores (datos simulados). No es requerimiento del piloto.' },
 ];
 
+/** Modo «Solo Tránsito» (minuta 20/10: la prueba piloto es solo de Tránsito). Clave en `configuracion`, «1» = activo. */
+export const SOLO_TRANSITO = 'solo_transito';
+
 export function permisosEfectivos(rol: string, delRol: Overrides = {}, delUsuario: Overrides = {}): Permiso[] {
   return (Object.keys(PERMISOS) as Permiso[]).filter((p) => {
     if (rol === 'Administrador' && p === 'parametrizar') return true;
@@ -312,6 +315,12 @@ export function ordenarCategoriasLicencia(lista?: string[] | null): string[] {
 
 type BoletaLike = { concepto?: string | null; detalle_json?: string | null };
 /** Boleta de acarreo y estadía emitida desde Retenciones al liberar el vehículo. */
+/**
+ * Requisitos para entregar un vehículo retenido (minuta 20/10): la entrega es solo presencial en la sede de Faltas y
+ * se acredita cada uno al registrar la liberación.
+ */
+export const REQUISITOS_LIBERACION = ['Titularidad del vehículo', 'Formulario 08 certificado', 'Póliza de seguro vigente', 'Licencia de conducir habilitante'] as const;
+
 export function esBoletaLiberacion(b: BoletaLike): boolean {
   return String(b.detalle_json ?? '').includes('"liberacion":true');
 }
