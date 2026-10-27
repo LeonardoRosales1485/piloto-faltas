@@ -346,7 +346,7 @@ export const SITUACIONES = [
   { v: 'presente', t: 'Presente' },
   { v: 'ausente', t: 'Ausente' },
   { v: 'se_niega', t: 'Presente, se niega a firmar' },
-  { v: 'nn', t: 'No identificado (NN)' },
+  { v: 'nn', t: 'No identificado' },
 ] as const;
 
 export function formatearNumeroActa(serie: string, n: number): string {

@@ -8,7 +8,7 @@ export type Paso = { id: 'acta' | 'lugar' | 'infractor' | 'vehiculo' | 'articulo
 const TODOS: Paso[] = [
   { id: 'acta', corto: 'Acta', titulo: 'Datos del acta', ayuda: 'Número, legajo y fecha se asignan solos' },
   { id: 'lugar', corto: 'Lugar de infracción', titulo: 'Lugar de infracción', ayuda: 'Use el GPS para completar la ubicación' },
-  { id: 'infractor', corto: 'Infractor', titulo: 'Datos del infractor', ayuda: 'Obligatorios si el infractor está presente' },
+  { id: 'infractor', corto: 'Infractor', titulo: 'Datos del infractor', ayuda: 'Indique primero si el infractor está presente, ausente o no identificado' },
   { id: 'vehiculo', corto: 'Vehículo', titulo: 'Datos del vehículo', ayuda: 'Vehículo involucrado' },
   { id: 'articulos', corto: 'Artículos', titulo: 'Artículos y medidas', ayuda: 'Normas infringidas y medidas adoptadas' },
   { id: 'fotos', corto: 'Fotos', titulo: 'Imágenes y observaciones', ayuda: 'Hasta 5 imágenes' },
@@ -18,7 +18,6 @@ const TODOS: Paso[] = [
 export function pasosPara(tipo: TipoActa, situacion?: string): Paso[] {
   return TODOS.filter((p) => {
     if (p.id === 'vehiculo' && tipo === 'contravenciones') return false;
-    if (p.id === 'infractor' && situacion === 'nn') return false;
     return true;
   });
 }
@@ -127,7 +126,7 @@ export function faltantesPorPaso(form: Partial<Infraccion>, firma: string | null
   const add = (p: Paso['id'], t: string) => { (out[p] ??= []).push(t); };
   const txt = (v: unknown) => String(v ?? '').trim();
   const sit = form.situacionInfractor ?? '';
-  if (!sit) add('acta', 'situación del infractor');
+  if (!sit) add('infractor', 'situación del infractor');
   if (!txt(form.domicilioInfraccionCalle)) add('lugar', 'calle del lugar de infracción');
   if (form.infraccionTipoNombre === 'multas' && !txt(form.metadata?.sentidoCirculacion)) add('lugar', 'sentido de circulación');
   if (sit !== 'nn') {

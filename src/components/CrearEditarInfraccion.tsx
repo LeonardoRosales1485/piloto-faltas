@@ -628,23 +628,6 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
                   <input id="fecha" type="datetime-local" className="form-control" disabled value={form.legajoFecha ?? ''} />
                 </Campo>
               </div>
-              <div className="col-12">
-                <fieldset className="form-group" disabled={!habilitado}>
-                  <legend>Situación del infractor</legend>
-                  <div className="opciones-grandes">
-                    {SITUACIONES.filter((s) => s.v !== 'se_niega').map((s) => {
-                      // «Se niega a firmar» se marca al final, debajo de la firma: acá cuenta como «Presente».
-                      const activa = form.situacionInfractor === s.v || (s.v === 'presente' && form.situacionInfractor === 'se_niega');
-                      return (
-                      <label key={s.v} className={`opcion-grande ${activa ? 'activa' : ''}`}>
-                        <input type="radio" name="situacion" checked={activa} onChange={() => patch({ situacionInfractor: s.v })} />
-                        <span>{s.t}</span>
-                      </label>
-                      );
-                    })}
-                  </div>
-                </fieldset>
-              </div>
               {tipo !== 'multas' ? (
                 <div className="col-12">
                   <div className="checkbox-list">
@@ -726,6 +709,26 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
 
           {paso.id === 'infractor' ? (
             <div className="row g-3">
+              {/* Identificación de la persona: define qué datos se piden y quién firma. */}
+              <div className="col-12">
+                <fieldset className="form-group" disabled={!habilitado}>
+                  <legend>Identificación de la persona</legend>
+                  <div className="opciones-grandes">
+                    {SITUACIONES.filter((s) => s.v !== 'se_niega').map((s) => {
+                      // «Se niega a firmar» se marca al final, debajo de la firma: acá cuenta como «Presente».
+                      const activa = form.situacionInfractor === s.v || (s.v === 'presente' && form.situacionInfractor === 'se_niega');
+                      return (
+                      <label key={s.v} className={`opcion-grande ${activa ? 'activa' : ''}`}>
+                        <input type="radio" name="situacion" checked={activa} onChange={() => patch({ situacionInfractor: s.v })} />
+                        <span>{s.t}</span>
+                      </label>
+                      );
+                    })}
+                  </div>
+                </fieldset>
+              </div>
+              {form.situacionInfractor !== 'nn' ? (
+              <>
               {form.situacionInfractor === 'ausente' || form.situacionInfractor === 'se_niega' ? (
                 <div className="col-12">
                   <div className="aviso aviso-info">El infractor {form.situacionInfractor === 'ausente' ? 'está ausente' : 'se niega a firmar'}: cargue los datos que pueda constatar (por ejemplo, del titular del vehículo).</div>
@@ -861,6 +864,12 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
                   </fieldset>
                 </div>
               ) : null}
+              </>
+              ) : (
+                <div className="col-12">
+                  <div className="aviso aviso-info">Infractor no identificado: no hace falta cargar sus datos. Firma solo el inspector.</div>
+                </div>
+              )}
             </div>
           ) : null}
 
@@ -1078,7 +1087,7 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
                   <div><dt>Acta</dt><dd>{form.legajoNumeroActa} · {info.corto}</dd></div>
                   <div><dt>Fecha</dt><dd>{form.legajoFecha?.replace('T', ' ')}</dd></div>
                   <div><dt>Lugar de infracción</dt><dd>{[form.domicilioInfraccionCalle, form.domicilioInfraccionNumero].filter(Boolean).join(' ') || <span className="texto-error">Falta</span>}{form.entreCalle1 ? ` (entre ${form.entreCalle1} y ${form.entreCalle2 ?? ''})` : ''}</dd></div>
-                  <div><dt>Infractor</dt><dd>{form.situacionInfractor === 'nn' ? 'No identificado (NN)' : (esJuridica ? `${form.infractorRazonSocial ?? ''} · CUIT ${form.infractorCuit ?? ''}` : `${form.infractorNombre || '—'} · ${form.infractorDocumentoTipoNombre ?? ''} ${form.infractorDocumentoNumero ?? ''}`)}</dd></div>
+                  <div><dt>Infractor</dt><dd>{form.situacionInfractor === 'nn' ? 'No identificado' : (esJuridica ? `${form.infractorRazonSocial ?? ''} · CUIT ${form.infractorCuit ?? ''}` : `${form.infractorNombre || '—'} · ${form.infractorDocumentoTipoNombre ?? ''} ${form.infractorDocumentoNumero ?? ''}`)}</dd></div>
                   {tipo === 'multas' && (form.vehiculoNumeroLicencia || form.vehiculoLicenciaCategorias?.length || form.vehiculoMunicipalidadEmisora) ? <div><dt>Licencia</dt><dd>{[form.vehiculoNumeroLicencia ? `N.° ${form.vehiculoNumeroLicencia}` : '', form.vehiculoLicenciaCategorias?.length ? `Categorías ${ordenarCategoriasLicencia(form.vehiculoLicenciaCategorias).join(', ')}` : '', form.vehiculoMunicipalidadEmisora ? `Emitida por ${form.vehiculoMunicipalidadEmisora}` : ''].filter(Boolean).join(' · ')}</dd></div> : null}
                   {tipo !== 'contravenciones' ? <div><dt>Vehículo</dt><dd>{form.vehiculoNumeroDominio || '-'} {form.vehiculoTipoNombre ?? ''}</dd></div> : null}
                   <div><dt>Artículos</dt><dd>{leyesSeleccionadas.map((l) => claveLey(l)).join(' · ') || <span className="texto-error">Falta</span>}</dd></div>
@@ -1131,7 +1140,7 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
               ) : (
                 <div className="col-12 col-lg-7">
                   <div className="aviso aviso-info">
-                    {form.situacionInfractor === 'nn' ? 'Acta NN: firma solo el inspector.' : form.situacionInfractor === 'ausente' ? 'Infractor ausente: firma solo el inspector.' : 'Elija primero la situación del infractor en «Datos del acta».'}
+                    {form.situacionInfractor === 'nn' ? 'Infractor no identificado: firma solo el inspector.' : form.situacionInfractor === 'ausente' ? 'Infractor ausente: firma solo el inspector.' : 'Elija primero la situación del infractor en «Datos del infractor».'}
                   </div>
                 </div>
               )}
