@@ -249,7 +249,7 @@ En **Configuración → Opciones sandbox** hay cuatro acciones. Todas piden escr
 ## Cambios de la reunión del 20/10/2026 (fase 1)
 
 - **Labrado:** «Municipio emisor» (de la licencia) está ahora en el paso del infractor, junto a la licencia.
-- **Inspectores:** no tienen listado de actas. El borrador se guarda solo al cambiar de paso; no hay «Guardar borrador» ni «Descartar acta». Si vuelven al inicio con un acta sin firmar, se les avisa y queda como **«Acta abandonada»** (número anulado). Desde el inicio pueden reimprimir el último ticket firmado en ese equipo.
+- **Inspectores:** no tienen listado de actas. El borrador se guarda solo al cambiar de paso; no hay «Guardar borrador» ni «Descartar acta». Si vuelven al inicio con un acta sin firmar (botones «Inicio» o el «atrás» de Android), se les avisa y queda como **«Acta abandonada»** (número anulado). Si cierran la app a mitad de un acta, ese borrador se da por abandonado al empezar otra acta, o solo a las 12 horas sin firmar. Desde el inicio pueden reimprimir el último ticket firmado en ese equipo.
 - **Ticket y acta:** cada artículo muestra primero la descripción del hecho y después la norma. Con retención de licencia sale la leyenda de **boleta de citación del inculpado**; con retención de vehículo, la **advertencia de compactación** (textos provisorios, editables en *Configuración › Textos del portal*).
 - **Portal:** un solo botón **«Pago»** (también vencido el plazo). La DD.JJ. de domicilio electrónico se ofrece al validar el correo y no se vuelve a pedir.
 - **Pedidos de pago:** al aceptarlos, la Dirección elige «Con el descuento del pago voluntario» o «Monto pleno».
@@ -299,4 +299,4 @@ En **Configuración → Opciones sandbox** hay cuatro acciones. Todas piden escr
 
 - **El infractor no paga desde el portal.** «Solicitar pago» y «Solicitar plan de cuotas» son solo solicitudes: quedan en «Presentaciones» y las habilita un agente, la Directora o el Responsable (como hasta ahora, «Aceptar» emite las boletas). En el portal las boletas se ven, pero ya no está el botón «Pagar»: se abonan en los medios habilitados y el pago lo registra Faltas («Informar pago» / «Confirmar acreditación» o «Confirmar con comprobante»).
 - **Cobro por $0:** si al emitir la boleta (desde la causa o al aceptar un pedido de pago) el total da $ 0, no se emite boleta: se genera la **«Constancia: no registra monto a abonar»** (PDF, con código de verificación), que se abre sola y queda en «Escritos y documentos» y en el portal. Lo mismo con la boleta de estadía cuando no hay días con cargo. La causa no cambia de estado: si corresponde, se archiva desde «Archivar».
-
+- **Descartar acta (Administrador):** en la causa, «Más acciones › Descartar acta» anula el acta en cualquier estado, con motivo (por ejemplo, actas de prueba). Sale de las bandejas y del portal, y queda en el historial. Solo lo ve el usuario Administrador.

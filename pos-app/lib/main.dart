@@ -102,7 +102,13 @@ class _InicioState extends State<Inicio> {
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) async {
-        if (!didPop && _web != null && await _web!.canGoBack()) _web!.goBack();
+        if (didPop || _web == null) return;
+        // Con un acta sin firmar abierta, la web muestra el aviso de «acta abandonada» en lugar de volver atrás.
+        try {
+          final r = await _web!.evaluateJavascript(source: 'window.faltasAtras ? window.faltasAtras() : false');
+          if (r == true) return;
+        } catch (_) {/* web sin la función: atrás normal */}
+        if (await _web!.canGoBack()) _web!.goBack();
       },
       child: Scaffold(
         body: SafeArea(

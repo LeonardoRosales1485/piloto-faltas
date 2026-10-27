@@ -16,3 +16,11 @@ export function interceptarSalida(destino: string): boolean {
   guardia(destino);
   return true;
 }
+
+/**
+ * Botón «atrás» de Android en la app del POS: la app llama a window.faltasAtras() antes de volver atrás.
+ * true = lo manejó la web (con un acta sin firmar, muestra el aviso de «acta abandonada»); false = la app vuelve atrás.
+ */
+if (typeof window !== 'undefined') {
+  (window as unknown as { faltasAtras?: () => boolean }).faltasAtras = () => interceptarSalida('/private/inicio');
+}

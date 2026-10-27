@@ -11,7 +11,39 @@ export async function reservar(d: Db, serie: string): Promise<number> {
 }
 
 /** Crea el borrador del acta con número de su serie y legajo común ya reservados (RN-02, RN-03). */
+/** Horas sin firmar tras las cuales el borrador de un inspector se da por abandonado (app cerrada a mitad del acta). */
+const HORAS_BORRADOR_ABANDONADO = 12;
+
+/** Anula borradores como «Acta abandonada» (número anulado, con historial). */
+async function anularAbandonados(d: Db, filas: { id: number }[], motivo: string) {
+  for (const f of filas) {
+    await d.from('infraccion').update({ estado_faltas: 'Anulada', anulada_motivo: motivo }).eq('id', f.id).eq('estado_faltas', 'Borrador');
+    await historial(d, f.id, 'Sistema', 'Acta abandonada', motivo, { anterior: 'Borrador', nuevo: 'Anulada' });
+  }
+}
+
+/**
+ * Borradores de inspectores que ya no se pueden retomar (no tienen listado ni «Guardar borrador»):
+ * - los del mismo inspector, al empezar un acta nueva (cerró la app o salió sin pasar por el aviso);
+ * - los de cualquier inspector con más de HORAS_BORRADOR_ABANDONADO horas sin firmar.
+ * Los borradores del back office (Directora, Responsables, Administrador) no se tocan.
+ */
+export async function abandonarBorradores(d: Db, user: UsuarioRow) {
+  if (user.rol === 'Inspector') {
+    const { data } = await d.from('infraccion').select('id').eq('estado_faltas', 'Borrador').eq('inspector_username', user.username);
+    await anularAbandonados(d, (data ?? []) as { id: number }[], 'Acta abandonada: el inspector empezó otra acta sin firmar esta');
+  }
+  const { data: insp } = await d.from('usuario').select('username').eq('rol', 'Inspector');
+  const nombres = ((insp ?? []) as { username: string }[]).map((x) => x.username);
+  if (!nombres.length) return;
+  const limite = Date.now() - HORAS_BORRADOR_ABANDONADO * 3600 * 1000;
+  const { data: viejos } = await d.from('infraccion').select('id').eq('estado_faltas', 'Borrador').in('inspector_username', nombres).lt('date_created', limite);
+  await anularAbandonados(d, (viejos ?? []) as { id: number }[], `Acta abandonada: más de ${HORAS_BORRADOR_ABANDONADO} horas sin firmar`);
+}
+
 export async function iniciarActa(d: Db, user: UsuarioRow, tipoNombre: string, uuid: string) {
+  // Antes de reservar un número nuevo: dar por abandonados los borradores que ya no se pueden retomar.
+  try { await abandonarBorradores(d, user); } catch { /* no impide labrar */ }
   const tipo = tipoActa(tipoNombre);
   const info = TIPOS_ACTA[tipo];
   const nActa = await reservar(d, info.serie);

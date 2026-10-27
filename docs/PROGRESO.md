@@ -134,6 +134,7 @@ Avance: **20 / 20**
 | Pedido 22/10 · Portal: «Solicitar pago» y «Solicitar plan de cuotas» son solo solicitudes; sin botón «Pagar» (el pago lo registra Faltas). Cobro por $0: constancia en PDF de que no debe nada, sin boleta | — |
 | Menú «Bandejas»: «Todas las causas» pasa a ser el primer ítem | — |
 | Inspector: sin «Guardar borrador» ni «Descartar acta» (se guarda solo al cambiar de paso). Volver al inicio con un acta sin firmar muestra el aviso y la da por «Acta abandonada» (número anulado). En el inicio, «Ver mis borradores» pasa a «Imprimir último ticket» (guardado en el equipo al firmar). El «easter egg» de depuración pasa a 7 toques sobre el fondo del inicio | — |
+| Actas abandonadas: el «atrás» de Android también muestra el aviso (**requiere APK nueva**); los borradores de inspectores se anulan como «Acta abandonada» al empezar otra acta (los del mismo inspector) o a las 12 h sin firmar (todos). Administrador: «Descartar acta» en la causa, en cualquier estado (sale de bandejas y portal, con historial) | — |
 
 ## Fuera del alcance del prototipo
 

@@ -27,6 +27,16 @@ export async function POST(req: NextRequest) {
     const gestion = puede(user.rol, 'gestionarCausas');
 
     switch (body.accion) {
+      case 'descartar_acta': {
+        // Solo el Administrador (prototipo: limpiar actas de prueba). Queda anulada, fuera de bandejas y del portal.
+        check(user.rol === 'Administrador', 'Solo el administrador puede descartar actas', 403);
+        check(c.estado_faltas !== 'Anulada', 'El acta ya está anulada', 409);
+        const motivo = txt('motivo');
+        check(motivo, 'Indique el motivo');
+        await cambiarEstado(db, c, 'Anulada', quien, 'Acta descartada por el administrador', motivo, { anulada_motivo: motivo });
+        await db.from('infraccion').update({ visible_portal: 0 }).eq('id', c.id);
+        return { ok: true };
+      }
       case 'cambiar_estado': {
         check(puede(user.rol, 'cambiarEstadoManual'), 'Sin permiso', 403);
         check(ESTADOS.some((e) => e.nombre === txt('estado')), 'Estado inválido');
