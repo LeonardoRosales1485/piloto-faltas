@@ -137,7 +137,7 @@ export function Reportes() {
   function csv() {
     if (!r) return;
     const filas: string[] = ['Sección;Clave;Valor'];
-    for (const [sec, obj] of Object.entries({ 'Por tipo': r.porTipo, 'Por estado': r.porEstado, 'Por mes': r.porMes, 'Por artículo': r.porArticulo, 'Medidas': r.medidas, 'Pagos por mes y área': r.pagosPorMes })) {
+    for (const [sec, obj] of Object.entries({ 'Por tipo': r.porTipo, 'Por estado': r.porEstado, 'Por mes': r.porMes, 'Por artículo': r.porArticulo, 'Medidas': r.medidas, 'Anuladas': r.anuladas ?? {}, 'Pagos por mes y área': r.pagosPorMes })) {
       for (const [k, v] of Object.entries(obj as Record<string, number>)) filas.push(`${sec};${k};${v}`);
     }
     const a = document.createElement('a');
@@ -159,6 +159,8 @@ export function Reportes() {
           <div className="card-step mb-3"><div className="card-step-body"><dl className="ficha">
             <div><dt>Actas en el período</dt><dd>{r.total}</dd></div>
             <div><dt>Recaudado (acreditado)</dt><dd>{pesos(r.recaudado)}</dd></div>
+            <div><dt>Actas abandonadas</dt><dd>{r.anuladas?.abandonadas ?? 0}</dd></div>
+            <div><dt>Actas descartadas</dt><dd>{r.anuladas?.descartadas ?? 0}</dd></div>
             <div><dt>Licencias retenidas</dt><dd>{r.medidas.licencias}</dd></div>
             <div><dt>Vehículos retenidos</dt><dd>{r.medidas.vehiculos}</dd></div>
             <div><dt>Medidas de contravención</dt><dd>{r.medidas.contravencion}</dd></div>

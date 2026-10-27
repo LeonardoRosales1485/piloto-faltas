@@ -16,7 +16,12 @@ export async function GET(req: NextRequest) {
     const { data: bol } = await db.from('boleta').select('monto, pagado_at, estado, concepto, infraccion(infraccion_tipo_nombre)').eq('estado', 'definitiva');
     const pagos = ((bol ?? []) as unknown as { monto: number; pagado_at: number; infraccion: { infraccion_tipo_nombre: string } | null }[]).filter((b) => Number(b.pagado_at) >= desde && Number(b.pagado_at) <= hasta);
     const pagosPorMes = pagos.reduce<Record<string, number>>((acc, b) => { const d = new Date(Number(b.pagado_at)); const k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')} · ${b.infraccion?.infraccion_tipo_nombre ?? '-'}`; acc[k] = (acc[k] ?? 0) + Number(b.monto); return acc; }, {});
+    // Anuladas en el período (no cuentan como actas): abandonadas por inspectores y descartadas a mano.
+    const { data: anul } = await db.from('infraccion').select('anulada_motivo, date_created').eq('estado_faltas', 'Anulada');
+    const anuladas = ((anul ?? []) as { anulada_motivo: string | null; date_created: number }[]).filter((a) => Number(a.date_created) >= desde && Number(a.date_created) <= hasta);
+    const abandonadas = anuladas.filter((a) => /^acta abandonada/i.test(a.anulada_motivo ?? '')).length;
     return {
+      anuladas: { abandonadas, descartadas: anuladas.length - abandonadas },
       total: lista.length,
       porTipo: cuenta((a) => String(a.infraccion_tipo_nombre)),
       porEstado: cuenta((a) => String(a.estado_faltas)),

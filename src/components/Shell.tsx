@@ -60,7 +60,7 @@ const GRUPOS: MenuItem[] = [
     icono: 'fa-solid fa-car',
     permiso: 'labrar',
     children: [
-      { titulo: 'Mis borradores', route: '/private/lista-infracciones/multas' },
+      { titulo: 'Actas labradas', route: '/private/lista-infracciones/multas' },
       { titulo: 'Labrar acta', route: '/private/crear-editar/multas' },
     ],
   },
@@ -70,7 +70,7 @@ const GRUPOS: MenuItem[] = [
     icono: 'fa-solid fa-gavel',
     permiso: 'labrar',
     children: [
-      { titulo: 'Mis borradores', route: '/private/lista-infracciones/contravenciones' },
+      { titulo: 'Actas labradas', route: '/private/lista-infracciones/contravenciones' },
       { titulo: 'Labrar acta', route: '/private/crear-editar/contravenciones' },
     ],
   },
@@ -80,7 +80,7 @@ const GRUPOS: MenuItem[] = [
     icono: 'fa-solid fa-truck',
     permiso: 'labrar',
     children: [
-      { titulo: 'Mis borradores', route: '/private/lista-infracciones/sustancias' },
+      { titulo: 'Actas labradas', route: '/private/lista-infracciones/sustancias' },
       { titulo: 'Labrar acta', route: '/private/crear-editar/sustancias' },
     ],
   },

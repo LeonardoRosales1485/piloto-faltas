@@ -139,7 +139,10 @@ export const apiClient = {
         ? `${filtros.fechaHasta}T23:59`
         : filtros.fechaHasta;
     addFiltro(body, 't', 'legajo_fecha', '<=', hasta);
-    addFiltro(body, 't', 'estado_faltas', '=', filtros.estado);
+    // «Abandonada» y «Anulada» son el mismo estado en la base; el servidor las separa por el motivo.
+    const anulacion = filtros.estado === 'Abandonada' ? 'abandonadas' : filtros.estado === 'Anulada' ? 'descartadas' : '';
+    addFiltro(body, 't', 'estado_faltas', '=', anulacion ? 'Anulada' : filtros.estado);
+    if (anulacion) (body as { anulacion?: string }).anulacion = anulacion;
     addFiltro(body, 't', 'inspector_username', '=', (filtros as FiltrosInfraccion & { inspector?: string }).inspector);
     body.ordenes.push({ tabla: 't', columna: 'id', direccion: 'desc' });
     return post<Paginado<Infraccion>>('/api/infraccion/paginate', body);

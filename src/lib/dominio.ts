@@ -155,7 +155,7 @@ export const PERMISO_INFO: Record<Permiso, { g: string; t: string; d: string }> 
   ordenanzas: { g: 'Gestión', t: 'Ordenanzas', d: 'Alta y edición de ordenanzas y artículos' },
   inspectores: { g: 'Gestión', t: 'Inspectores', d: 'ABM de inspectores' },
   seguimientoGps: { g: 'Gestión', t: 'Seguimiento GPS', d: 'Mapa de seguimiento de inspectores' },
-  depuracionPos: { g: 'Actas', t: 'Depuración en el POS', d: '7 toques seguidos sobre «Mis borradores» muestran todas las actas de sus tipos (solo para pruebas)' },
+  depuracionPos: { g: 'Actas', t: 'Depuración en el POS', d: 'En el inicio del inspector, 7 toques seguidos sobre el logo muestran todas las actas de sus tipos (solo para pruebas)' },
   auditoria: { g: 'Gestión', t: 'Auditoría', d: 'Registro de auditoría' },
   verPlantillas: { g: 'Escritos', t: 'Ver plantillas', d: 'Consultar las plantillas de escritos, su historial y el mapa de estados (sin editar)' },
   plantillas: { g: 'Configuración', t: 'Plantillas de escritos', d: 'Alta, edición y publicación de plantillas' },
@@ -180,7 +180,7 @@ export type Overrides = Partial<Record<Permiso, boolean>>;
  */
 export const FUNCIONES_OPCIONALES: readonly { llave: string; permiso: Permiso; titulo: string; detalle: string }[] = [
   { llave: 'mostrar_seguimiento_gps', permiso: 'seguimientoGps', titulo: 'Seguimiento GPS', detalle: 'Mapa con la posición y el recorrido de los inspectores (datos simulados). No es requerimiento del piloto.' },
-  { llave: 'permitir_depuracion_pos', permiso: 'depuracionPos', titulo: 'Depuración en el POS («easter egg»)', detalle: 'Con esto activo, 7 toques seguidos sobre la lista «Mis borradores» le muestran al inspector todas las actas de sus tipos, no solo sus borradores. Solo para pruebas: la minuta del 20/10 pide que el inspector no tenga listado de actas firmadas.' },
+  { llave: 'permitir_depuracion_pos', permiso: 'depuracionPos', titulo: 'Depuración en el POS («easter egg»)', detalle: 'Con esto activo, en el inicio del inspector, 7 toques seguidos sobre el logo «SISTEMA DE FALTAS» abren la lista con todas las actas de sus tipos. Solo para pruebas: la minuta del 20/10 pide que el inspector no tenga listado de actas firmadas.' },
 ];
 
 /** Modo «Solo Tránsito» (minuta 20/10: la prueba piloto es solo de Tránsito). Clave en `configuracion`, «1» = activo. */
