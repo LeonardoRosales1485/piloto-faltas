@@ -84,6 +84,7 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
   const [confirmarSalida, setConfirmarSalida] = useState(false);
   const [padAbierto, setPadAbierto] = useState(false);
   const [gpsEstado, setGpsEstado] = useState<'' | 'buscando' | 'ok' | 'error'>('');
+  const [gpsAviso, setGpsAviso] = useState('');
   const [cat, setCat] = useState<Record<string, OpcionCatalogo[]>>({});
   const iniciado = useRef(false);
 
@@ -205,42 +206,59 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
     patch({ vehiculoLicenciaCategorias: ordenarCategoriasLicencia(actual.includes(v) ? actual.filter((x) => x !== v) : [...actual, v]) });
   }
 
+  // GPS: primero alta precisión con 25 s (en frío o bajo techo el MJ-Q50 tardaba más de los 10 s de antes y fallaba);
+  // si no llega, ubicación aproximada por red (WiFi/antenas). Mensaje según la causa.
   function usarGps() {
     if (!navigator.geolocation) {
       setGpsEstado('error');
+      setGpsAviso('Este equipo no permite obtener la ubicación. Complete la dirección a mano.');
       return;
     }
     setGpsEstado('buscando');
-    navigator.geolocation.getCurrentPosition(
-      (p) => {
-        const lat = Number(p.coords.latitude.toFixed(6));
-        const lng = Number(p.coords.longitude.toFixed(6));
-        setForm((prev) => { const next = { ...prev, gpsLat: lat, gpsLng: lng, ejido: ejidoPorGps(lat, lng) }; guardarUltimoLugar(next); return next; });
-        setGpsEstado('ok');
-        fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=es`)
-          .then((r) => r.json())
-          .then((j) => {
-            const a = j?.address ?? {};
-            // El GPS manda: reemplaza el lugar precargado de la acta anterior (y las entre calles, que ya no corresponden)
-            // y pasa a ser el lugar que se precarga en la próxima acta.
-            setForm((prev) => {
-              const next = {
-                ...prev,
-                domicilioInfraccionCalle: a.road || '',
-                domicilioInfraccionNumero: a.house_number || '',
-                domicilioInfraccionLocalidadNombre: a.suburb || a.town || a.city || '',
-                entreCalle1: '',
-                entreCalle2: '',
-              };
-              guardarUltimoLugar(next);
-              return next;
-            });
-          })
-          .catch(() => undefined);
-      },
-      () => setGpsEstado('error'),
-      { enableHighAccuracy: true, timeout: 10000 },
-    );
+    setGpsAviso('');
+    const ok = (p: GeolocationPosition) => {
+      const lat = Number(p.coords.latitude.toFixed(6));
+      const lng = Number(p.coords.longitude.toFixed(6));
+      setForm((prev) => { const next = { ...prev, gpsLat: lat, gpsLng: lng, ejido: ejidoPorGps(lat, lng) }; guardarUltimoLugar(next); return next; });
+      setGpsEstado('ok');
+      fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1&accept-language=es`)
+        .then((r) => r.json())
+        .then((j) => {
+          const a = j?.address ?? {};
+          // El GPS manda: reemplaza el lugar precargado de la acta anterior (y las entre calles, que ya no corresponden)
+          // y pasa a ser el lugar que se precarga en la próxima acta.
+          setForm((prev) => {
+            const next = {
+              ...prev,
+              domicilioInfraccionCalle: a.road || a.pedestrian || a.footway || '',
+              domicilioInfraccionNumero: a.house_number || '',
+              domicilioInfraccionLocalidadNombre: a.suburb || a.town || a.city || a.village || '',
+              entreCalle1: '',
+              entreCalle2: '',
+            };
+            guardarUltimoLugar(next);
+            return next;
+          });
+          // El mapa (OpenStreetMap) casi nunca tiene los números de puerta en Argentina: avisar en vez de dejarlo vacío sin más.
+          if (!a.house_number) setGpsAviso(a.road ? 'El mapa no tiene la altura de esta cuadra: complete la «Altura» a mano.' : 'No se encontró la calle en el mapa: complete la dirección a mano.');
+        })
+        .catch(() => setGpsAviso('Se tomó la ubicación, pero no se pudo obtener la dirección (sin conexión): complétela a mano.'));
+    };
+    const fallo = (e: GeolocationPositionError, segundo: boolean) => {
+      if (!segundo && e.code !== e.PERMISSION_DENIED) {
+        navigator.geolocation.getCurrentPosition(ok, (e2) => fallo(e2, true), { enableHighAccuracy: false, timeout: 20000, maximumAge: 300000 });
+        return;
+      }
+      setGpsEstado('error');
+      setGpsAviso(
+        e.code === e.PERMISSION_DENIED
+          ? 'La app no tiene permiso de ubicación: actívelo en Ajustes › Apps › Faltas › Permisos, y vuelva a intentar.'
+          : e.code === e.POSITION_UNAVAILABLE
+            ? 'La ubicación del equipo está apagada o sin señal: active «Ubicación» en los ajustes rápidos de Android y vuelva a intentar.'
+            : 'No hubo señal de GPS a tiempo (puede pasar bajo techo). Salga a cielo abierto y vuelva a intentar, o complete la dirección a mano.',
+      );
+    };
+    navigator.geolocation.getCurrentPosition(ok, (e) => fallo(e, false), { enableHighAccuracy: true, timeout: 25000, maximumAge: 60000 });
   }
 
   async function guardarBorrador(silencioso = true): Promise<Infraccion | null> {
@@ -658,7 +676,8 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
                   <i className="fa-solid fa-map-location-dot" aria-hidden="true" /> Ejido:{' '}
                   <strong>{form.ejido === 'dentro' ? 'dentro del ejido urbano' : form.ejido === 'fuera' ? 'fuera del ejido urbano' : 'sin determinar'}</strong>
                 </p>
-                {gpsEstado === 'error' ? <p className="texto-ayuda texto-error mt-2">No se pudo obtener la ubicación. Complete la dirección a mano.</p> : null}
+                {gpsEstado === 'buscando' ? <p className="texto-ayuda mt-2" role="status">Buscando la ubicación… puede tardar hasta medio minuto.</p> : null}
+                {gpsAviso ? <p className={`texto-ayuda mt-2 ${gpsEstado === 'error' ? 'texto-error' : ''}`} role="status">{gpsAviso}</p> : null}
               </div>
               <div className="col-8 col-md-5">
                 <Campo id="domicilioInfraccionCalle" label="Calle" req>
