@@ -9,6 +9,7 @@ import { LayoutProvider, useLayout } from '@/lib/layout-context';
 import { inicioPara, inspectorForbidden } from '@/lib/role-guard';
 import { modulosDe, puede, ROL_ETIQUETA, tipoIdDe, tiposPermitidos, type Permiso } from '@/lib/dominio';
 import { useAuthUser } from '@/lib/use-auth-user';
+import { interceptarSalida } from '@/lib/salida-acta';
 import { BotonContraste } from './BotonContraste';
 import { BANDEJAS_TRABAJO, type BandejaTrabajoId } from '@/lib/bandejas';
 import { useBandejaActiva, useContadoresBandejas } from '@/lib/bandeja-activa';
@@ -431,17 +432,19 @@ function ShellInner({ children }: { children: ReactNode }) {
 
   // Inspectores: interfaz propia, sin menú lateral (móvil y escritorio). Barra superior con Inicio, tema y salir.
   if (user?.rol === 'Inspector') {
+    // Con un acta sin firmar abierta, el labrado avisa que se considerará «acta abandonada» antes de salir.
+    const irInicio = () => { if (!interceptarSalida('/private/inicio')) router.push('/private/inicio'); };
     const enInicio = pathname.startsWith('/private/inicio');
     return (
       <div className={`layout-inspector ${layout.isMobile ? 'layout-movil' : ''}`}>
         <header className="inspector-topbar">
-          <button type="button" className="inspector-topbar-marca" onClick={() => router.push('/private/inicio')} aria-label="Ir al inicio">
+          <button type="button" className="inspector-topbar-marca" onClick={irInicio} aria-label="Ir al inicio">
             <img src="/images/Municipio_malvinas_argentinas_logo.png" alt="" />
             <span><strong>SISTEMA DE FALTAS</strong><small>{user.nombre} {user.apellido}</small></span>
           </button>
           <div className="inspector-topbar-acciones">
             {!enInicio ? (
-              <button type="button" className="inspector-topbar-btn inicio" onClick={() => router.push('/private/inicio')} title="Volver al inicio" aria-label="Volver al inicio">
+              <button type="button" className="inspector-topbar-btn inicio" onClick={irInicio} title="Volver al inicio" aria-label="Volver al inicio">
                 <i className="fa-solid fa-house" aria-hidden="true" /><span>Inicio</span>
               </button>
             ) : null}
@@ -460,7 +463,7 @@ function ShellInner({ children }: { children: ReactNode }) {
             <header className={`top-navbar ${layout.isMobile ? 'top-navbar-movil' : ''}`}>
               {/* Migas: «Inicio» es el único elemento navegable; la sección es solo un título. */}
               <nav className="top-navbar-migas" aria-label="Ubicación">
-                <button type="button" onClick={() => router.push('/private/inicio')}>
+                <button type="button" onClick={irInicio}>
                   <i className="fa-solid fa-arrow-left" aria-hidden="true" /> Inicio
                 </button>
                 <i className="fa-solid fa-chevron-right separador" aria-hidden="true" />

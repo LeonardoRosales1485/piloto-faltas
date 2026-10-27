@@ -253,6 +253,34 @@ function confirmarImpresion(numero: string): Promise<boolean> {
   });
 }
 
+/**
+ * Último ticket firmado en ESTE equipo, para «Imprimir último ticket» en el inicio del inspector (minuta 20/10: el
+ * inspector no tiene listado de actas, así que se guarda solo el último en el navegador del POS, por usuario).
+ */
+const CLAVE_ULTIMO_TICKET = 'faltas.ultimoTicket';
+export async function guardarUltimoTicket(infraccion: Infraccion, usuario?: string): Promise<void> {
+  try {
+    const t = datosTicket(infraccion, await textosLeyendas());
+    localStorage.setItem(CLAVE_ULTIMO_TICKET, JSON.stringify({ usuario: usuario ?? '', t, at: Date.now() }));
+  } catch { /* sin almacenamiento: no se podrá reimprimir desde el inicio */ }
+}
+export function leerUltimoTicket(usuario?: string): { t: DatosTicket; at: number } | null {
+  try {
+    const v = JSON.parse(localStorage.getItem(CLAVE_ULTIMO_TICKET) ?? 'null') as { usuario?: string; t?: DatosTicket; at?: number } | null;
+    if (!v?.t || (usuario && v.usuario && v.usuario !== usuario)) return null;
+    return { t: v.t, at: v.at ?? 0 };
+  } catch {
+    return null;
+  }
+}
+/** Reimprime el último ticket guardado (con la confirmación de siempre). false si no hay ninguno. */
+export async function imprimirUltimoTicket(usuario?: string): Promise<boolean> {
+  const u = leerUltimoTicket(usuario);
+  if (!u) return false;
+  await imprimirDatosTicket(u.t, true);
+  return true;
+}
+
 export async function printTicket(infraccion: Infraccion, confirmar = true): Promise<void> {
   return imprimirDatosTicket(datosTicket(infraccion, await textosLeyendas()), confirmar);
 }

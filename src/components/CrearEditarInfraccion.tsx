@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { apiClient, http } from '@/lib/api-client';
 import { useLayout } from '@/lib/layout-context';
-import { hayImpresoraPos, printTicket, printTicketRetencion, tomarFotosPos } from '@/lib/print';
+import { guardarUltimoTicket, hayImpresoraPos, printTicket, printTicketRetencion, tomarFotosPos } from '@/lib/print';
 import { CATEGORIAS_LICENCIA, ordenarCategoriasLicencia, puede, SITUACIONES, TIPOS_ACTA, claveLey, fechaHora, tipoActa } from '@/lib/dominio';
 import type { ImgModel, Infraccion, Ley, OpcionCatalogo } from '@/lib/types';
 import { type Paso, MAX_IMAGENES, ejidoPorGps, faltantesPorPaso, pasosPara, readImageFile, toDateTimeLocal, vacia } from './crear-editar-utils';
@@ -20,6 +20,7 @@ const NO_DESCRIBE = 'No se describe';
 import { useAuthUser } from '@/lib/use-auth-user';
 import { inicioPara } from '@/lib/role-guard';
 import { useScrollAlEnfocar } from '@/lib/use-scroll-al-enfocar';
+import { registrarGuardiaSalida } from '@/lib/salida-acta';
 
 const ALCOHOLEMIA = [
   { v: '', t: 'No realizada' },
@@ -87,6 +88,31 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
   const iniciado = useRef(false);
 
   const soloLectura = form.estadoFaltas !== undefined && form.estadoFaltas !== 'Borrador';
+  // Inspector: sin «Guardar borrador» ni «Descartar acta». Si vuelve al inicio con el acta sin firmar, se le avisa
+  // y se da por «acta abandonada» (el número queda anulado, como un descarte).
+  const esInspector = user?.rol === 'Inspector';
+  const [abandonar, setAbandonar] = useState<string | null>(null);
+  const [abandonando, setAbandonando] = useState(false);
+  useEffect(() => {
+    if (!esInspector || soloLectura || recienFirmada || !form.uuid) return;
+    registrarGuardiaSalida((destino) => setAbandonar(destino));
+    return () => registrarGuardiaSalida(null);
+  }, [esInspector, soloLectura, recienFirmada, form.uuid]);
+  async function confirmarAbandono() {
+    const destino = abandonar ?? '/private/inicio';
+    setAbandonando(true);
+    try {
+      await apiClient.anularActa(form.uuid!, 'Acta abandonada: el inspector volvió al inicio sin firmarla');
+      notify.info('Acta abandonada', `El número ${form.legajoNumeroActa ?? ''} quedó anulado.`);
+    } catch (e) {
+      notify.warning('No se pudo registrar el abandono', (e as Error).message);
+    } finally {
+      registrarGuardiaSalida(null);
+      setAbandonando(false);
+      setAbandonar(null);
+      router.push(destino);
+    }
+  }
   const habilitado = !soloLectura && !guardando;
   const pasos = useMemo(() => pasosPara(tipo, form.situacionInfractor), [tipo, form.situacionInfractor]);
   const faltantes = useMemo(() => faltantesPorPaso(form, firma, imagenes.length), [form, firma, imagenes.length]);
@@ -268,6 +294,7 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
       setForm({ ...final, legajoFecha: toDateTimeLocal(final.legajoFecha) });
       setRecienFirmada(true);
       guardarUltimoLugar(form);
+      void guardarUltimoTicket(final, user?.username); // «Imprimir último ticket» en el inicio
       window.scrollTo({ top: 0 });
       notify.success('Acta firmada', `${final.legajoNumeroActa} ingresó como causa.`);
     } catch (e) {
@@ -420,7 +447,7 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
                 <button type="button" aria-label="Cerrar" onClick={() => setConfirmarSalida(false)}>&times;</button>
               </div>
               <div className="modal-fake-body">
-                <p className="mb-0">Después <strong>ya no podrá volver a ver esta acta</strong> desde su usuario. Si necesita el ticket o el acta, imprímalos antes de salir.</p>
+                <p className="mb-0">Después <strong>ya no podrá volver a ver esta acta</strong> desde su usuario. El ticket se puede reimprimir desde el inicio con «Imprimir último ticket» (solo el último, en este equipo); el acta completa, imprímala antes de salir.</p>
               </div>
               <div className="modal-fake-footer">
                 <button type="button" className="btn btn-outline-secondary" onClick={() => setConfirmarSalida(false)}>Quedarme</button>
@@ -1105,14 +1132,35 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
       </article>
 
       {nav}
-      <div className="botonera">
-        <button type="button" className="btn btn-outline-secondary" onClick={() => void guardarBorrador(false)}>
-          <i className="fa-solid fa-floppy-disk" aria-hidden="true" /> Guardar borrador
-        </button>
-        <button type="button" className="btn btn-outline-danger" onClick={() => setDescartar(true)}>
-          <i className="fa-solid fa-ban" aria-hidden="true" /> Descartar acta
-        </button>
-      </div>
+      {/* El inspector no guarda ni descarta a mano: el borrador se guarda al cambiar de paso y, si sale, queda abandonado. */}
+      {!esInspector ? (
+        <div className="botonera">
+          <button type="button" className="btn btn-outline-secondary" onClick={() => void guardarBorrador(false)}>
+            <i className="fa-solid fa-floppy-disk" aria-hidden="true" /> Guardar borrador
+          </button>
+          <button type="button" className="btn btn-outline-danger" onClick={() => setDescartar(true)}>
+            <i className="fa-solid fa-ban" aria-hidden="true" /> Descartar acta
+          </button>
+        </div>
+      ) : null}
+
+      {abandonar ? (
+        <div className="modal-fake-overlay" onClick={(e) => e.target === e.currentTarget && !abandonando && setAbandonar(null)}>
+          <div className="modal-fake modal-fake-sm" role="alertdialog" aria-modal="true" aria-label="Abandonar el acta">
+            <div className="modal-fake-header">
+              <i className="fa-solid fa-triangle-exclamation" aria-hidden="true" />
+              <h2>¿Abandonar el acta {form.legajoNumeroActa}?</h2>
+            </div>
+            <div className="modal-fake-body">
+              <p className="mb-0">Si vuelve al inicio, el acta se considerará <strong>«Acta abandonada»</strong>: el número {form.legajoNumeroActa} quedará anulado y no se podrá retomar.</p>
+            </div>
+            <div className="modal-fake-footer">
+              <button type="button" className="btn btn-outline-secondary" disabled={abandonando} onClick={() => setAbandonar(null)}>Seguir con el acta</button>
+              <button type="button" className="btn btn-danger" disabled={abandonando} onClick={() => void confirmarAbandono()}>{abandonando ? 'Anulando…' : 'Abandonar y volver al inicio'}</button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {descartar ? (
         <div className="modal-fake-overlay" onClick={(e) => e.target === e.currentTarget && setDescartar(false)}>

@@ -38,7 +38,7 @@ Guía paso a paso para recorrer un acta de tránsito de punta a punta: desde que
 
 ## 1. El inspector labra el acta
 
-1. Entrá como **inspector**. Se abre el **inicio** con dos botones grandes: **«Crear nueva acta»** y **«Ver mis borradores»**. Si tenés autorizado más de un tipo de acta, el botón dice **«Generar un acta»** y después elegís el tipo (tránsito, contravención o sustancias alimenticias). Los inspectores no tienen menú lateral: la barra de arriba tiene **Inicio**, el tema y **Salir**.
+1. Entrá como **inspector**. Se abre el **inicio** con dos botones grandes: **«Crear nueva acta»** e **«Imprimir último ticket»** (reimprime el último ticket firmado en ese equipo con ese usuario; muestra su número y hora). Si tenés autorizado más de un tipo de acta, el botón dice **«Generar un acta»** y después elegís el tipo (tránsito, contravención o sustancias alimenticias). Los inspectores no tienen menú lateral: la barra de arriba tiene **Inicio**, el tema y **Salir**.
 2. El sistema reserva solo el **número de acta** (por ejemplo T-001023) y el **legajo**, y toma la fecha y la hora. No se pueden cambiar.
 3. Completá los pasos con **Siguiente**:
    - **Acta:** cómo está el infractor: presente, ausente o no identificado (NN). No viene elegido: hay que marcarlo. Si después se niega a firmar, se marca en el paso de firma.
@@ -170,7 +170,7 @@ Lo mismo con la **licencia retenida**: con la multa paga o la causa resuelta, el
 - **Valores y tarifas** (usuario tributario): unidad fija, estadía, acarreo, etc.
 - **Configuración** (admin): plantillas de escritos, ordenanzas, textos del portal y feriados.
 - **Usuarios** (admin, en Configuración): alta, edición, cambio de contraseña y baja de usuarios. Las bajas no borran: el usuario queda inactivo.
-- **Funciones opcionales** (admin, en Configuración): funciones que no son requerimiento del piloto y están ocultas por defecto. Hoy: **Seguimiento GPS** (mapa de inspectores). Al activarla aparece en el menú y el botón «GPS» en Inspectores. También **Depuración en el POS** («easter egg» para pruebas): con esto activo, 7 toques seguidos sobre «Mis borradores» le muestran al inspector todas las actas de sus tipos; se sale con «Salir» o cerrando la pestaña. La página se recarga para aplicar el cambio.
+- **Funciones opcionales** (admin, en Configuración): funciones que no son requerimiento del piloto y están ocultas por defecto. Hoy: **Seguimiento GPS** (mapa de inspectores). Al activarla aparece en el menú y el botón «GPS» en Inspectores. También **Depuración en el POS** («easter egg» para pruebas): con esto activo, 7 toques seguidos sobre el fondo del inicio del inspector abren la lista con todas las actas de sus tipos; se sale con «Salir» o cerrando la pestaña. La página se recarga para aplicar el cambio.
 - **Roadmap de la causa**: arriba a la derecha, en el detalle de cada causa, se ve en qué etapa está (labrada, notificación, descargo/pago, fallo, cierre).
 - **Auditoría** (Directora y admin): quién hizo qué y cuándo.
 
@@ -249,7 +249,7 @@ En **Configuración → Opciones sandbox** hay cuatro acciones. Todas piden escr
 ## Cambios de la reunión del 20/10/2026 (fase 1)
 
 - **Labrado:** «Municipio emisor» (de la licencia) está ahora en el paso del infractor, junto a la licencia.
-- **Inspectores:** solo ven sus borradores. Las actas firmadas no se pueden volver a consultar desde la app.
+- **Inspectores:** no tienen listado de actas. El borrador se guarda solo al cambiar de paso; no hay «Guardar borrador» ni «Descartar acta». Si vuelven al inicio con un acta sin firmar, se les avisa y queda como **«Acta abandonada»** (número anulado). Desde el inicio pueden reimprimir el último ticket firmado en ese equipo.
 - **Ticket y acta:** cada artículo muestra primero la descripción del hecho y después la norma. Con retención de licencia sale la leyenda de **boleta de citación del inculpado**; con retención de vehículo, la **advertencia de compactación** (textos provisorios, editables en *Configuración › Textos del portal*).
 - **Portal:** un solo botón **«Pago»** (también vencido el plazo). La DD.JJ. de domicilio electrónico se ofrece al validar el correo y no se vuelve a pedir.
 - **Pedidos de pago:** al aceptarlos, la Dirección elige «Con el descuento del pago voluntario» o «Monto pleno».
