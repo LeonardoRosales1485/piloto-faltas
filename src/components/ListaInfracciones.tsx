@@ -16,7 +16,8 @@ import { ESTADOS_CAUSA, TIPOS_ACTA, puede, tipoActa } from '@/lib/dominio';
 import { useAuthUser } from '@/lib/use-auth-user';
 
 const SIZE = 10;
-const ESTADOS = ['Borrador', ...ESTADOS_CAUSA.map((e) => e.nombre)];
+// «Anulada» incluye los números descartados y las actas abandonadas por el inspector (el motivo se ve al abrirla).
+const ESTADOS = ['Borrador', ...ESTADOS_CAUSA.map((e) => e.nombre), 'Anulada'];
 type Periodo = 'todos' | 'ultimo_mes' | 'periodo_manual';
 
 const vacios = (): FiltrosInfraccion => ({

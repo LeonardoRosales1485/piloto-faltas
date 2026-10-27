@@ -136,6 +136,7 @@ Avance: **20 / 20**
 | Inspector: sin «Guardar borrador» ni «Descartar acta» (se guarda solo al cambiar de paso). Volver al inicio con un acta sin firmar muestra el aviso y la da por «Acta abandonada» (número anulado). En el inicio, «Ver mis borradores» pasa a «Imprimir último ticket» (guardado en el equipo al firmar). El «easter egg» de depuración pasa a 7 toques sobre el fondo del inicio | — |
 | Actas abandonadas: el «atrás» de Android también muestra el aviso (**requiere APK nueva**); los borradores de inspectores se anulan como «Acta abandonada» al empezar otra acta (los del mismo inspector) o a las 12 h sin firmar (todos). Administrador: «Descartar acta» en la causa, en cualquier estado (sale de bandejas y portal, con historial) | — |
 | Easter egg de depuración: pasa a 7 toques sobre el logo «SISTEMA DE FALTAS» estando en el inicio (los botones grandes no dejaban fondo libre para tocar). Requiere activar «Depuración en el POS» | — |
+| Back office: el filtro «Estado» de la lista de actas (menú de cada tipo de acta) suma «Anulada», para ver los números descartados y las actas abandonadas por inspectores | — |
 
 ## Fuera del alcance del prototipo
 
