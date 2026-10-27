@@ -194,6 +194,7 @@ function ShellInner({ children }: { children: ReactNode }) {
   const timerHover = useRef<ReturnType<typeof setTimeout> | null>(null);
   const porHover = useRef(false);
   const punteroRail = useRef<{ y: number; grupo: string | null }>({ y: 0, grupo: null });
+  const toquesMarca = useRef<{ n: number; t: number }>({ n: 0, t: 0 }); // easter egg del inspector (logo)
   const cancelarHover = () => { if (timerHover.current) { clearTimeout(timerHover.current); timerHover.current = null; } };
   const moverEnRail = (e: React.MouseEvent) => {
     punteroRail.current = { y: e.clientY, grupo: (e.target as HTMLElement).closest('[data-grupo]')?.getAttribute('data-grupo') ?? null };
@@ -434,11 +435,24 @@ function ShellInner({ children }: { children: ReactNode }) {
   if (user?.rol === 'Inspector') {
     // Con un acta sin firmar abierta, el labrado avisa que se considerará «acta abandonada» antes de salir.
     const irInicio = () => { if (!interceptarSalida('/private/inicio')) router.push('/private/inicio'); };
+    // «Easter egg» de depuración (si el admin activó «Depuración en el POS»): en el inicio, 7 toques seguidos sobre el
+    // logo abren la lista con todas las actas de sus tipos. Fuera del inicio, el logo vuelve al inicio como siempre.
+    const tocarMarca = () => {
+      if (!enInicio || !puede(user, 'depuracionPos')) return irInicio();
+      const ahora = Date.now();
+      toquesMarca.current = ahora - toquesMarca.current.t < 1000 ? { n: toquesMarca.current.n + 1, t: ahora } : { n: 1, t: ahora };
+      if (toquesMarca.current.n < 7) return;
+      toquesMarca.current = { n: 0, t: 0 };
+      const m = modulosDe(user)[0];
+      if (!m) return;
+      try { sessionStorage.setItem('faltas_debug_todas', '1'); } catch { /* sin storage */ }
+      router.push(`/private/lista-infracciones/${m}`);
+    };
     const enInicio = pathname.startsWith('/private/inicio');
     return (
       <div className={`layout-inspector ${layout.isMobile ? 'layout-movil' : ''}`}>
         <header className="inspector-topbar">
-          <button type="button" className="inspector-topbar-marca" onClick={irInicio} aria-label="Ir al inicio">
+          <button type="button" className="inspector-topbar-marca" onClick={tocarMarca} aria-label="Ir al inicio">
             <img src="/images/Municipio_malvinas_argentinas_logo.png" alt="" />
             <span><strong>SISTEMA DE FALTAS</strong><small>{user.nombre} {user.apellido}</small></span>
           </button>

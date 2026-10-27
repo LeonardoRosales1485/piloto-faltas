@@ -1,11 +1,11 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { TIPOS_ACTA, modulosDe, type ModuloActa } from '@/lib/dominio';
 import { useAuthUser } from '@/lib/use-auth-user';
 import { imprimirUltimoTicket, leerUltimoTicket } from '@/lib/print';
-import { fechaHora, puede } from '@/lib/dominio';
+import { fechaHora } from '@/lib/dominio';
 import { useNotify } from './NotifyProvider';
 
 const ICONO: Record<ModuloActa, string> = { multas: 'fa-solid fa-car', contravenciones: 'fa-solid fa-store', sustancias: 'fa-solid fa-truck' };
@@ -32,23 +32,11 @@ export function InicioInspector() {
     if (!(await imprimirUltimoTicket(user?.username))) notify.info('No hay ticket para reimprimir', 'En este equipo todavía no se firmó ningún acta con su usuario.');
   }
   const ultimo = leerUltimoTicket(user?.username);
-  // «Easter egg» de depuración (si el admin activó «Depuración en el POS»): 7 toques seguidos sobre el fondo del inicio
-  // abren la lista con todas las actas de sus tipos (antes estaba en «Mis borradores», que ya no tiene botón).
-  const toques = useRef<{ n: number; t: number }>({ n: 0, t: 0 });
-  function alTocarFondo(e: React.MouseEvent) {
-    if (!puede(user, 'depuracionPos') || (e.target as HTMLElement).closest('button, a')) return;
-    const ahora = Date.now();
-    toques.current = ahora - toques.current.t < 1000 ? { n: toques.current.n + 1, t: ahora } : { n: 1, t: ahora };
-    if (toques.current.n < 7 || !modulos.length) return;
-    toques.current = { n: 0, t: 0 };
-    try { sessionStorage.setItem('faltas_debug_todas', '1'); } catch { /* sin storage */ }
-    router.push(`/private/lista-infracciones/${modulos[0]}`);
-  }
 
   if (!user) return null;
 
   return (
-    <div className="inicio-inspector" onClick={alTocarFondo}>
+    <div className="inicio-inspector">
       {elegir ? (
         <>
           <p className="inicio-inspector-titulo">¿Qué acta va a generar?</p>
