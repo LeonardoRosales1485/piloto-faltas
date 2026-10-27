@@ -140,6 +140,7 @@ Avance: **20 / 20**
 | Back office: el menú «Mis borradores» pasa a «Actas labradas». Filtro de estado con «Abandonada» (motivo «Acta abandonada…») separada de «Anulada» (descartadas a mano). Reportes: «Actas abandonadas» y «Actas descartadas» del período | — |
 | Labrado, «Usar mi ubicación (GPS)»: 25 s con alta precisión y, si no llega, ubicación aproximada por red (en el MJ-Q50 fallaba con 10 s); mensaje según la causa (permiso, ubicación apagada, sin señal). Si el mapa no tiene la altura (casi siempre en Argentina) avisa que se complete a mano | — |
 | Labrado: la identificación de la persona (presente / ausente / no identificado) pasa del paso 1 al paso «Datos del infractor» (si no está identificado, el paso muestra solo eso); se quita «(NN)» de las opciones y textos del labrado | — |
+| «Acta abandonada» pasa a llamarse «Acta incompleta» (filtro, reportes, avisos y motivos; se siguen reconociendo los motivos viejos). Inspector: al llegar al último paso con datos sin completar, aviso «Faltan datos a completar, ¿desea indicar “Desconocido”…?» con la lista; si no hay artículo exige elegir al menos uno; al aceptar se completa con «Desconocido» y el acta queda como «Acta incompleta» (número anulado, sin firmar) | — |
 
 ## Fuera del alcance del prototipo
 

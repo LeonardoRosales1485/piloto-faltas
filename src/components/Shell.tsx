@@ -433,7 +433,7 @@ function ShellInner({ children }: { children: ReactNode }) {
 
   // Inspectores: interfaz propia, sin menú lateral (móvil y escritorio). Barra superior con Inicio, tema y salir.
   if (user?.rol === 'Inspector') {
-    // Con un acta sin firmar abierta, el labrado avisa que se considerará «acta abandonada» antes de salir.
+    // Con un acta sin firmar abierta, el labrado avisa que se considerará «acta incompleta» antes de salir.
     const irInicio = () => { if (!interceptarSalida('/private/inicio')) router.push('/private/inicio'); };
     // «Easter egg» de depuración (si el admin activó «Depuración en el POS»): en el inicio, 7 toques seguidos sobre el
     // logo abren la lista con todas las actas de sus tipos. Fuera del inicio, el logo vuelve al inicio como siempre.

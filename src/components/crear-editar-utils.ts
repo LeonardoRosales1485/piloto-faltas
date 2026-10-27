@@ -149,3 +149,35 @@ export function faltantesPorPaso(form: Partial<Infraccion>, firma: string | null
   if (sit === 'presente' && !firma) add('firma', 'firma del infractor (o marcar que se negó)');
   return out;
 }
+
+export const DESCONOCIDO = 'Desconocido';
+
+/**
+ * Completa con «Desconocido» los datos obligatorios que faltan (mismas reglas que faltantesPorPaso).
+ * Sin identificación de la persona → «No identificado». No toca artículos, fotos ni firma.
+ * Se usa para registrar un «Acta incompleta» (número anulado, no se firma).
+ */
+export function completarConDesconocido(form: Partial<Infraccion>): Partial<Infraccion> {
+  const f: Partial<Infraccion> = { ...form, metadata: { ...(form.metadata ?? {}) } };
+  const txt = (v: unknown) => String(v ?? '').trim();
+  if (!f.situacionInfractor) f.situacionInfractor = 'nn';
+  const sit = f.situacionInfractor;
+  if (!txt(f.domicilioInfraccionCalle)) f.domicilioInfraccionCalle = DESCONOCIDO;
+  if (f.infraccionTipoNombre === 'multas' && !txt(f.metadata!.sentidoCirculacion)) f.metadata!.sentidoCirculacion = DESCONOCIDO;
+  if (sit !== 'nn') {
+    if (sit !== 'ausente' && !txt(f.infractorNombre) && !txt(f.infractorRazonSocial)) {
+      if (f.infractorPersonaTipo === 1) f.infractorRazonSocial = DESCONOCIDO; else f.infractorNombre = DESCONOCIDO;
+    }
+    if (sit !== 'ausente' && !txt(f.infractorDocumentoNumero) && !txt(f.infractorCuit)) f.infractorDocumentoNumero = DESCONOCIDO;
+    if ((sit === 'presente' || sit === 'se_niega') && !txt(f.infractorDomicilio)) f.infractorDomicilio = DESCONOCIDO;
+  }
+  if (f.infraccionTipoNombre !== 'contravenciones') {
+    if (!txt(f.vehiculoNumeroDominio)) f.vehiculoNumeroDominio = DESCONOCIDO;
+    if (!txt(f.vehiculoTipoNombre)) f.vehiculoTipoNombre = DESCONOCIDO;
+    if (f.infraccionTipoNombre === 'multas') {
+      if (!txt(f.metadata!.marca)) f.metadata!.marca = DESCONOCIDO;
+      if (!txt(f.metadata!.modelo)) f.metadata!.modelo = DESCONOCIDO;
+    }
+  }
+  return f;
+}

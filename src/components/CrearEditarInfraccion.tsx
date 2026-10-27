@@ -8,7 +8,7 @@ import { useLayout } from '@/lib/layout-context';
 import { guardarUltimoTicket, hayImpresoraPos, printTicket, printTicketRetencion, tomarFotosPos } from '@/lib/print';
 import { CATEGORIAS_LICENCIA, ordenarCategoriasLicencia, puede, SITUACIONES, TIPOS_ACTA, claveLey, fechaHora, tipoActa } from '@/lib/dominio';
 import type { ImgModel, Infraccion, Ley, OpcionCatalogo } from '@/lib/types';
-import { type Paso, MAX_IMAGENES, ejidoPorGps, faltantesPorPaso, pasosPara, readImageFile, toDateTimeLocal, vacia } from './crear-editar-utils';
+import { type Paso, MAX_IMAGENES, completarConDesconocido, ejidoPorGps, faltantesPorPaso, pasosPara, readImageFile, toDateTimeLocal, vacia } from './crear-editar-utils';
 import { useNotify } from './NotifyProvider';
 import { FirmaPantallaCompleta } from './FirmaPantallaCompleta';
 import { BarraSuperior } from './BarraSuperior';
@@ -90,21 +90,46 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
 
   const soloLectura = form.estadoFaltas !== undefined && form.estadoFaltas !== 'Borrador';
   // Inspector: sin «Guardar borrador» ni «Descartar acta». Si vuelve al inicio con el acta sin firmar, se le avisa
-  // y se da por «acta abandonada» (el número queda anulado, como un descarte).
+  // y se da por «acta incompleta» (el número queda anulado, como un descarte).
   const esInspector = user?.rol === 'Inspector';
   const [abandonar, setAbandonar] = useState<string | null>(null);
   const [abandonando, setAbandonando] = useState(false);
+  // Último paso con datos sin completar (inspector): ofrecer «Desconocido» y registrar el acta como «Acta incompleta».
+  const [incompleta, setIncompleta] = useState(false);
+  const [artIncompleta, setArtIncompleta] = useState<string[]>([]);
+  const [registrando, setRegistrando] = useState(false);
   useEffect(() => {
     if (!esInspector || soloLectura || recienFirmada || !form.uuid) return;
     registrarGuardiaSalida((destino) => setAbandonar(destino));
     return () => registrarGuardiaSalida(null);
   }, [esInspector, soloLectura, recienFirmada, form.uuid]);
+  /** Completa con «Desconocido», guarda y anula el número como «Acta incompleta» (no se firma). */
+  async function registrarIncompleta() {
+    const sinArticulo = !(form.leyesNombre ?? []).length;
+    if (sinArticulo && !artIncompleta.length) return;
+    setRegistrando(true);
+    try {
+      const completo = completarConDesconocido({ ...form, leyesNombre: sinArticulo ? artIncompleta : form.leyesNombre }) as Infraccion;
+      const campos = pasos.filter((p) => p.id !== 'firma').flatMap((p) => faltantes[p.id] ?? []).filter((t) => t !== 'al menos una foto' && t !== 'al menos un artículo');
+      setForm(completo);
+      await apiClient.saveInfraccion(completo);
+      await apiClient.anularActa(form.uuid!, `Acta incompleta: el inspector indicó «Desconocido» en ${campos.join(', ') || 'los datos faltantes'}`);
+      registrarGuardiaSalida(null);
+      notify.info('Acta incompleta', `Se registró el acta ${form.legajoNumeroActa ?? ''} como incompleta (número anulado, sin firmar).`);
+      router.push('/private/inicio');
+    } catch (e) {
+      notify.error('No se pudo registrar el acta incompleta', (e as Error).message);
+    } finally {
+      setRegistrando(false);
+    }
+  }
+
   async function confirmarAbandono() {
     const destino = abandonar ?? '/private/inicio';
     setAbandonando(true);
     try {
-      await apiClient.anularActa(form.uuid!, 'Acta abandonada: el inspector volvió al inicio sin firmarla');
-      notify.info('Acta abandonada', `El número ${form.legajoNumeroActa ?? ''} quedó anulado.`);
+      await apiClient.anularActa(form.uuid!, 'Acta incompleta: el inspector volvió al inicio sin firmarla');
+      notify.info('Acta incompleta', `El número ${form.legajoNumeroActa ?? ''} quedó anulado.`);
     } catch (e) {
       notify.warning('No se pudo registrar el abandono', (e as Error).message);
     } finally {
@@ -287,6 +312,11 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
     if (next !== idx && !soloLectura && paso.id !== 'firma' && faltan.length) notify.warning(`${paso.titulo}: faltan datos`, faltan.join(', '));
     if (!soloLectura && next !== idx) void guardarBorrador();
     setIdx(next);
+    // Inspector: al llegar al último paso con datos sin completar, se ofrece indicar «Desconocido» (acta incompleta).
+    if (esInspector && !soloLectura && next !== idx && pasos[next]?.id === 'firma' && pasos.some((p) => p.id !== 'firma' && (faltantes[p.id] ?? []).filter((t) => t !== 'al menos una foto').length)) {
+      setArtIncompleta([]);
+      setIncompleta(true);
+    }
     // La barra «Acta de tránsito» queda visible en todos los pasos (lleva el estado del borrador).
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
@@ -1106,6 +1136,11 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
                         </li>
                       ))}
                     </ul>
+                    {esInspector ? (
+                      <button type="button" className="btn btn-sm btn-outline-danger mt-1" onClick={() => { setArtIncompleta([]); setIncompleta(true); }}>
+                        Indicar «Desconocido» y registrar como acta incompleta
+                      </button>
+                    ) : null}
                   </div>
                 </div>
               ) : null}
@@ -1160,7 +1195,7 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
       </article>
 
       {nav}
-      {/* El inspector no guarda ni descarta a mano: el borrador se guarda al cambiar de paso y, si sale, queda abandonado. */}
+      {/* El inspector no guarda ni descarta a mano: el borrador se guarda al cambiar de paso y, si sale, queda como acta incompleta. */}
       {!esInspector ? (
         <div className="botonera">
           <button type="button" className="btn btn-outline-secondary" onClick={() => void guardarBorrador(false)}>
@@ -1172,19 +1207,59 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
         </div>
       ) : null}
 
+      {incompleta ? (() => {
+        const faltan = pasos.filter((p) => p.id !== 'firma').flatMap((p) => (faltantes[p.id] ?? []).filter((t) => t !== 'al menos una foto').map((t) => ({ p, t })));
+        const sinArticulo = !(form.leyesNombre ?? []).length;
+        const opcArt = leyes.map((l) => ({ v: claveLey(l), t: claveLey(l), sub: l.descripcion ?? '' }));
+        return (
+          <div className="modal-fake-overlay" onClick={(e) => e.target === e.currentTarget && !registrando && setIncompleta(false)}>
+            <div className="modal-fake" role="alertdialog" aria-modal="true" aria-label="Faltan datos a completar">
+              <div className="modal-fake-header">
+                <i className="fa-solid fa-triangle-exclamation" aria-hidden="true" />
+                <h2>Faltan datos a completar</h2>
+              </div>
+              <div className="modal-fake-body">
+                <p>¿Desea indicar «Desconocido» en los siguientes campos?</p>
+                <ul>
+                  {faltan.filter((x) => x.t !== 'al menos un artículo').map((x) => <li key={`${x.p.id}-${x.t}`}><strong>{x.p.corto}:</strong> {x.t}</li>)}
+                </ul>
+                {sinArticulo ? (
+                  <div className="mb-2">
+                    <label className="form-label-v2" htmlFor="art-incompleta">Artículo (obligatorio, al menos uno)</label>
+                    <BuscadorOpciones id="art-incompleta" valor="" placeholder="Buscar artículo…" opciones={opcArt.filter((o) => !artIncompleta.includes(o.v))} onChange={(v) => v && setArtIncompleta((a) => [...a, v])} />
+                    {artIncompleta.length ? (
+                      <ul className="mt-2 mb-0">
+                        {artIncompleta.map((k) => (
+                          <li key={k}>{k} <button type="button" className="btn btn-link btn-sm p-0 ms-1" onClick={() => setArtIncompleta((a) => a.filter((x) => x !== k))}>Quitar</button></li>
+                        ))}
+                      </ul>
+                    ) : <p className="texto-ayuda texto-error mt-1 mb-0">Elija al menos un artículo.</p>}
+                  </div>
+                ) : null}
+                <div className="aviso aviso-alerta mb-0">El acta se registrará como <strong>«Acta incompleta»</strong>: no se firma y el número {form.legajoNumeroActa} queda anulado.</div>
+              </div>
+              <div className="modal-fake-footer">
+                <button type="button" className="btn btn-outline-secondary" disabled={registrando} onClick={() => setIncompleta(false)}>Volver a completar</button>
+                <button type="button" className="btn btn-danger" disabled={registrando || (sinArticulo && !artIncompleta.length)} onClick={() => void registrarIncompleta()}>{registrando ? 'Registrando…' : 'Indicar «Desconocido»'}</button>
+              </div>
+            </div>
+          </div>
+        );
+      })() : null}
+
       {abandonar ? (
         <div className="modal-fake-overlay" onClick={(e) => e.target === e.currentTarget && !abandonando && setAbandonar(null)}>
-          <div className="modal-fake modal-fake-sm" role="alertdialog" aria-modal="true" aria-label="Abandonar el acta">
+          <div className="modal-fake modal-fake-sm" role="alertdialog" aria-modal="true" aria-label="Salir sin firmar el acta">
             <div className="modal-fake-header">
               <i className="fa-solid fa-triangle-exclamation" aria-hidden="true" />
-              <h2>¿Abandonar el acta {form.legajoNumeroActa}?</h2>
+              <h2>¿Salir sin firmar el acta {form.legajoNumeroActa}?</h2>
             </div>
             <div className="modal-fake-body">
-              <p className="mb-0">Si vuelve al inicio, el acta se considerará <strong>«Acta abandonada»</strong>: el número {form.legajoNumeroActa} quedará anulado y no se podrá retomar.</p>
+              <p className="mb-0">Si vuelve al inicio, el acta se considerará <strong>«Acta incompleta»</strong>: el número {form.legajoNumeroActa} quedará anulado y no se podrá retomar.</p>
             </div>
             <div className="modal-fake-footer">
               <button type="button" className="btn btn-outline-secondary" disabled={abandonando} onClick={() => setAbandonar(null)}>Seguir con el acta</button>
-              <button type="button" className="btn btn-danger" disabled={abandonando} onClick={() => void confirmarAbandono()}>{abandonando ? 'Anulando…' : 'Abandonar y volver al inicio'}</button>
+              <button type="button" className="btn btn-danger" disabled={abandonando} onClick={() => void confirmarAbandono()}>{abandonando ? 'Anulando…' : 'Salir (acta incompleta)'}</button>
             </div>
           </div>
         </div>

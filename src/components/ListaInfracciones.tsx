@@ -16,9 +16,9 @@ import { ESTADOS_CAUSA, TIPOS_ACTA, puede, tipoActa } from '@/lib/dominio';
 import { useAuthUser } from '@/lib/use-auth-user';
 
 const SIZE = 10;
-// «Abandonada»: el inspector salió sin firmar (o cerró la app). «Anulada»: descartada a mano (borrador o por el administrador).
+// «Incompleta»: el inspector salió sin firmar, cerró la app o completó con «Desconocido». «Anulada»: descartada a mano (borrador o por el administrador).
 // En la base las dos son estado «Anulada»; se distinguen por el motivo (el detalle se ve al abrirla).
-const ESTADOS = ['Borrador', ...ESTADOS_CAUSA.map((e) => e.nombre), 'Abandonada', 'Anulada'];
+const ESTADOS = ['Borrador', ...ESTADOS_CAUSA.map((e) => e.nombre), 'Incompleta', 'Anulada'];
 type Periodo = 'todos' | 'ultimo_mes' | 'periodo_manual';
 
 const vacios = (): FiltrosInfraccion => ({

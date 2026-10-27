@@ -46,10 +46,10 @@ export async function POST(req: NextRequest) {
 
     let query = supabase.from('infraccion').select('*', { count: 'exact' });
     query = applyInfraccionFiltros(query as never, body) as typeof query;
-    // Anuladas: «abandonadas» (motivo «Acta abandonada…») o «descartadas» (el resto).
+    // Anuladas: «incompletas» (motivo «Acta incompleta…», o «Acta abandonada…» de antes) o «descartadas» (el resto).
     const anulacion = (body as { anulacion?: string }).anulacion;
-    if (anulacion === 'abandonadas') query = query.ilike('anulada_motivo', 'Acta abandonada%');
-    if (anulacion === 'descartadas') query = query.or('anulada_motivo.is.null,anulada_motivo.not.ilike."Acta abandonada*"');
+    if (anulacion === 'incompletas') query = query.or('anulada_motivo.ilike."Acta incompleta*",anulada_motivo.ilike."Acta abandonada*"');
+    if (anulacion === 'descartadas') query = query.or('anulada_motivo.is.null,and(anulada_motivo.not.ilike."Acta incompleta*",anulada_motivo.not.ilike."Acta abandonada*")');
     // Inspector: solo sus borradores, nunca las actas ya firmadas (minuta 20/10: sin listado ni historial de lo labrado,
     // para evitar revisiones indebidas, filtraciones o presiones en la vía pública).
     // Excepción: «debugTodas» (7 toques en la lista, «easter egg» para pruebas) solo si el admin activó
