@@ -6,7 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { apiClient, http } from '@/lib/api-client';
 import { useLayout } from '@/lib/layout-context';
 import { guardarUltimoTicket, hayImpresoraPos, printTicket, printTicketInspector, tomarFotosPos } from '@/lib/print';
-import { CATEGORIAS_LICENCIA, esDeOficio, ordenarCategoriasLicencia, puede, SITUACIONES, TIPOS_ACTA, claveLey, fechaHora, textoSituacion, tipoActa } from '@/lib/dominio';
+import { CATEGORIAS_LICENCIA, esDeOficio, ordenarCategoriasLicencia, puede, SENTIDOS_CIRCULACION, SITUACIONES, TIPOS_ACTA, claveLey, fechaHora, textoSituacion, tipoActa } from '@/lib/dominio';
 import type { ImgModel, Infraccion, Ley, OpcionCatalogo } from '@/lib/types';
 import { type Paso, MAX_IMAGENES, MOTIVOS_INCOMPLETA, NO_COMPLETABLES, completarConDesconocido, ejidoPorGps, faltantesPorPaso, pasosPara, readImageFile, toDateTimeLocal, vacia } from './crear-editar-utils';
 import { useNotify } from './NotifyProvider';
@@ -771,12 +771,12 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
               </div>
               {tipo === 'multas' ? (
                 <div className="col-12 col-md-5">
-                  {/* Reunión 27/10: hacia qué calle circulaba (no «mano / contramano»). Opcional. */}
+                  {/* Reunión 27/10: hacia cuál de las avenidas principales circulaba. Opcional. */}
                   <Campo id="sentidoCirculacion" label="Sentido de circulación: hacia (opcional)">
-                    <input id="sentidoCirculacion" className="form-control" list="sentido-calles" disabled={!habilitado} placeholder="Ej.: hacia 25 de Mayo" value={form.metadata?.sentidoCirculacion ?? ''} onChange={(e) => patchMeta('sentidoCirculacion', e.target.value)} />
-                    <datalist id="sentido-calles">
-                      {[form.entreCalle1, form.entreCalle2, form.domicilioInfraccionCalle].filter(Boolean).map((c) => <option key={c} value={`hacia ${c}`} />)}
-                    </datalist>
+                    <select id="sentidoCirculacion" className="form-select" disabled={!habilitado} value={form.metadata?.sentidoCirculacion ?? ''} onChange={(e) => patchMeta('sentidoCirculacion', e.target.value)}>
+                      <option value="">Sin indicar</option>
+                      {[...SENTIDOS_CIRCULACION, ...(form.metadata?.sentidoCirculacion && !SENTIDOS_CIRCULACION.includes(form.metadata.sentidoCirculacion) ? [form.metadata.sentidoCirculacion] : [])].map((s) => <option key={s} value={s}>{s}</option>)}
+                    </select>
                   </Campo>
                 </div>
               ) : null}
@@ -979,15 +979,7 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
                   {sel(cat.vehiculo, form.vehiculoTipoNombre, (v) => patch({ vehiculoTipoNombre: v }), 'vehiculoTipoNombre')}
                 </Campo>
               </div>
-              {/* Reunión 27/10: el control interno es de las licencias viejas; opcional y escondido. */}
-              <div className="col-12 col-md-4">
-                <details className="mas-datos" open={Boolean(form.vehiculoNumeroControlInterno)}>
-                  <summary>Más datos (licencias anteriores)</summary>
-                  <Campo id="vehiculoNumeroControlInterno" label="N.° de control interno (opcional)">
-                    {inp('vehiculoNumeroControlInterno', soloNumeros('vehiculoNumeroControlInterno'))}
-                  </Campo>
-                </details>
-              </div>
+              {/* Reunión 27/10: se quita el N.° de control interno (las actas viejas lo siguen mostrando en el PDF). */}
               {tipo === 'multas' ? (
                 <>
                   <div className="col-6">

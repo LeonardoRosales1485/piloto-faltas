@@ -308,11 +308,11 @@ En **Configuración → Opciones sandbox** hay cuatro acciones. Todas piden escr
 > Todo esto va solo en **piloto-faltas-post** (base `uahubgleoemcvuzuumyv`, app **Faltas Post**). `piloto-faltas` queda congelado como referencia de la 1.0. Requiere `sql/034` y `sql/035`.
 
 **Labrado en el POS**
-- Situación del infractor: **Presente, Ausente, No aporta datos, De oficio, Fuga** (y «se niega a firmar» bajo la firma). Sin «NN».
+- Situación del infractor: **De oficio, Presente, Se dio a la fuga, No aporta datos** (y «se niega a firmar» bajo la firma). Sin «NN» ni «Ausente».
 - Faltantes: el paso queda en rojo (en el celular, la barra entera) y al cambiar de paso aparece un aviso de unos segundos con lo que falta; no bloquea. Solo bloquean el **artículo** y la **foto** que exige el artículo (Ordenanzas › «Requiere foto»). Firmar con faltantes pide el motivo y completa con «Desconocido»; **«Se dio a la fuga»** firma sin datos del infractor.
 - Sin «Inicio» mientras se labra. **Plazo de labrado** por tipo (Configuración › Labrado en el POS: tránsito 1 h, contravenciones y sustancias 24 h) con **«Extender tiempo»**; vencido, el acta queda **abandonada** (número anulado). Al volver a «Crear nueva acta» se retoma la abierta.
 - **PIN del inspector** (Inspectores › PIN; por defecto 1234) al salir de la pantalla de firma. Pruebas: 7 toques en la barra superior descartan el acta.
-- DNI → completa el N.° de licencia. Sentido de circulación (hacia qué calle) y control interno («Más datos») opcionales. Alcoholímetros: marcas y modelos administrables.
+- DNI → completa el N.° de licencia. Sentido de circulación opcional, hacia una de las avenidas: Av. del Libertador Gral. San Martín, Av. del Sesquicentenario, Av. Pte. Arturo Umberto Illia, Av. Gregorio Lemos o Au. Panamericana. Sin N.° de control interno. Alcoholímetros: marcas y modelos administrables.
 - Tickets: el del infractor (con **medidas adoptadas**) y el **del inspector** («va adjunto con la licencia / VTV»). Encabezado «Municipio Malvinas Argentinas · Subsecretaría de Tránsito y Bromatología».
 
 **Back office**

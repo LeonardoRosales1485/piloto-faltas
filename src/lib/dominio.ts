@@ -349,17 +349,25 @@ export function esBoletaDeposito(b: BoletaLike): boolean {
 }
 
 /**
- * Situación de la persona (reunión 27/10): Presente, Ausente, No aporta datos, De oficio y Se dio a la fuga.
- * «Se niega a firmar» se marca en la firma (cuenta como presente). «nn» es el valor viejo de «De oficio».
+ * Situación de la persona (reunión 27/10, notas de la Dirección): De oficio, Presente, Se dio a la fuga y No aporta datos.
+ * «Se niega a firmar» se marca en la firma (cuenta como presente). «nn» (viejo «De oficio») y «ausente» quedan solo
+ * para leer actas anteriores.
  */
 export const SITUACIONES = [
-  { v: 'presente', t: 'Presente' },
-  { v: 'ausente', t: 'Ausente' },
-  { v: 'no_aporta', t: 'No aporta datos' },
   { v: 'de_oficio', t: 'De oficio' },
+  { v: 'presente', t: 'Presente' },
   { v: 'fuga', t: 'Se dio a la fuga' },
+  { v: 'no_aporta', t: 'No aporta datos' },
   { v: 'se_niega', t: 'Presente, se niega a firmar' },
 ] as const;
+/** Sentido de circulación (reunión 27/10): hacia cuál de estas avenidas circulaba. Opcional. */
+export const SENTIDOS_CIRCULACION = [
+  'Av. del Libertador Gral. San Martín',
+  'Av. del Sesquicentenario',
+  'Av. Pte. Arturo Umberto Illia',
+  'Av. Gregorio Lemos',
+  'Au. Panamericana',
+];
 export const SITUACIONES_VALIDAS = ['presente', 'ausente', 'no_aporta', 'de_oficio', 'fuga', 'se_niega', 'nn'];
 /** Acta de oficio (sin persona identificada): no se cargan datos del infractor. Incluye el valor viejo «nn». */
 export const esDeOficio = (s?: string | null) => s === 'de_oficio' || s === 'nn';
@@ -367,6 +375,7 @@ export const esDeOficio = (s?: string | null) => s === 'de_oficio' || s === 'nn'
 export const firmaInfractorRequerida = (s?: string | null) => s === 'presente';
 export function textoSituacion(s?: string | null): string {
   if (s === 'nn') return 'De oficio';
+  if (s === 'ausente') return 'Ausente';
   return SITUACIONES.find((x) => x.v === s)?.t ?? '';
 }
 

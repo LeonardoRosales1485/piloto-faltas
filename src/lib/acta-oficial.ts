@@ -153,7 +153,7 @@ export function actaTransitoHtml(i: Infraccion, extras: ActaExtras = {}): string
         ${campo('Número', i.domicilioInfraccionNumero)}
         ${campo('Ciudad', i.domicilioInfraccionLocalidadNombre)}
         ${campo('Entre calles', entreCalles)}
-        ${campo('Sentido de circulación', meta.sentidoCirculacion)}
+        ${campo('Sentido de circulación', meta.sentidoCirculacion ? (/^hacia /i.test(meta.sentidoCirculacion) ? meta.sentidoCirculacion : `Hacia ${meta.sentidoCirculacion}`) : '')}
         <div class="at-ejido">
           <span class="at-check">${marca(i.ejido === 'dentro')} Dentro del ejido urbano</span>
           <span class="at-check">${marca(i.ejido === 'fuera')} Fuera del ejido urbano</span>

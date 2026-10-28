@@ -14,9 +14,9 @@ Guía corta para la capacitación de los inspectores antes de la prueba en calle
 
 | Paso | Qué cargar | Ojo con |
 |---|---|---|
-| Lugar | **«Usar mi ubicación (GPS)»** y revisá la dirección | Sentido de circulación (hacia qué calle): opcional |
-| Infractor | Situación: **presente, ausente, no aporta datos, de oficio o se dio a la fuga**. Si está presente: nombre, documento, domicilio; en tránsito, licencia | Al cargar el DNI se completa solo el N.° de licencia (si borrás la licencia, el DNI queda) |
-| Vehículo | Dominio, tipo, marca y modelo | «Más datos» (control interno) es opcional |
+| Lugar | **«Usar mi ubicación (GPS)»** y revisá la dirección | Sentido de circulación (hacia qué avenida, de una lista): opcional |
+| Infractor | Situación: **de oficio, presente, se dio a la fuga o no aporta datos**. Si está presente: nombre, documento, domicilio; en tránsito, licencia | Al cargar el DNI se completa solo el N.° de licencia (si borrás la licencia, el DNI queda) |
+| Vehículo | Dominio, tipo, marca y modelo | Ya no se pide el N.° de control interno |
 | Artículos | «Agregar artículo», buscar y «Agregar» | **Obligatorio.** Algunos artículos piden **foto obligatoria** (badge «Requiere foto»). Alcoholímetro: marca y modelo de la lista |
 | Fotos | Las que pida el artículo; si no, opcionales | Que se lea el dominio |
 | Firma | Revisar el resumen, «Abrir pad de firma», «Firmar y confirmar» | Si se niega, «El infractor se niega a firmar» |
