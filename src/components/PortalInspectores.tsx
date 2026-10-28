@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { http } from '@/lib/api-client';
 import { fechaHora } from '@/lib/dominio';
+import { useAuthUser } from '@/lib/use-auth-user';
 import { EstadoChip } from './EstadoChip';
 
 type Fila = {
@@ -35,6 +36,8 @@ const aMs = (d: string, fin = false) => (d ? new Date(`${d}T${fin ? '23:59:59' :
  * licencia o inspector.
  */
 export function PortalInspectores() {
+  const user = useAuthUser();
+  const soloPropias = user?.rol === 'Inspector';
   const [vista, setVista] = useState<Vista>('actas');
   const [q, setQ] = useState('');
   const [desde, setDesde] = useState('');
@@ -69,7 +72,7 @@ export function PortalInspectores() {
         <form className="d-flex flex-wrap gap-2 align-items-end p-3" onSubmit={(e) => { e.preventDefault(); cargar(); }}>
           <div style={{ flex: '1 1 220px' }}>
             <label className="form-label-v2" htmlFor="pi-q">Buscar</label>
-            <input id="pi-q" className="form-control" placeholder="Acta, dominio, DNI, licencia o inspector" value={q} onChange={(e) => setQ(e.target.value)} />
+            <input id="pi-q" className="form-control" placeholder={soloPropias ? 'Acta, dominio, DNI o licencia' : 'Acta, dominio, DNI, licencia o inspector'} value={q} onChange={(e) => setQ(e.target.value)} />
           </div>
           <div>
             <label className="form-label-v2" htmlFor="pi-desde">Labrada desde</label>
@@ -136,7 +139,7 @@ export function PortalInspectores() {
           </div>
         </div>
       )}
-      <p className="texto-ayuda mt-2">Consulta de solo lectura. Las acciones sobre las causas se hacen desde la Dirección de Faltas.</p>
+      <p className="texto-ayuda mt-2">{soloPropias ? 'Solo se muestran las actas que labró usted, sus retenciones y los vehículos que retuvo. ' : ''}Consulta de solo lectura. Las acciones sobre las causas se hacen desde la Dirección de Faltas.</p>
     </div>
   );
 }

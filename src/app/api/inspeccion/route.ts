@@ -13,6 +13,7 @@ type Fila = Record<string, unknown> & { id: number; infraccion_tipo_id: number; 
  * Portal de inspectores (reunión 27/10): consulta de solo lectura de actas labradas, retenciones (licencias y vehículos)
  * y vehículos en el playón con el estado de su liberación. ?vista=actas|retenciones|playon, ?q= (acta, dominio, DNI,
  * licencia o inspector), ?desde= / ?hasta= (ms).
+ * El inspector ve solo lo suyo (actas que labró, sus retenciones y los vehículos que él retuvo); la supervisión ve todo.
  */
 export async function GET(req: NextRequest) {
   const sp = req.nextUrl.searchParams;
@@ -22,6 +23,8 @@ export async function GET(req: NextRequest) {
   const hasta = Number(sp.get('hasta') || 0);
   return handle(req, async ({ db, user }) => {
     let query = db.from('infraccion').select(CAMPOS).not('firmada_at', 'is', null).not('estado_faltas', 'in', '("Borrador","Anulada")').order('id', { ascending: false }).limit(vista === 'actas' ? 300 : 1000);
+    // Informe 6.a / reunión 27/10: el inspector consulta solo las actas que le corresponden (las que labró él).
+    if (user.rol === 'Inspector') query = query.eq('inspector_username', user.username);
     if (vista === 'retenciones') query = query.or('retencion_de_licencia.eq.1,retencion_de_vehiculo.eq.1');
     if (vista === 'playon') query = query.eq('retencion_de_vehiculo', 1).is('vehiculo_liberado_at', null);
     if (desde) query = query.gte('firmada_at', desde);

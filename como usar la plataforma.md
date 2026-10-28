@@ -325,4 +325,4 @@ En **Configuración → Opciones sandbox** hay cuatro acciones. Todas piden escr
 - **Cuotas sobre el 50 %:** el plan de cuotas sigue la misma regla del descuento (se quita con motivo).
 - **Fallos en UF:** el fallo condenatorio expresa la multa en unidades fijas, a liquidar al valor vigente.
 - **Configuración › Membretes:** logo, título y subtítulo por tipo de documento (el que no tiene tipos es el de por defecto).
-- **Portal de inspectores** (menú lateral y botón en el inicio del inspector): actas labradas, retenciones (licencias y vehículos) y playón con el estado de la liberación; solo lectura.
+- **Portal de inspectores** (menú lateral y botón en el inicio del inspector): actas labradas, retenciones (licencias y vehículos) y playón con el estado de la liberación; solo lectura. El inspector ve solo lo suyo (actas que labró, sus retenciones y los vehículos que retuvo); la supervisión ve todo.

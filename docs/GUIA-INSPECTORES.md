@@ -6,7 +6,7 @@ Guía corta para la capacitación de los inspectores antes de la prueba en calle
 ## 1. Al empezar el turno
 
 1. Encendé el POS y abrí la app **Faltas Post** (la versión post 1.0; la app **Faltas** queda para la referencia). Si aparece **«Hay una versión nueva»**, instalala.
-2. Ingresá con tu usuario. El inicio tiene **«Crear nueva acta»**, **«Imprimir último ticket»** y **«Consultar actas, retenciones y playón»**.
+2. Ingresá con tu usuario. El inicio tiene **«Crear nueva acta»**, **«Imprimir último ticket»** y **«Consultar actas, retenciones y playón»** (solo tus actas, tus retenciones y los vehículos que retuviste).
 3. Tu **PIN** es de 4 a 8 dígitos (por defecto **1234**; lo cambia el supervisor en Inspectores). Se pide cuando el equipo vuelve de las manos del infractor.
 4. Revisá que haya papel. Para probar la impresora: en el login, mantené apretado **«App POS v…»** al pie y tocá **«Prueba de impresora»**.
 
