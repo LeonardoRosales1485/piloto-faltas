@@ -19,7 +19,7 @@ import { useRefresco } from '@/lib/use-refresco';
 import { CausaDetalle } from './CausaDetalle';
 
 type Fila = Record<string, string | number | null> & { uuid: string };
-type Resp = { content: Fila[]; totalElements: number; totalPages: number; page: number; conteos: Record<string, number>; conteosTrabajo?: Record<BandejaTrabajoId, number> };
+type Resp = { content: Fila[]; totalElements: number; totalPages: number; page: number; conteos: Record<string, number>; conteosTrabajo?: Record<BandejaTrabajoId, number>; inspectores?: { u: string; n: string }[] };
 
 /** Bandejas de trabajo de Faltas: por situación de la causa, con búsqueda y filtros (SF-02, SF-03). */
 export function CausasBandeja() {
@@ -32,6 +32,7 @@ export function CausasBandeja() {
   const [tipo, setTipo] = useState('');
   const [estado, setEstado] = useState('');
   const [anio, setAnio] = useState('');
+  const [inspector, setInspector] = useState(''); // inspector que labró el acta
   const [page, setPage] = useState(0);
   const [r, setR] = useState<Resp | null>(null);
   const [cargando, setCargando] = useState(true);
@@ -63,8 +64,8 @@ export function CausasBandeja() {
 
   const cargar = useCallback((silencioso = false) => {
     if (!silencioso) setCargando(true);
-    http.post<Resp>('/api/causas', { bandeja, trabajo: trabajo ?? undefined, texto, tipo, estado, anio, page, size: 15 }).then(setR).catch(() => undefined).finally(() => setCargando(false));
-  }, [bandeja, trabajo, texto, tipo, estado, anio, page]);
+    http.post<Resp>('/api/causas', { bandeja, trabajo: trabajo ?? undefined, texto, tipo, estado, anio, inspector, page, size: 15 }).then(setR).catch(() => undefined).finally(() => setCargando(false));
+  }, [bandeja, trabajo, texto, tipo, estado, anio, inspector, page]);
   useEffect(() => { setPage(0); setEstado(''); }, [trabajo]);
   useRefresco(() => cargar(true));
 
@@ -139,6 +140,17 @@ export function CausasBandeja() {
                   ))}
                 </div>
               </div>
+              {(r?.inspectores ?? []).length ? (
+                <div className="filtros-seccion">
+                  <div className="filtros-titulo">Inspector que labró</div>
+                  <div className="filtros-chips">
+                    <button type="button" className={`filtro-chip ${!inspector ? 'activo' : ''}`} onClick={() => aplicar(() => setInspector(''))}>Todos</button>
+                    {(r?.inspectores ?? []).map((x) => (
+                      <button key={x.u} type="button" className={`filtro-chip ${inspector === x.u ? 'activo' : ''}`} onClick={() => aplicar(() => setInspector(x.u))}>{x.n}</button>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
               <div className="filtros-seccion">
                 <div className="filtros-titulo">Año del legajo</div>
                 <div className="filtros-chips">
@@ -165,6 +177,7 @@ export function CausasBandeja() {
         <div className="filtros-aplicados">
           <span className="filtro-aplicado fijo" title={info.ayuda}>{info.titulo} <span className="n">{infoTrabajo ? (r?.totalElements ?? '·') : (r?.conteos?.[bandeja] ?? '·')}</span></span>
           {estado ? <button type="button" className="filtro-aplicado" onClick={() => { setEstado(''); setPage(0); }} aria-label={`Quitar estado ${estado}`}>{estado} <i className="fa-solid fa-xmark" aria-hidden="true" /></button> : null}
+          {inspector ? <button type="button" className="filtro-aplicado" onClick={() => { setInspector(''); setPage(0); }} aria-label="Quitar inspector">{(r?.inspectores ?? []).find((x) => x.u === inspector)?.n ?? inspector} <i className="fa-solid fa-xmark" aria-hidden="true" /></button> : null}
           {anio ? <button type="button" className="filtro-aplicado" onClick={() => { setAnio(''); setPage(0); }} aria-label="Quitar año">Año {anio} <i className="fa-solid fa-xmark" aria-hidden="true" /></button> : null}
           {tipo ? <button type="button" className="filtro-aplicado" onClick={() => { setTipo(''); setPage(0); }} aria-label="Quitar tipo">{TIPOS_ACTA[tipo as keyof typeof TIPOS_ACTA]?.corto ?? tipo} <i className="fa-solid fa-xmark" aria-hidden="true" /></button> : null}
         </div>
@@ -207,6 +220,7 @@ export function CausasBandeja() {
                 <th>LEGAJO</th>
                 <th>FECHA</th>
                 <th>INFRACTOR</th>
+                <th>INSPECTOR</th>
                 <th>DOMINIO</th>
                 <th>ESTADO</th>
                 <th>PLAZO</th>
@@ -215,7 +229,7 @@ export function CausasBandeja() {
             </thead>
             <tbody>
               {cargando ? (
-                <tr><td colSpan={gestion ? 9 : 8}><LoaderLogo tam={56} texto="Cargando causas…" /></td></tr>
+                <tr><td colSpan={gestion ? 10 : 9}><LoaderLogo tam={56} texto="Cargando causas…" /></td></tr>
               ) : null}
               {!cargando && (r?.content ?? []).map((c) => (
                 <tr key={c.uuid} className={enPanel && abierta === c.uuid ? 'fila-abierta' : undefined}>
@@ -227,6 +241,7 @@ export function CausasBandeja() {
                   <td>{c.legajo_number}/{c.legajo_anio}</td>
                   <td>{fechaCorta(String(c.legajo_fecha ?? ''))}</td>
                   <td>{c.infractor_razon_social || c.infractor_nombre || 'Sin identificar'}<div className="texto-ayuda">{c.infractor_cuit || c.infractor_documento_numero}</div></td>
+                  <td><span className="fw-semibold"><i className="fa-solid fa-id-badge" aria-hidden="true" /> {String(c.inspector_nombre || '-')}</span>{c.inspector_legajo ? <div className="texto-ayuda">Legajo {String(c.inspector_legajo)}</div> : null}</td>
                   <td>{c.vehiculo_numero_dominio || '-'}</td>
                   <td><EstadoChip estado={String(c.estado_faltas)} medida={Number(c.medida_vigente) === 1} />{c.marca ? <div className="marca-causa">{String(c.marca)}</div> : null}{c.bandeja && (!trabajo || texto) ? <div className="texto-ayuda">Bandeja: {infoBandeja(String(c.bandeja))?.titulo}</div> : null}{c.responsable ? <div className="texto-ayuda"><i className="fa-solid fa-user-check" aria-hidden="true" /> {String(c.responsable)}</div> : null}</td>
                   <td><Plazo vence={c.vence_plazo_at ? Number(c.vence_plazo_at) : null} estado={String(c.estado_faltas ?? "")} /></td>
@@ -234,7 +249,7 @@ export function CausasBandeja() {
                 </tr>
               ))}
               {!cargando && r && !r.content.length ? (
-                <tr><td colSpan={gestion ? 9 : 8}><div className="sin-resultados py-3"><i className="fa-solid fa-inbox" aria-hidden="true" /><p className="mb-0">No hay causas en esta bandeja.</p></div></td></tr>
+                <tr><td colSpan={gestion ? 10 : 9}><div className="sin-resultados py-3"><i className="fa-solid fa-inbox" aria-hidden="true" /><p className="mb-0">No hay causas en esta bandeja.</p></div></td></tr>
               ) : null}
             </tbody>
           </table>

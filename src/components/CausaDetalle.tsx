@@ -402,6 +402,7 @@ export function CausaDetalle({ embebida }: { embebida?: { uuid: string; onCambio
             {TIPOS_ACTA[tipo].titulo} · Legajo {c.legajoNumber}/{c.legajoAnio} · {c.infractorRazonSocial || c.infractorNombre || 'Sin identificar'} · En el portal se ve como «{infoEstado(estado).portal}»
           </span>
           <span className="sub d-flex flex-wrap align-items-center gap-3">
+            <span className="causa-inspector" title="Inspector que labró y firmó el acta"><i className="fa-solid fa-id-badge" aria-hidden="true" /> Labró: <strong>{c.inspectorNombre || '-'}</strong>{c.inspectorLegajo ? ` · legajo ${c.inspectorLegajo}` : ''}</span>
             <span><i className="fa-solid fa-user-check" aria-hidden="true" /> Responsable: <strong>{d.responsable || 'Sin asignar'}</strong>{d.responsableFijo ? <span className="badge bg-secondary ms-1" title="Asignado fijo">Fijo</span> : null}{gestion ? <button type="button" className="btn btn-link btn-sm p-0 ms-2 align-baseline" onClick={() => void abrirResponsable()}>Cambiar</button> : null}</span>
             {d.bandeja ? <span><i className="fa-solid fa-folder-open" aria-hidden="true" /> Bandeja: <a href={`/private/causas?b=${d.bandeja}`} onClick={(e) => { e.preventDefault(); router.push(`/private/causas?b=${d.bandeja}`); }}>{infoBandeja(d.bandeja)?.titulo}</a></span> : null}
             <label className="form-check form-switch seguir-acta m-0" title="Si una acción cambia la bandeja de la causa, la causa queda abierta y el menú marca la bandeja nueva. Desactivado, vuelve a la bandeja de origen.">

@@ -8,31 +8,33 @@ import { BotonContraste } from './BotonContraste';
 import { ControlTexto } from './ControlTexto';
 import { PruebaImpresora } from './PruebaImpresora';
 
-type Acceso = { u: string; p: string; t: string; i: string };
+/** `personas`: usuarios reales del mismo tipo (sql/036); al tocar el botón se elige quién lo usa (uso compartido simulado). */
+type Persona = { u: string; p: string; t: string };
+type Acceso = { u: string; p: string; t: string; i: string; personas?: Persona[] };
 
 /** Acceso rápido por área: a la izquierda quien dirige el área, a la derecha el agente. */
 const AREAS: { area: string; responsable: Acceso; agente: Acceso }[] = [
   {
     area: 'Tránsito',
     responsable: { u: 'directora', p: 'directora123', t: 'Directora de Tránsito', i: 'fa-solid fa-car' },
-    agente: { u: 'operador', p: 'operador123', t: 'Agente de Tránsito', i: 'fa-solid fa-user-tie' },
+    agente: { u: 'operador', p: 'operador123', t: 'Agente de Tránsito', i: 'fa-solid fa-user-tie', personas: [{ u: 'operador', p: 'operador123', t: 'Agente 1' }, { u: 'operador_2', p: 'operador123', t: 'Agente 2' }] },
   },
   {
     area: 'Contravenciones',
     responsable: { u: 'responsable_contrav', p: 'responsable123', t: 'Responsable Contravenciones', i: 'fa-solid fa-scale-balanced' },
-    agente: { u: 'agente_contrav', p: 'agente123', t: 'Agente de Contravenciones', i: 'fa-solid fa-user-tie' },
+    agente: { u: 'agente_contrav', p: 'agente123', t: 'Agente de Contravenciones', i: 'fa-solid fa-user-tie', personas: [{ u: 'agente_contrav', p: 'agente123', t: 'Agente 3' }, { u: 'agente_contrav_2', p: 'agente123', t: 'Agente 4' }] },
   },
   {
     area: 'Sustancias alimenticias',
     responsable: { u: 'responsable_sust', p: 'responsable123', t: 'Responsable Sustancias', i: 'fa-solid fa-utensils' },
-    agente: { u: 'agente_sust', p: 'agente123', t: 'Agente de Sustancias', i: 'fa-solid fa-user-tie' },
+    agente: { u: 'agente_sust', p: 'agente123', t: 'Agente de Sustancias', i: 'fa-solid fa-user-tie', personas: [{ u: 'agente_sust', p: 'agente123', t: 'Agente 5' }, { u: 'agente_sust_2', p: 'agente123', t: 'Agente 6' }] },
   },
 ];
 
 const INSPECTORES: Acceso[] = [
-  { u: 'inspector', p: 'inspector123', t: 'Inspector Tránsito', i: 'fa-solid fa-car-side' },
-  { u: 'inspector_contrav', p: 'inspector123', t: 'Inspector Contrav.', i: 'fa-solid fa-clipboard-list' },
-  { u: 'inspector_sustancias', p: 'inspector123', t: 'Inspector Sustancias', i: 'fa-solid fa-truck' },
+  { u: 'inspector', p: 'inspector123', t: 'Inspector Tránsito', i: 'fa-solid fa-car-side', personas: [{ u: 'inspector', p: 'inspector123', t: 'Inspector 1' }, { u: 'inspector_2', p: 'inspector123', t: 'Inspector 2' }] },
+  { u: 'inspector_contrav', p: 'inspector123', t: 'Inspector Contrav.', i: 'fa-solid fa-clipboard-list', personas: [{ u: 'inspector_contrav', p: 'inspector123', t: 'Inspector 3' }, { u: 'inspector_contrav_2', p: 'inspector123', t: 'Inspector 4' }] },
+  { u: 'inspector_sustancias', p: 'inspector123', t: 'Inspector Sustancias', i: 'fa-solid fa-truck', personas: [{ u: 'inspector_sustancias', p: 'inspector123', t: 'Inspector 5' }, { u: 'inspector_sustancias_2', p: 'inspector123', t: 'Inspector 6' }] },
 ];
 
 export function LoginPage() {
@@ -49,6 +51,9 @@ export function LoginPage() {
   const soltar = () => { if (pulsacion.current) clearTimeout(pulsacion.current); pulsacion.current = null; };
   const apretar = () => { soltar(); pulsacion.current = setTimeout(() => setPruebaImpresora(true), 1500); };
   const [aviso, setAviso] = useState('');
+  // Elección de persona para los accesos compartidos (agentes e inspectores).
+  const [elegir, setElegir] = useState<Acceso | null>(null);
+  const tocarAcceso = (x: Acceso) => (x.personas?.length ? setElegir(x) : void entrar(x.u, x.p));
   useEffect(() => { if (new URLSearchParams(window.location.search).get('sesion') === 'vencida') setAviso('Su sesión venció o se cerró. Vuelva a ingresar.'); }, []);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -150,6 +155,27 @@ export function LoginPage() {
           <BotonContraste className="btn btn-sm btn-outline-secondary" conTexto />
         </div>
         {pruebaImpresora ? <PruebaImpresora onCerrar={() => setPruebaImpresora(false)} /> : null}
+        {elegir ? (
+          <div className="modal-fake-overlay" onClick={(e) => e.target === e.currentTarget && setElegir(null)}>
+            <div className="modal-fake modal-fake-sm" role="dialog" aria-modal="true" aria-label="Elegir usuario">
+              <div className="modal-fake-header">
+                <i className={elegir.i} aria-hidden="true" />
+                <h2>{elegir.t}: ¿quién ingresa?</h2>
+                <button type="button" aria-label="Cerrar" onClick={() => setElegir(null)}>&times;</button>
+              </div>
+              <div className="modal-fake-body">
+                <div className="login-rapido-grid">
+                  {(elegir.personas ?? []).map((p) => (
+                    <button key={p.u} type="button" className="login-rapido-btn" disabled={loading} title={`${p.u} / ${p.p}`} onClick={() => { setElegir(null); void entrar(p.u, p.p); }}>
+                      <i className="fa-solid fa-user" aria-hidden="true" />
+                      <span>{p.t}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : null}
         </div>
         <section className="login-rapido" aria-label="Acceso rápido">
           <p className="login-rapido-titulo">Acceso rápido (piloto)</p>
@@ -158,7 +184,7 @@ export function LoginPage() {
               <p className="login-rapido-subtitulo">{a.area}</p>
               <div className="login-rapido-grid">
                 {[a.responsable, a.agente].map((x) => (
-                  <button key={x.u} type="button" className="login-rapido-btn" disabled={loading} onClick={() => void entrar(x.u, x.p)} title={`${x.u} / ${x.p}`}>
+                  <button key={x.u} type="button" className="login-rapido-btn" disabled={loading} onClick={() => tocarAcceso(x)} title={`${x.u} / ${x.p}`}>
                     <i className={x.i} aria-hidden="true" />
                     <span>{x.t}</span>
                   </button>
@@ -179,7 +205,7 @@ export function LoginPage() {
             <p className="login-rapido-subtitulo">Inspectores y portal ciudadano</p>
             <div className="login-rapido-grid">
               {INSPECTORES.map((x) => (
-                <button key={x.u} type="button" className="login-rapido-btn" disabled={loading} onClick={() => void entrar(x.u, x.p)} title={`${x.u} / ${x.p}`}>
+                <button key={x.u} type="button" className="login-rapido-btn" disabled={loading} onClick={() => tocarAcceso(x)} title={`${x.u} / ${x.p}`}>
                   <i className={x.i} aria-hidden="true" />
                   <span>{x.t}</span>
                 </button>

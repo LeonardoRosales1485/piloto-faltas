@@ -9,19 +9,22 @@ Guía paso a paso para recorrer un acta de tránsito de punta a punta: desde que
 
 | Quién | Usuario de prueba | Qué hace |
 |---|---|---|
-| Inspector Tránsito | `inspector` / `inspector123` | Labra actas de tránsito. Entra directo a «Labrar acta» y sólo ve sus propios borradores: no ve actas firmadas ni causas |
-| Inspector Contrav. | `inspector_contrav` / `inspector123` | Igual que el anterior, pero entra directo al acta de contravención |
+| Inspector Tránsito (Inspector 1 y 2) | `inspector`, `inspector_2` / `inspector123` | Labra actas de tránsito. Entra directo a «Labrar acta» y sólo ve sus propios borradores: no ve actas firmadas ni causas |
+| Inspector Contrav. (Inspector 3 y 4) | `inspector_contrav`, `inspector_contrav_2` / `inspector123` | Igual que el anterior, pero entra directo al acta de contravención |
 | Directora de Tránsito | `directora` / `directora123` | Revisa y firma escritos. Sólo ve causas de **tránsito** |
-| Agente de Tránsito | `operador` / `operador123` | Tramita las causas de **tránsito** |
+| Agente de Tránsito (Agente 1 y 2) | `operador`, `operador_2` / `operador123` | Tramita las causas de **tránsito** |
 | Responsable Contravenciones | `responsable_contrav` / `responsable123` | Como la Directora, pero para causas de **contravención** |
-| Agente de Contravenciones | `agente_contrav` / `agente123` | Tramita las causas de **contravención** |
+| Agente de Contravenciones (Agente 3 y 4) | `agente_contrav`, `agente_contrav_2` / `agente123` | Tramita las causas de **contravención** |
 | Responsable Sustancias | `responsable_sust` / `responsable123` | Como la Directora, pero para causas de **sustancias alimenticias** |
-| Agente de Sustancias | `agente_sust` / `agente123` | Tramita las causas de **sustancias alimenticias** |
+| Agente de Sustancias (Agente 5 y 6) | `agente_sust`, `agente_sust_2` / `agente123` | Tramita las causas de **sustancias alimenticias** |
+| Inspector Sustancias (Inspector 5 y 6) | `inspector_sustancias`, `inspector_sustancias_2` / `inspector123` | Igual, para actas de sustancias alimenticias |
 | Usuario tributario | `tributario` / `tributario123` | Actualiza valores y tarifas |
 | Intendente | `intendente` / `intendente123` | Solo firma fallos y resoluciones aprobados por la Dirección, o pide revisión. Entra directo a «Para firmar» |
 | Administrador | `admin` / `admin123` | Configura plantillas, textos y feriados. No tiene botón de acceso rápido: se entra escribiendo usuario y contraseña |
 | Ciudadano | `valeria@example.com` / `ciudadano123` (DNI 30111222) | Consulta, paga y presenta descargos |
 
+> **Uso compartido simulado:** los botones de agentes e inspectores preguntan **quién ingresa** (Agente 1 a 6, Inspector 1 a 6, numerados en secuencia por área). Son usuarios distintos (sql/036): el historial, las actas y el «último ticket» quedan a nombre de cada uno. Directora, Responsables e Intendente entran directo.
+>
 > En la pantalla de ingreso hay botones de **acceso rápido** agrupados por área (Tránsito, Contravenciones, Sustancias): a la izquierda quien dirige el área y a la derecha el agente. Más abajo, «Inspectores y portal ciudadano».
 >
 > Cada usuario del back office solo ve las causas, escritos, presentaciones y pagos de su área. El área se define en **Usuarios** con «Tipos de acta que gestiona».
@@ -326,3 +329,4 @@ En **Configuración → Opciones sandbox** hay cuatro acciones. Todas piden escr
 - **Fallos en UF:** el fallo condenatorio expresa la multa en unidades fijas, a liquidar al valor vigente.
 - **Configuración › Membretes:** logo, título y subtítulo por tipo de documento (el que no tiene tipos es el de por defecto).
 - **Portal de inspectores** (menú lateral y botón en el inicio del inspector): actas labradas, retenciones (licencias y vehículos) y playón con el estado de la liberación; solo lectura. El inspector ve solo lo suyo (actas que labró, sus retenciones y los vehículos que retuvo); la supervisión ve todo.
+- **Inspector que labró:** en cada causa se ve arriba «Labró: Inspector N · legajo …», en las bandejas hay una columna «Inspector» y en Filtros se puede elegir «Inspector que labró».

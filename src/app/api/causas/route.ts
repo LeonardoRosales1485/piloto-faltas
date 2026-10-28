@@ -5,9 +5,9 @@ import { HIST_VENCIDO } from '@/lib/camino';
 import { handle } from '@/lib/srv';
 import { tipoVisible } from '@/lib/dominio';
 
-type Body = { bandeja?: BandejaId; /** Bandeja de trabajo (menú lateral); si viene, manda sobre `bandeja`. */ trabajo?: BandejaTrabajoId; texto?: string; tipo?: string; estado?: string; anio?: string; page?: number; size?: number };
+type Body = { bandeja?: BandejaId; /** Bandeja de trabajo (menú lateral); si viene, manda sobre `bandeja`. */ trabajo?: BandejaTrabajoId; texto?: string; tipo?: string; estado?: string; anio?: string; inspector?: string; page?: number; size?: number };
 
-const CAMPOS = 'id, uuid, infraccion_tipo_id, estado_faltas, infraccion_tipo_nombre, legajo_numero_acta, legajo_number, legajo_anio, legajo_fecha, infractor_nombre, infractor_razon_social, infractor_documento_numero, infractor_cuit, vehiculo_numero_dominio, medida_vigente, vence_plazo_at, notificada_at, firmada_at, monto_estimado, inspector_nombre, date_created, retencion_de_vehiculo, vehiculo_liberado_at';
+const CAMPOS = 'id, uuid, infraccion_tipo_id, estado_faltas, infraccion_tipo_nombre, legajo_numero_acta, legajo_number, legajo_anio, legajo_fecha, infractor_nombre, infractor_razon_social, infractor_documento_numero, infractor_cuit, vehiculo_numero_dominio, medida_vigente, vence_plazo_at, notificada_at, firmada_at, monto_estimado, inspector_nombre, inspector_username, inspector_legajo, date_created, retencion_de_vehiculo, vehiculo_liberado_at';
 
 export async function POST(req: NextRequest) {
   const body = (await req.json()) as Body;
@@ -43,7 +43,11 @@ export async function POST(req: NextRequest) {
     if (body.tipo) lista = lista.filter((f) => f.infraccion_tipo_nombre === body.tipo);
     if (body.estado) lista = lista.filter((f) => f.estado_faltas === body.estado);
     if (body.anio) lista = lista.filter((f) => String(f.legajo_anio ?? '') === String(body.anio));
-    if (t) lista = lista.filter((f) => [f.legajo_numero_acta, f.legajo_number, `${f.legajo_number}/${f.legajo_anio}`, f.legajo_anio, f.infractor_nombre, f.infractor_razon_social, f.infractor_documento_numero, f.infractor_cuit, f.vehiculo_numero_dominio].some((v) => String(v ?? '').toLowerCase().includes(t)));
+    // Inspector que labró el acta (filtro de la bandeja).
+    const insp = (f: FilaCausa) => (f as unknown as { inspector_username?: string | null }).inspector_username ?? '';
+    const inspectores = [...new Map(filas.filter((f) => insp(f)).map((f) => [insp(f), String((f as unknown as { inspector_nombre?: string }).inspector_nombre || insp(f))])).entries()].map(([u, n]) => ({ u, n })).sort((a, b) => a.n.localeCompare(b.n, 'es', { numeric: true }));
+    if (body.inspector) lista = lista.filter((f) => insp(f) === body.inspector);
+    if (t) lista = lista.filter((f) => [f.legajo_numero_acta, f.legajo_number, `${f.legajo_number}/${f.legajo_anio}`, f.legajo_anio, f.infractor_nombre, f.infractor_razon_social, f.infractor_documento_numero, f.infractor_cuit, f.vehiculo_numero_dominio, (f as unknown as { inspector_nombre?: string }).inspector_nombre].some((v) => String(v ?? '').toLowerCase().includes(t)));
     const size = body.size ?? 15;
     const page = body.page ?? 0;
     // Reunión 27/10: estado del fallo en curso (en vez de «fallo en espera»): a la firma o a la firma del Intendente.
@@ -58,6 +62,6 @@ export async function POST(req: NextRequest) {
       if (!re) for (const x of (rd ?? []) as { id: number; responsable: string | null }[]) if (x.responsable) responsables.set(x.id, x.responsable);
     }
     const marcar = (f: FilaCausa) => ({ ...f, responsable: responsables.get(f.id) ?? null, bandeja: bandejaDe.get(f.id) ?? null, marca: pendientes.has(f.id) ? 'Presentación a resolver' : fallos.get(f.id) ?? (vencidoSinPresentacion(f, ahora, conPresentacion) ? 'Sin presentación (vencido el plazo)' : null) });
-    return { content: pagina.map(marcar), totalElements: lista.length, totalPages: Math.max(1, Math.ceil(lista.length / size)), page, size, conteos, conteosTrabajo: conB.conteos, cuotasVencidas: [...cuotasVencidas] };
+    return { content: pagina.map(marcar), totalElements: lista.length, totalPages: Math.max(1, Math.ceil(lista.length / size)), page, size, conteos, conteosTrabajo: conB.conteos, cuotasVencidas: [...cuotasVencidas], inspectores };
   }, 'verCausas');
 }
