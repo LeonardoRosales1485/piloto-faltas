@@ -13,8 +13,8 @@ const PLAZOS = [
 ];
 
 /**
- * Configuración › Labrado en el POS (reunión 27/10): plazo de labrado por tipo de acta (lo que suma «Extender tiempo»;
- * vencido sin firmar ni extender, el acta queda abandonada) y las listas de marcas y modelos de alcoholímetros.
+ * Configuración › Labrado en el POS (reunión 27/10): plazo de labrado por tipo de acta (vencido
+ * sin firmar, el acta queda abandonada) y las listas de marcas y modelos de alcoholímetros.
  */
 export function LabradoConfig() {
   const notify = useNotify();
@@ -53,7 +53,7 @@ export function LabradoConfig() {
       <article className="card-step mb-3">
         <div className="card-step-header">
           <h2>Plazo de labrado</h2>
-          <p>Tiempo que tiene el inspector para terminar un acta abierta. «Extender tiempo» suma otra vez este plazo. Si vence sin firmarse ni extenderse, el acta queda como «Acta abandonada» (número anulado).</p>
+          <p>Tiempo que tiene el inspector para terminar un acta abierta. Si vence sin firmarse, el acta queda como «Acta abandonada» (número anulado).</p>
         </div>
         <div className="card-step-body">
           <div className="row g-3">

@@ -24,7 +24,7 @@ Guía corta para la capacitación de los inspectores antes de la prueba en calle
 - Un paso con datos sin completar queda **en rojo** (en el celular, la barra de pasos se pone roja). Al pasar de paso aparece un aviso breve con lo que falta, **pero no bloquea**.
 - Solo bloquean el **artículo** y la **foto** que pide el artículo. El resto se puede firmar igual: el sistema pregunta el motivo (se dio a la fuga, no aporta datos, de oficio u otro) y completa lo que falta con «Desconocido».
 - Botón **«Se dio a la fuga»** al final: firma el acta sin datos del infractor.
-- **No hay «Inicio» durante el labrado:** el acta se termina sí o sí. Tenés **1 h** en tránsito y **24 h** en contravenciones (lo configura la Dirección). El chip del reloj muestra el tiempo restante; **«Extender tiempo»** suma otro plazo. Si vence sin firmar ni extender, el acta queda **abandonada** (número anulado). Si cerrás la app, al volver a «Crear nueva acta» se retoma la que estaba abierta.
+- **No hay «Inicio» durante el labrado:** el acta se termina sí o sí. Tenés **1 h** en tránsito y **24 h** en contravenciones (lo configura la Dirección). El chip del reloj muestra el tiempo restante. Si vence sin firmar, el acta queda **abandonada** (número anulado). Si cerrás la app, al volver a «Crear nueva acta» se retoma la que estaba abierta.
 - Al salir de la pantalla de firma (cuando el infractor tenía el equipo) se pide el **PIN**.
 - **Después de firmar** el acta no se modifica más. Las correcciones las hace Faltas desde la causa (puede subsanar más de una vez).
 - Solo pruebas: **7 toques seguidos sobre la barra superior** (no en el logo ni en los botones) descartan el acta en curso.

@@ -16,7 +16,7 @@ import { ESTADOS_CAUSA, TIPOS_ACTA, puede, tipoActa } from '@/lib/dominio';
 import { useAuthUser } from '@/lib/use-auth-user';
 
 const SIZE = 10;
-// «Abandonada» (reunión 27/10): venció el plazo de labrado sin firmar ni extender (antes también «Acta incompleta»). «Anulada»: descartada a mano (borrador o por el administrador).
+// «Abandonada» (reunión 27/10): venció el plazo de labrado sin firmar (antes también «Acta incompleta»). «Anulada»: descartada a mano (borrador o por el administrador).
 // En la base las dos son estado «Anulada»; se distinguen por el motivo (el detalle se ve al abrirla).
 const ESTADOS = ['Borrador', ...ESTADOS_CAUSA.map((e) => e.nombre), 'Abandonada', 'Anulada'];
 type Periodo = 'todos' | 'ultimo_mes' | 'periodo_manual';

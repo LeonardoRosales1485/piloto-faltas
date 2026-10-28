@@ -11,7 +11,7 @@ export async function reservar(d: Db, serie: string): Promise<number> {
 }
 
 /**
- * Plazo de labrado (reunión 27/10): el acta abierta vence si no se firma ni se extiende a tiempo y queda
+ * Plazo de labrado (reunión 27/10): el acta abierta vence si no se firma a tiempo y queda
  * «Acta abandonada» (número anulado). Horas por tipo de acta en la configuración (Configuración → Labrado en el POS).
  */
 export async function plazoLabradoMs(d: Db, tipo: string): Promise<number> {
@@ -48,7 +48,7 @@ export async function abandonarVencidos(d: Db, inspector?: string): Promise<Borr
   const vigentes: BorradorPlazo[] = [];
   for (const b of (data ?? []) as (BorradorPlazo & { inspector_username: string })[]) {
     const vence = await venceDe(d, b);
-    if (vence < ahora) await anularAbandonados(d, [b], `Acta abandonada: venció el plazo de labrado (${new Date(vence).toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' })}) sin firmarla ni extenderlo`);
+    if (vence < ahora) await anularAbandonados(d, [b], `Acta abandonada: venció el plazo de labrado (${new Date(vence).toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' })}) sin firmarla`);
     else if (b.inspector_username === inspector) vigentes.push(b);
   }
   return vigentes;
@@ -59,22 +59,8 @@ export async function controlarPlazo(d: Db, user: UsuarioRow, c: { id: number; e
   if (user.rol !== 'Inspector' || c.estado_faltas !== 'Borrador') return;
   const vence = await venceDe(d, c as unknown as BorradorPlazo);
   if (vence >= Date.now()) return;
-  await anularAbandonados(d, [c], 'Acta abandonada: venció el plazo de labrado sin firmarla ni extenderlo');
+  await anularAbandonados(d, [c], 'Acta abandonada: venció el plazo de labrado sin firmarla');
   throw new HttpError(409, 'Venció el plazo de labrado: el acta quedó abandonada (número anulado).');
-}
-
-/** Extiende el plazo de labrado del acta abierta (botón «Extender tiempo» del POS): suma el plazo de su tipo. */
-export async function extenderLabrado(d: Db, user: UsuarioRow, uuidActa: string) {
-  const c = await causaPorUuid(d, uuidActa);
-  check(c.estado_faltas === 'Borrador', 'El acta ya no está abierta', 409);
-  const b = c as unknown as BorradorPlazo;
-  const vence = await venceDe(d, b);
-  check(vence >= Date.now(), 'El plazo de labrado ya venció: el acta quedó abandonada', 409);
-  const nuevo = vence + (await plazoLabradoMs(d, b.infraccion_tipo_nombre));
-  const { error } = await d.from('infraccion').update({ labrado_vence_at: nuevo }).eq('id', c.id);
-  if (error) throw new HttpError(500, 'Falta correr sql/034 (plazo de labrado)');
-  await historial(d, c.id, nombreUsuario(user), 'Plazo de labrado extendido', `Nuevo vencimiento: ${new Date(nuevo).toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' })}`);
-  return { venceAt: nuevo };
 }
 
 /** Crea el borrador del acta con número de su serie y legajo común ya reservados (RN-02, RN-03). */

@@ -98,7 +98,7 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
   const soloLectura = form.estadoFaltas !== undefined && form.estadoFaltas !== 'Borrador';
   // Reunión 27/10: el acta iniciada se termina sí o sí (sin «Inicio» ni abandono manual). Si faltan datos al firmar se
   // completan con «Desconocido» indicando el motivo, y se firma igual. Solo vence (y queda «Acta abandonada») si se
-  // pasa el plazo de labrado sin extenderlo. Para pruebas, 7 toques en la barra abren «Descartar acta».
+  // pasa el plazo de labrado. Para pruebas, 7 toques en la barra abren «Descartar acta».
   const esInspector = user?.rol === 'Inspector';
   const [salidaBloqueada, setSalidaBloqueada] = useState(false);
   const [motivoModal, setMotivoModal] = useState(false);
@@ -138,25 +138,11 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
     window.addEventListener('faltas:descartar-acta', f);
     return () => window.removeEventListener('faltas:descartar-acta', f);
   }, [soloLectura, form.uuid]);
-  // Plazo de labrado: cuenta regresiva, «Extender tiempo» y vencimiento (acta abandonada).
+  // Plazo de labrado: cuenta regresiva y vencimiento (acta abandonada). Sin «Extender tiempo» (se quitó).
   const [ahora, setAhora] = useState(() => Date.now());
   useEffect(() => { const t = setInterval(() => setAhora(Date.now()), 15000); return () => clearInterval(t); }, []);
   const venceAt = Number(form.labradoVenceAt) || 0;
   const restanMs = venceAt ? venceAt - ahora : null;
-  const [extendiendo, setExtendiendo] = useState(false);
-  async function extenderTiempo() {
-    setExtendiendo(true);
-    try {
-      const r = await http.post<{ venceAt: number }>('/api/acta/extender', { uuid: form.uuid });
-      patch({ labradoVenceAt: r.venceAt });
-      setAhora(Date.now());
-      notify.success('Tiempo extendido', `El acta vence ${fechaHora(r.venceAt)}.`);
-    } catch (e) {
-      notify.error('No se pudo extender', (e as Error).message);
-    } finally {
-      setExtendiendo(false);
-    }
-  }
   const vencida = esInspector && !soloLectura && !recienFirmada && restanMs !== null && restanMs <= 0;
   const habilitado = !soloLectura && !guardando;
   const pasos = useMemo(() => pasosPara(tipo, form.situacionInfractor), [tipo, form.situacionInfractor]);
@@ -644,13 +630,10 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
           <i className="fa-solid fa-hashtag" aria-hidden="true" /> {form.legajoNumeroActa}
         </span>
         <span>Legajo {form.legajoNumber}/{form.legajoAnio}</span>
-        {/* Plazo de labrado (reunión 27/10): si vence sin firmar ni extender, el acta queda abandonada. */}
+        {/* Plazo de labrado (reunión 27/10): si vence sin firmar, el acta queda abandonada. */}
         {esInspector && restanMs !== null ? (
           <span className={`plazo-labrado ${restanMs < 15 * 60000 ? 'por-vencer' : ''}`}>
             <i className="fa-solid fa-hourglass-half" aria-hidden="true" /> {restanMs > 0 ? `Vence ${fechaHora(venceAt).split(', ').pop()} (${restanMs >= 3600000 ? `${Math.floor(restanMs / 3600000)} h ` : ''}${Math.ceil((restanMs % 3600000) / 60000)} min)` : 'Venció'}
-            <button type="button" className="btn btn-sm btn-outline-primary ms-2" disabled={extendiendo || restanMs <= 0} onClick={() => void extenderTiempo()}>
-              {extendiendo ? <i className="fa-solid fa-spinner fa-spin" aria-hidden="true" /> : <i className="fa-solid fa-clock-rotate-left" aria-hidden="true" />} Extender tiempo
-            </button>
           </span>
         ) : null}
       </div>
@@ -1339,7 +1322,7 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
               <h2>Termine el acta {form.legajoNumeroActa}</h2>
             </div>
             <div className="modal-fake-body">
-              <p className="mb-0">Un acta iniciada se termina sí o sí. Si faltan datos, al firmar se completan con «Desconocido» indicando el motivo.{restanMs !== null ? ` Si no se firma ni se extiende el tiempo antes de ${fechaHora(venceAt)}, queda como «Acta abandonada».` : ''}</p>
+              <p className="mb-0">Un acta iniciada se termina sí o sí. Si faltan datos, al firmar se completan con «Desconocido» indicando el motivo.{restanMs !== null ? ` Si no se firma antes de ${fechaHora(venceAt)}, queda como «Acta abandonada».` : ''}</p>
             </div>
             <div className="modal-fake-footer">
               <button type="button" className="btn btn-primary" onClick={() => setSalidaBloqueada(false)}>Seguir con el acta</button>
@@ -1377,7 +1360,7 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
               <h2>Venció el plazo de labrado</h2>
             </div>
             <div className="modal-fake-body">
-              <p className="mb-0">El acta {form.legajoNumeroActa} no se firmó ni se extendió a tiempo: queda como <strong>«Acta abandonada»</strong> (número anulado).</p>
+              <p className="mb-0">El acta {form.legajoNumeroActa} no se firmó a tiempo: queda como <strong>«Acta abandonada»</strong> (número anulado).</p>
             </div>
             <div className="modal-fake-footer">
               <button type="button" className="btn btn-primary" onClick={() => { void apiClient.saveInfraccion(form).catch(() => undefined).finally(() => { registrarGuardiaSalida(null); router.push('/private/inicio'); }); }}>Volver al inicio</button>
