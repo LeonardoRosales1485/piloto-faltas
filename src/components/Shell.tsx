@@ -53,6 +53,7 @@ const GRUPOS: MenuItem[] = [
   { id: 'firma-intendente', titulo: 'Para firmar', icono: 'fa-solid fa-signature', route: '/private/firma-intendente', permiso: 'firmaIntendente' },
   { id: 'escritos', titulo: 'Escritos y firma', icono: 'fa-solid fa-file-signature', route: '/private/escritos', permiso: 'verEscritos' },
   { id: 'pagos', titulo: 'Pagos', icono: 'fa-solid fa-money-check-dollar', route: '/private/pagos', permiso: 'verPagos' },
+  { id: 'actas-migradas', titulo: 'Actas migradas', icono: 'fa-solid fa-box-archive', route: '/private/actas-migradas', permiso: 'verActasMigradas' },
   { id: 'retenciones', titulo: 'Retenciones', icono: 'fa-solid fa-warehouse', route: '/private/retenciones', permiso: 'retenciones' },
   {
     id: 'multas',
@@ -154,6 +155,7 @@ const TITULOS: Record<string, string> = {
   '/private/membretes': 'Membretes',
   '/private/correos': 'Registro de correos',
   '/private/retenciones': 'Retenciones',
+  '/private/actas-migradas': 'Actas migradas',
   '/private/auditoria': 'Auditoría',
 };
 

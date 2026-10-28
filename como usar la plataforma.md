@@ -330,3 +330,13 @@ En **Configuración → Opciones sandbox** hay cuatro acciones. Todas piden escr
 - **Configuración › Membretes:** logo, título y subtítulo por tipo de documento (el que no tiene tipos es el de por defecto).
 - **Portal de inspectores** (menú lateral y botón en el inicio del inspector): actas labradas, retenciones (licencias y vehículos) y playón con el estado de la liberación; solo lectura. El inspector ve solo lo suyo (actas que labró, sus retenciones y los vehículos que retuvo); la supervisión ve todo. No muestra el estado administrativo de la causa; en su lugar, cada acta permite reimprimir su ticket (y el del inspector si hubo retención). «Imprimir último ticket» del inicio también incluye el del inspector.
 - **Inspector que labró:** en cada causa se ve arriba «Labró: Inspector N · legajo …», en las bandejas hay una columna «Inspector» y en Filtros se puede elegir «Inspector que labró».
+
+## Actas migradas (actas previas a este sistema)
+
+> Requiere `sql/038_actas_migradas.sql` (solo en la base post).
+
+- Menú lateral **«Actas migradas»** (permisos «Ver actas migradas» y «Cargar actas migradas»; por defecto Directora, Responsable, agentes y Administrador). Cada usuario ve solo sus tipos de acta.
+- Son **solo el acta**: datos para buscarla (n.° de acta, fecha, legajo, infractor, DNI/CUIT, dominio, artículos, lugar, inspector, observaciones) y el **escaneo**. No son causas: no tienen estados, bandejas, boletas, plazos ni portal, y «Restablecer piloto» no las borra.
+- **Buscar** por n.° de acta, DNI/CUIT, dominio, nombre o legajo, con tipo y rango de fechas. Al abrirla se ve el escaneo (PDF o imagen) y se puede descargar.
+- **Cargar acta:** tipo, datos y escaneo. El escaneo, una vez cargado, no se reemplaza (es el original); si se cargó sin él, se puede agregar después. Los datos se pueden **corregir** y queda registro (quién, cuándo, antes y después).
+- **Importar planilla:** CSV (Excel → «Guardar como CSV») con las columnas `tipo; numero; fecha; legajo; infractor; documento; dominio; articulos; lugar; inspector; observaciones; archivo` (hay planilla modelo) y los escaneos sueltos o en un ZIP, asociados por la columna `archivo` o por el número de acta. Primero muestra la revisión fila por fila (errores, repetidos, escaneos que faltan) y después importa de a una, con el resultado de cada fila.

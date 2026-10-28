@@ -1153,3 +1153,7 @@ html[data-text-size='muy-grande'] { font-size: 137.5%; }
   strong { font-size: .75rem; }
   &.grande { width: 100%; font-size: .85rem; padding: .75rem; border: 1px solid var(--borde, #e3e6ea); img { height: 48px; } strong { font-size: 1rem; } }
 }
+
+/* Actas migradas */
+.visor-migrada { display: block; width: 100%; min-height: 60vh; max-height: 75vh; object-fit: contain; border: 1px solid var(--borde, #e3e6ea); border-radius: 6px; background: #fff; }
+.texto-recortado { max-width: 260px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

@@ -91,6 +91,9 @@ export const PERMISOS = {
   seguimientoGps: SUPERVISION,
   // Reunión 27/10: consulta de actas labradas, retenciones y playón (solo lectura).
   portalInspectores: [...SUPERVISION, 'Inspector'],
+  // Actas migradas: actas previas a este sistema, solo para consulta (el acta escaneada y sus datos).
+  verActasMigradas: GESTION,
+  cargarActasMigradas: GESTION,
   depuracionPos: ['Inspector'],
   auditoria: SUPERVISION,
   verPlantillas: ESCRITOS,
@@ -157,6 +160,8 @@ export const PERMISO_INFO: Record<Permiso, { g: string; t: string; d: string }> 
   ordenanzas: { g: 'Gestión', t: 'Ordenanzas', d: 'Alta y edición de ordenanzas y artículos' },
   inspectores: { g: 'Gestión', t: 'Inspectores', d: 'ABM de inspectores' },
   seguimientoGps: { g: 'Gestión', t: 'Seguimiento GPS', d: 'Mapa de seguimiento de inspectores' },
+  verActasMigradas: { g: 'Causas', t: 'Ver actas migradas', d: 'Sección «Actas migradas»: actas previas a este sistema (datos y escaneo)' },
+  cargarActasMigradas: { g: 'Causas', t: 'Cargar actas migradas', d: 'Cargar actas migradas (una por una o importación masiva) y corregir sus datos' },
   portalInspectores: { g: 'Gestión', t: 'Portal de inspectores', d: 'Consulta de actas labradas, retenciones (licencias y vehículos) y vehículos en el playón' },
   depuracionPos: { g: 'Actas', t: 'Depuración en el POS', d: 'En el inicio del inspector, 7 toques seguidos sobre el logo muestran todas las actas de sus tipos (solo para pruebas)' },
   auditoria: { g: 'Gestión', t: 'Auditoría', d: 'Registro de auditoría' },

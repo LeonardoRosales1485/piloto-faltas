@@ -25,6 +25,7 @@ const RUTAS: { prefijo: string; permiso: Permiso }[] = [
   { prefijo: '/private/inspectores', permiso: 'inspectores' },
   { prefijo: '/private/seguimiento-gps', permiso: 'seguimientoGps' },
   { prefijo: '/private/inspeccion', permiso: 'portalInspectores' },
+  { prefijo: '/private/actas-migradas', permiso: 'verActasMigradas' },
   { prefijo: '/private/funciones', permiso: 'parametrizar' },
   { prefijo: '/private/labrado-config', permiso: 'parametrizar' },
   { prefijo: '/private/membretes', permiso: 'parametrizar' },
