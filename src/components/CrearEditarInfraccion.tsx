@@ -331,7 +331,7 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
       const nuevas: ImgModel[] = [];
       for (const img of imagenes) nuevas.push(img.uuid ? img : await apiClient.saveImagen({ ...img, infraccionUuid: g.uuid }));
       setImagenes(nuevas);
-      if (!silencioso) notify.success('Borrador guardado', `Acta ${g.legajoNumeroActa}`);
+      if (!silencioso) notify.success('Acta en curso guardada', `Acta ${g.legajoNumeroActa}`);
       return g;
     } catch (e) {
       notify.error('No se pudo guardar', (e as Error).message);
@@ -418,7 +418,7 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
     if (!motivoDescarte.trim()) return;
     try {
       await apiClient.anularActa(form.uuid!, motivoDescarte);
-      notify.success('Borrador descartado', `El número ${form.legajoNumeroActa} quedó anulado.`);
+      notify.success('Acta en curso descartada', `El número ${form.legajoNumeroActa} quedó anulado.`);
       router.push(user?.rol === 'Inspector' ? '/private/inicio' : `/private/lista-infracciones/${tipo}`);
     } catch (e) {
       notify.error('No se pudo descartar', (e as Error).message);
@@ -638,7 +638,7 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
 
   return (
     <div className="pagina pagina-steps">
-      <BarraSuperior><span className="acta-borrador-chip">Borrador sin firmar</span></BarraSuperior>
+      <BarraSuperior><span className="acta-borrador-chip">Acta en curso</span></BarraSuperior>
       <div className="acta-encabezado-numero">
         <span className="acta-numero-chip">
           <i className="fa-solid fa-hashtag" aria-hidden="true" /> {form.legajoNumeroActa}
