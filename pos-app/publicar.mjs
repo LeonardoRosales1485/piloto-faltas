@@ -4,8 +4,10 @@
 // Uso: node pos-app/publicar.mjs <ruta-al-apk> <build> [forzar]
 // «forzar»: la actualización es obligatoria (la app no muestra «Ahora no»). Funciona con las apps ya instaladas:
 // marcan obligatoria toda versión cuyo build sea menor al de «anterior», así que se publica anterior = esta misma.
-// Credenciales: NEXT_PUBLIC_SUPABASE_URL (o SUPABASE_URL) y SUPABASE_SERVICE_ROLE_KEY,
-// del entorno o del .env.local de la raíz del repo.
+// Credenciales: NEXT_PUBLIC_SUPABASE_URL (o SUPABASE_URL) y SUPABASE_SERVICE_ROLE_KEY, del entorno o de
+// pos-app/.env.post.local (recomendado: las del Supabase de «piloto-faltas-post»). Sin ese archivo, del .env.local de la raíz.
+// «Faltas Post» solo se publica en el Supabase del deploy post: si las credenciales son de otro proyecto (por ejemplo
+// el de la referencia 1.0), no publica nada.
 import { readFileSync, existsSync, statSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -13,9 +15,12 @@ import { fileURLToPath } from 'node:url';
 const BUCKET = 'pos-app';
 const raiz = join(dirname(fileURLToPath(import.meta.url)), '..');
 
+const PROYECTO_POST = 'uahubgleoemcvuzuumyv';
+
 function env() {
   const e = { ...process.env };
-  const f = join(raiz, '.env.local');
+  const post = join(raiz, 'pos-app', '.env.post.local');
+  const f = existsSync(post) ? post : join(raiz, '.env.local');
   if (existsSync(f)) {
     for (const l of readFileSync(f, 'utf8').split(/\r?\n/)) {
       const m = l.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/);
@@ -36,6 +41,11 @@ const e = env();
 const url = (e.SUPABASE_URL || e.NEXT_PUBLIC_SUPABASE_URL || '').replace(/\/$/, '');
 const key = e.SUPABASE_SERVICE_ROLE_KEY;
 if (!url || !key) { console.error('Faltan NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY'); process.exit(1); }
+if (!url.includes(PROYECTO_POST)) {
+  console.error(`Las credenciales son de ${url}, no del Supabase de piloto-faltas-post (${PROYECTO_POST}).`);
+  console.error('Cree pos-app/.env.post.local con NEXT_PUBLIC_SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY del proyecto post. No se publicó nada.');
+  process.exit(1);
+}
 
 const h = { apikey: key, Authorization: `Bearer ${key}` };
 const api = (p) => `${url}/storage/v1/${p}`;

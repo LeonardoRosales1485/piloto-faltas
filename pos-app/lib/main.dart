@@ -11,8 +11,9 @@ import 'actualizador.dart';
 import 'impresoras.dart';
 
 /// URL del Sistema de Faltas. Se puede cambiar al compilar:
-/// flutter build apk --dart-define=APP_URL=https://piloto-faltas.vercel.app
-const appUrl = String.fromEnvironment('APP_URL', defaultValue: 'https://piloto-faltas.vercel.app');
+/// flutter build apk --dart-define=APP_URL=https://piloto-faltas-post.vercel.app
+/// «Faltas Post» (post 1.0): apunta al deploy aparte. La app «Faltas» de referencia se compila desde referencia-1.0.
+const appUrl = String.fromEnvironment('APP_URL', defaultValue: 'https://piloto-faltas-post.vercel.app');
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();

@@ -1,17 +1,17 @@
 @echo off
 setlocal EnableExtensions EnableDelayedExpansion
 chcp 65001 >nul
-title Compilar APK del POS (Faltas)
+title Compilar APK del POS (Faltas Post)
 cd /d "%~dp0"
 
 rem ============================================================
 rem  Compila el APK del POS en esta PC (igual que GitHub Actions).
 rem  Uso: doble click, o  compilar-apk.bat [URL del sistema]
-rem  Resultado: pos-app\faltas-pos.apk
+rem  Resultado: pos-app\faltas-post.apk  (app "Faltas Post", deploy post 1.0)
 rem ============================================================
 
 set "APP_URL=%~1"
-if "%APP_URL%"=="" set "APP_URL=https://piloto-faltas.vercel.app"
+if "%APP_URL%"=="" set "APP_URL=https://piloto-faltas-post.vercel.app"
 
 echo.
 echo === 1/6 Verificando herramientas ===
@@ -91,19 +91,19 @@ if not exist "%USERPROFILE%\.android" mkdir "%USERPROFILE%\.android"
 set "RESPALDO="
 if exist "%KS%" (
   fc /b "%KS%" "firma\debug.keystore" >nul 2>nul
-  if errorlevel 1 ( copy /y "%KS%" "%KS%.respaldo-faltas" >nul & set "RESPALDO=1" )
+  if errorlevel 1 ( copy /y "%KS%" "%KS%.respaldo-faltas-post" >nul & set "RESPALDO=1" )
 )
 copy /y "firma\debug.keystore" "%KS%" >nul
 
 echo.
 echo === 6/6 Compilando (la primera vez tarda; las siguientes, 1-2 minutos) ===
 for /f %%i in ('powershell -NoProfile -Command "[int][math]::Floor(([DateTimeOffset]::UtcNow.ToUnixTimeSeconds() - 1767225600) / 60)"') do set "BUILD=%%i"
-call flutter build apk --release --build-number=%BUILD% --dart-define=APP_URL=%APP_URL%
+call flutter build apk --release --build-number=%BUILD% --dart-define=APP_URL=%APP_URL% --dart-define=VERSION_URL=https://uahubgleoemcvuzuumyv.supabase.co/storage/v1/object/public/pos-app/version.json
 set "RES=%errorlevel%"
-if defined RESPALDO move /y "%KS%.respaldo-faltas" "%KS%" >nul
+if defined RESPALDO move /y "%KS%.respaldo-faltas-post" "%KS%" >nul
 if not "%RES%"=="0" goto :error
 
-copy /y "build\app\outputs\flutter-apk\app-release.apk" "faltas-pos.apk" >nul
+copy /y "build\app\outputs\flutter-apk\app-release.apk" "faltas-post.apk" >nul
 
 rem --- Publicar como actualizacion: los POS la descargan al abrir la app (Supabase Storage, quedan la actual y la anterior)
 echo.
@@ -117,15 +117,15 @@ if errorlevel 1 (
 set "FORZAR="
 choice /m "Hacerla obligatoria (los POS no pueden omitirla)"
 if not errorlevel 2 set "FORZAR=forzar"
-node publicar.mjs "faltas-pos.apk" %BUILD% %FORZAR%
+node publicar.mjs "faltas-post.apk" %BUILD% %FORZAR%
 if errorlevel 1 echo *** No se pudo publicar la actualizacion. ***
 :sin_publicar
 echo.
 echo ============================================================
-echo  Listo: %CD%\faltas-pos.apk
+echo  Listo: %CD%\faltas-post.apk
 echo  Sistema: %APP_URL%   Version: %BUILD%
 echo ============================================================
-explorer /select,"%CD%\faltas-pos.apk"
+explorer /select,"%CD%\faltas-post.apk"
 echo.
 echo === Instalando en el POS por USB (adb) ===
 set "ADB="
@@ -151,11 +151,11 @@ if not defined HAY (
   for /f "skip=1 tokens=1,2" %%a in ('"%ADB%" devices') do if "%%b"=="device" set "HAY=%%a"
 )
 if not defined HAY (
-  echo Sigue sin detectarse. El APK queda en %CD%\faltas-pos.apk
+  echo Sigue sin detectarse. El APK queda en %CD%\faltas-post.apk
   goto :fin
 )
 echo POS detectado: %HAY%
-"%ADB%" -s %HAY% install -r "%CD%\faltas-pos.apk" > "%TEMP%\faltas-adb.txt" 2>&1
+"%ADB%" -s %HAY% install -r "%CD%\faltas-post.apk" > "%TEMP%\faltas-adb.txt" 2>&1
 type "%TEMP%\faltas-adb.txt"
 findstr /c:"Success" "%TEMP%\faltas-adb.txt" >nul && goto :instalado
 findstr /i /c:"UPDATE_INCOMPATIBLE" /c:"SIGNATURES" /c:"VERSION_DOWNGRADE" "%TEMP%\faltas-adb.txt" >nul
@@ -163,8 +163,8 @@ if not errorlevel 1 (
   echo La app instalada tiene otra firma o una version mayor.
   choice /m "Desinstalarla (se borran sus datos) e instalar esta"
   if errorlevel 2 goto :fin
-  "%ADB%" -s %HAY% uninstall ar.gob.malvinasargentinas.faltas_pos
-  "%ADB%" -s %HAY% install "%CD%\faltas-pos.apk" > "%TEMP%\faltas-adb.txt" 2>&1
+  "%ADB%" -s %HAY% uninstall ar.gob.malvinasargentinas.faltas_post
+  "%ADB%" -s %HAY% install "%CD%\faltas-post.apk" > "%TEMP%\faltas-adb.txt" 2>&1
   type "%TEMP%\faltas-adb.txt"
   findstr /c:"Success" "%TEMP%\faltas-adb.txt" >nul && goto :instalado
 )
@@ -173,7 +173,7 @@ goto :fin
 
 :instalado
 echo Instalada. Abriendo la app en el POS...
-"%ADB%" -s %HAY% shell monkey -p ar.gob.malvinasargentinas.faltas_pos -c android.intent.category.LAUNCHER 1 >nul 2>nul
+"%ADB%" -s %HAY% shell monkey -p ar.gob.malvinasargentinas.faltas_post -c android.intent.category.LAUNCHER 1 >nul 2>nul
 
 :fin
 pause

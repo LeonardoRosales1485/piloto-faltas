@@ -9,7 +9,7 @@ on:
     inputs:
       app_url:
         description: URL del Sistema de Faltas que abre la app
-        default: https://piloto-faltas.vercel.app
+        default: https://piloto-faltas-post.vercel.app
       publicar:
         description: Publicar como actualización para los POS (si/no)
         default: 'si'
@@ -46,7 +46,7 @@ jobs:
           for p in INTERNET CAMERA ACCESS_FINE_LOCATION ACCESS_COARSE_LOCATION REQUEST_INSTALL_PACKAGES BLUETOOTH BLUETOOTH_ADMIN BLUETOOTH_CONNECT; do
             grep -q "android.permission.$p\"" $M || sed -i "s#<application#<uses-permission android:name=\"android.permission.$p\" />\n    <application#" $M
           done
-          sed -i 's#android:label="[^"]*"#android:label="Faltas"#' $M
+          sed -i 's#android:label="[^"]*"#android:label="Faltas Post"#' $M
           # Impresora: ver si está el servicio de Senraise (Android 11+ exige declararlo) y canal propio (MainActivity)
           grep -q 'recieptservice.com.recieptservice' $M || sed -i 's#<application#<queries><package android:name="recieptservice.com.recieptservice" /><package android:name="woyou.aidlservice.jiuiv5" /><package android:name="net.nyx.printerservice" /><package android:name="com.incar.printerservice" /></queries>\n    <application#' $M
           cp android-extra/MainActivity.kt android/app/src/main/kotlin/ar/gob/malvinasargentinas/faltas_pos/MainActivity.kt
@@ -55,6 +55,8 @@ jobs:
           mkdir -p android/app/src/main/res/xml && cp android-extra/filepaths.xml android/app/src/main/res/xml/filepaths.xml
           grep -q 'faltas-pos:' android/build.gradle.kts || { cat android-extra/root-prepend.gradle.kts android/build.gradle.kts > /tmp/r.kts && mv /tmp/r.kts android/build.gradle.kts; }
           sed -i 's/ndkVersion = flutter.ndkVersion/ndkVersion = "27.0.12077973"/' android/app/build.gradle.kts
+          # «Faltas Post»: paquete propio para convivir con «Faltas» (referencia 1.0)
+          sed -i 's/applicationId = "[^"]*"/applicationId = "ar.gob.malvinasargentinas.faltas_post"/' android/app/build.gradle.kts
           cat $M
 
       - name: Compilar APK
@@ -67,7 +69,7 @@ jobs:
           find $HOME/.pub-cache/hosted -path '*flutter_inappwebview*' -name build.gradle -exec sed -i "s/proguard-android.txt/proguard-android-optimize.txt/g" {} +
           BUILD=$(( ($(date -u +%s) - 1767225600) / 60 ))   # minutos desde 2026-01-01 UTC (igual que compilar-apk.bat)
           echo "BUILD=$BUILD" >> $GITHUB_ENV
-          flutter build apk --release --build-number=$BUILD --dart-define=APP_URL=${{ github.event.inputs.app_url || 'https://piloto-faltas.vercel.app' }}
+          flutter build apk --release --build-number=$BUILD --dart-define=APP_URL=${{ github.event.inputs.app_url || 'https://piloto-faltas-post.vercel.app' }} --dart-define=VERSION_URL=https://uahubgleoemcvuzuumyv.supabase.co/storage/v1/object/public/pos-app/version.json
 
       - name: Publicar como actualización (Supabase Storage)
         if: ${{ env.SUPABASE_SERVICE_ROLE_KEY != '' && github.event.inputs.publicar != 'no' }}

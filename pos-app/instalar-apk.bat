@@ -1,17 +1,17 @@
 @echo off
 setlocal EnableExtensions EnableDelayedExpansion
 chcp 65001 >nul
-title Instalar APK en el POS (Faltas)
+title Instalar APK en el POS (Faltas Post)
 cd /d "%~dp0"
 
 rem ============================================================
 rem  Instala en el POS (USB + adb) un APK ya compilado, sin volver a compilar.
-rem  Uso: doble click (instala pos-app\faltas-pos.apk o, si no existe, el ultimo build)
+rem  Uso: doble click (instala pos-app\faltas-post.apk o, si no existe, el ultimo build)
 rem       o  instalar-apk.bat "C:\ruta\al\archivo.apk"
 rem ============================================================
 
 set "APK=%~1"
-if "%APK%"=="" if exist "faltas-pos.apk" set "APK=%CD%\faltas-pos.apk"
+if "%APK%"=="" if exist "faltas-post.apk" set "APK=%CD%\faltas-post.apk"
 if "%APK%"=="" if exist "build\app\outputs\flutter-apk\app-release.apk" set "APK=%CD%\build\app\outputs\flutter-apk\app-release.apk"
 if "%APK%"=="" (
   echo No se encontro ningun APK. Compile con compilar-apk.bat o indique la ruta:  instalar-apk.bat "ruta\al.apk"
@@ -60,7 +60,7 @@ if not errorlevel 1 (
   echo La app instalada tiene otra firma o una version mayor.
   choice /m "Desinstalarla (se borran sus datos) e instalar esta"
   if errorlevel 2 goto :fin
-  "%ADB%" -s %HAY% uninstall ar.gob.malvinasargentinas.faltas_pos
+  "%ADB%" -s %HAY% uninstall ar.gob.malvinasargentinas.faltas_post
   "%ADB%" -s %HAY% install "%APK%" > "%TEMP%\faltas-adb.txt" 2>&1
   type "%TEMP%\faltas-adb.txt"
   findstr /c:"Success" "%TEMP%\faltas-adb.txt" >nul && goto :instalado
@@ -70,7 +70,7 @@ goto :fin
 
 :instalado
 echo Instalada. Abriendo la app en el POS...
-"%ADB%" -s %HAY% shell monkey -p ar.gob.malvinasargentinas.faltas_pos -c android.intent.category.LAUNCHER 1 >nul 2>nul
+"%ADB%" -s %HAY% shell monkey -p ar.gob.malvinasargentinas.faltas_post -c android.intent.category.LAUNCHER 1 >nul 2>nul
 
 :fin
 pause

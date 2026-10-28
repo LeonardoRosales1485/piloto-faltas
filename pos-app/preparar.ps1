@@ -9,7 +9,8 @@ if ($Paso -eq 'manifest') {
       $x = $x -replace '<application', "<uses-permission android:name=`"android.permission.$p`" />`n    <application"
     }
   }
-  $x = $x -replace 'android:label="[^"]*"', 'android:label="Faltas"'
+  # «Faltas Post»: nombre y paquete propios, para convivir en el POS con «Faltas» (referencia 1.0).
+  $x = $x -replace 'android:label="[^"]*"', 'android:label="Faltas Post"'
   # Impresora: ver si está el servicio de Senraise (Android 11+ exige declararlo)
   if ($x -notmatch 'recieptservice\.com\.recieptservice') {
     $x = $x -replace '<application', "<queries><package android:name=`"recieptservice.com.recieptservice`" /><package android:name=`"woyou.aidlservice.jiuiv5`" /><package android:name=`"net.nyx.printerservice`" /><package android:name=`"com.incar.printerservice`" /></queries>`n    <application"
@@ -24,7 +25,9 @@ if ($Paso -eq 'manifest') {
   if ($rx -notmatch 'faltas-pos:') { [IO.File]::WriteAllText($root, [IO.File]::ReadAllText((Join-Path $PSScriptRoot 'android-extra\root-prepend.gradle.kts')) + $rx) }
   $app = Join-Path $PSScriptRoot 'android\app\build.gradle.kts'
   $ax = [IO.File]::ReadAllText($app)
-  if ($ax -match 'ndkVersion = flutter.ndkVersion') { [IO.File]::WriteAllText($app, ($ax -replace 'ndkVersion = flutter.ndkVersion', 'ndkVersion = "27.0.12077973"')) }
+  $ax = $ax -replace 'ndkVersion = flutter.ndkVersion', 'ndkVersion = "27.0.12077973"'
+  $ax = $ax -replace 'applicationId = "[^"]*"', 'applicationId = "ar.gob.malvinasargentinas.faltas_post"'
+  [IO.File]::WriteAllText($app, $ax)
   # Canal propio de impresión (Bluetooth, datos del equipo)
   Copy-Item (Join-Path $PSScriptRoot 'android-extra\MainActivity.kt') (Join-Path $PSScriptRoot 'android\app\src\main\kotlin\ar\gob\malvinasargentinas\faltas_pos\MainActivity.kt') -Force
   $xml = Join-Path $PSScriptRoot 'android\app\src\main\res\xml'

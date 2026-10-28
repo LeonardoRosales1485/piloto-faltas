@@ -9,7 +9,7 @@ import 'package:permission_handler/permission_handler.dart';
 
 /// version.json publicado por pos-app/publicar.mjs en Supabase Storage.
 const versionUrl = String.fromEnvironment('VERSION_URL',
-    defaultValue: 'https://dmybbnqismmwhylkwuhq.supabase.co/storage/v1/object/public/pos-app/version.json');
+    defaultValue: 'https://uahubgleoemcvuzuumyv.supabase.co/storage/v1/object/public/pos-app/version.json');
 
 class Actualizacion {
   final int actual, nueva;
@@ -86,7 +86,7 @@ class _PantallaActualizacionState extends State<PantallaActualizacion> {
       if (!await Permission.requestInstallPackages.isGranted) {
         final st = await Permission.requestInstallPackages.request();
         if (!st.isGranted) {
-          if (mounted) setState(() { _fase = _Fase.error; _error = 'Falta permitir «Instalar apps desconocidas» para Faltas en los ajustes de Android. Actívelo y toque «Reintentar».'; });
+          if (mounted) setState(() { _fase = _Fase.error; _error = 'Falta permitir «Instalar apps desconocidas» para Faltas Post en los ajustes de Android. Actívelo y toque «Reintentar».'; });
           return;
         }
       }
@@ -106,7 +106,7 @@ class _PantallaActualizacionState extends State<PantallaActualizacion> {
           setState(() { _fase = _Fase.instalando; _progreso = 1; });
         } else if (s.contains('ERROR') || s == 'CANCELED') {
           setState(() { _fase = _Fase.error; _error = s == 'PERMISSION_NOT_GRANTED_ERROR'
-              ? 'Falta permitir «Instalar apps desconocidas» para Faltas en los ajustes de Android.'
+              ? 'Falta permitir «Instalar apps desconocidas» para Faltas Post en los ajustes de Android.'
               : s == 'CANCELED' ? 'Se canceló la instalación.' : 'No se pudo completar ($s${ev.value != null ? ': ${ev.value}' : ''}).'; });
         }
       }, onError: (e) {
