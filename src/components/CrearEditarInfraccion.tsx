@@ -329,10 +329,13 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
     const next = Math.min(pasos.length - 1, Math.max(0, n));
     // Salir de la firma con el equipo en manos del infractor: pide el PIN del inspector.
     if (!sinPin && bloqueoPin && esInspector && paso.id === 'firma' && next !== idx) { setPidePin(() => () => void irA(n, true)); return; }
-    if (next !== idx) setVisitados((v) => new Set(v).add(paso.id));
-    // Al dejar un paso incompleto se avisa qué falta, un momento y sin bloquear (reunión 27/10).
+    // Solo al avanzar el paso cuenta como recorrido (y se marca en rojo si le falta algo): volver con «Anterior» no
+    // significa que se terminó ese paso.
+    const avanza = next > idx;
+    if (avanza) setVisitados((v) => new Set(v).add(paso.id));
+    // Al dejar un paso incompleto hacia adelante se avisa qué falta, un momento y sin bloquear (reunión 27/10).
     const faltan = faltantes[paso.id] ?? [];
-    if (next !== idx && !soloLectura && paso.id !== 'firma' && faltan.length) setStopper({ paso: paso.titulo, faltan });
+    if (avanza && !soloLectura && paso.id !== 'firma' && faltan.length) setStopper({ paso: paso.titulo, faltan });
     if (!soloLectura && next !== idx) void guardarBorrador();
     setIdx(next);
     subirArriba();
