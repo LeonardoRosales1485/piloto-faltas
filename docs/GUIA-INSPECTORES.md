@@ -34,7 +34,7 @@ Guía corta para la capacitación de los inspectores antes de la prueba en calle
 1. **Ticket del infractor:** en la pantalla final, **«Imprimir ticket»**. Es uno solo (con las medidas adoptadas: retención de licencia o de vehículo). El QR lleva al acta.
 2. **Ticket del inspector** (solo si hubo retención): **«Ticket del inspector»**. **Va adjunto con la licencia** retenida o **con la VTV** del vehículo.
 3. Encabezado: **Municipio Malvinas Argentinas** · Subsecretaría de Tránsito y Bromatología.
-4. Si la impresora falla, el POS ofrece **«Imprimir con el sistema»**. Desde el inicio, **«Imprimir último ticket»** reimprime el último acta firmada en el equipo.
+4. Si la impresora falla, el POS ofrece **«Imprimir con el sistema»**. Desde el inicio, **«Imprimir último ticket»** reimprime la última acta firmada en el equipo (y también el ticket del inspector si hubo retención). En **«Consultar actas, retenciones y playón»** cada acta tiene **«Imprimir ticket»** (o «Imprimir tickets (2)» si hubo retención).
 
 > Para el ticket nuevo (encabezado y medidas adoptadas) hace falta la app **Faltas Post 1.1.0** o posterior.
 

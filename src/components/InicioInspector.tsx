@@ -60,7 +60,7 @@ export function InicioInspector() {
           <button type="button" className="inicio-inspector-boton" onClick={() => void reimprimir()}>
             <i className="fa-solid fa-print" aria-hidden="true" />
             <span>Imprimir último ticket</span>
-            {ultimo ? <small>{ultimo.t.numero} · {fechaHora(ultimo.at)}</small> : null}
+            {ultimo ? <small>{ultimo.t.numero} · {fechaHora(ultimo.at)}{ultimo.ti ? ' · con ticket del inspector' : ''}</small> : null}
           </button>
           {puede(user, 'portalInspectores') ? (
             <button type="button" className="inicio-inspector-boton" onClick={() => router.push('/private/inspeccion')}>

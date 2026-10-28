@@ -253,13 +253,13 @@ export function printActa(infraccion: Infraccion, extras: ActaExtras = {}): void
 }
 
 /** Modal «¿Imprimir el ticket?» para evitar impresiones por un toque accidental. Resuelve true si confirma. */
-function confirmarImpresion(numero: string): Promise<boolean> {
+function confirmarImpresion(numero: string, cuantos = 1): Promise<boolean> {
   return new Promise((resolve) => {
     const ov = document.createElement('div');
     ov.className = 'modal-fake-overlay';
     ov.innerHTML = `<div class="modal-fake modal-fake-sm" role="dialog" aria-modal="true" aria-label="Imprimir ticket">
       <div class="modal-fake-header"><i class="fa-solid fa-print" aria-hidden="true"></i><h2>Imprimir ticket</h2><button type="button" aria-label="Cerrar" data-r="0">&times;</button></div>
-      <div class="modal-fake-body"><p class="mb-0">¿Imprimir el ticket del acta <strong>${escapeHtml(numero || '')}</strong>?</p></div>
+      <div class="modal-fake-body"><p class="mb-0">${cuantos > 1 ? `¿Imprimir los ${cuantos} tickets del acta <strong>${escapeHtml(numero || '')}</strong>? El del infractor y el del inspector (va con lo retenido).` : `¿Imprimir el ticket del acta <strong>${escapeHtml(numero || '')}</strong>?`}</p></div>
       <div class="modal-fake-footer"><button type="button" class="btn btn-secondary" data-r="0">Cancelar</button><button type="button" class="btn btn-primary" data-r="1"><i class="fa-solid fa-print" aria-hidden="true"></i> Imprimir</button></div>
     </div>`;
     const cerrar = (ok: boolean) => { ov.remove(); document.removeEventListener('keydown', tecla); resolve(ok); };
@@ -282,29 +282,39 @@ function confirmarImpresion(numero: string): Promise<boolean> {
 const CLAVE_ULTIMO_TICKET = 'faltas.ultimoTicket';
 export async function guardarUltimoTicket(infraccion: Infraccion, usuario?: string): Promise<void> {
   try {
-    const t = datosTicket(infraccion, await textosLeyendas());
-    localStorage.setItem(CLAVE_ULTIMO_TICKET, JSON.stringify({ usuario: usuario ?? '', t, at: Date.now() }));
+    const textos = await textosLeyendas();
+    const t = datosTicket(infraccion, textos);
+    // Con retención de licencia o de vehículo también se guarda el ticket del inspector, para reimprimir los dos.
+    const ti = datosTicketInspector(infraccion, textos);
+    localStorage.setItem(CLAVE_ULTIMO_TICKET, JSON.stringify({ usuario: usuario ?? '', t, ti, at: Date.now() }));
   } catch { /* sin almacenamiento: no se podrá reimprimir desde el inicio */ }
 }
-export function leerUltimoTicket(usuario?: string): { t: DatosTicket; at: number } | null {
+export function leerUltimoTicket(usuario?: string): { t: DatosTicket; ti: DatosTicket | null; at: number } | null {
   try {
-    const v = JSON.parse(localStorage.getItem(CLAVE_ULTIMO_TICKET) ?? 'null') as { usuario?: string; t?: DatosTicket; at?: number } | null;
+    const v = JSON.parse(localStorage.getItem(CLAVE_ULTIMO_TICKET) ?? 'null') as { usuario?: string; t?: DatosTicket; ti?: DatosTicket | null; at?: number } | null;
     if (!v?.t || (usuario && v.usuario && v.usuario !== usuario)) return null;
-    return { t: v.t, at: v.at ?? 0 };
+    return { t: v.t, ti: v.ti ?? null, at: v.at ?? 0 };
   } catch {
     return null;
   }
 }
-/** Reimprime el último ticket guardado (con la confirmación de siempre). false si no hay ninguno. */
+/** Reimprime el último ticket guardado y, si hubo retención, también el del inspector. false si no hay ninguno. */
 export async function imprimirUltimoTicket(usuario?: string): Promise<boolean> {
   const u = leerUltimoTicket(usuario);
   if (!u) return false;
-  await imprimirDatosTicket(u.t, true);
+  await imprimirDatosTicket(u.ti ? [u.t, u.ti] : [u.t], true);
   return true;
 }
 
 export async function printTicket(infraccion: Infraccion, confirmar = true): Promise<void> {
-  return imprimirDatosTicket(datosTicket(infraccion, await textosLeyendas()), confirmar);
+  return imprimirDatosTicket([datosTicket(infraccion, await textosLeyendas())], confirmar);
+}
+
+/** Todos los tickets del acta: el del infractor y, si hubo retención, el del inspector (una sola confirmación). */
+export async function printTicketsDelActa(infraccion: Infraccion): Promise<void> {
+  const textos = await textosLeyendas();
+  const ti = datosTicketInspector(infraccion, textos);
+  return imprimirDatosTicket(ti ? [datosTicket(infraccion, textos), ti] : [datosTicket(infraccion, textos)], true);
 }
 
 /**
@@ -312,7 +322,14 @@ export async function printTicket(infraccion: Infraccion, confirmar = true): Pro
  * se retuvo el vehículo, con la VTV. Indica las dos retenciones. El infractor recibe un único ticket (printTicket).
  */
 export async function printTicketInspector(infraccion: Infraccion): Promise<void> {
-  const base = datosTicket(infraccion, await textosLeyendas());
+  const t = datosTicketInspector(infraccion, await textosLeyendas());
+  if (t) return imprimirDatosTicket([t], true);
+}
+
+/** Datos del ticket del inspector; null si el acta no tiene retención de licencia ni de vehículo. */
+export function datosTicketInspector(infraccion: Infraccion, textos: Record<string, string> = {}): DatosTicket | null {
+  if (!infraccion.retencionDeLicencia && !infraccion.retencionDeVehiculo) return null;
+  const base = datosTicket(infraccion, textos);
   const licencia = Boolean(infraccion.retencionDeLicencia);
   const t: DatosTicket = {
     ...base,
@@ -327,26 +344,38 @@ export async function printTicketInspector(infraccion: Infraccion): Promise<void
     aviso: licencia ? 'VA ADJUNTO CON LA LICENCIA RETENIDA' : 'VA ADJUNTO CON LA VTV',
     leyendas: [`Corresponde al acta ${base.numero}.`],
   };
-  return imprimirDatosTicket(t, true);
+  return t;
 }
 
-async function imprimirDatosTicket(t: DatosTicket, confirmar: boolean): Promise<void> {
-  if (confirmar && !(await confirmarImpresion(t.numero))) return;
+/** Imprime uno o más tickets seguidos (ticket del infractor y del inspector) con una sola confirmación. */
+async function imprimirDatosTicket(ts: DatosTicket[], confirmar: boolean): Promise<void> {
+  if (!ts.length) return;
+  if (confirmar && !(await confirmarImpresion(ts[0].numero, ts.length))) return;
   // En el POS Senraise (app del inspector) imprime directo con la impresora térmica, sin diálogo.
   const pos = puentePos();
+  let pendientes = ts;
   if (pos) {
     let error = '';
-    try {
-      const r = await llamarPos<{ ok?: boolean; error?: string } | null>(pos, 'imprimirTicket', { ...t, ...leerAjustesImpresora() });
-      if (!r || r.ok !== false) return;
-      error = r.error || 'La impresora del equipo no respondió.';
-    } catch (e) {
-      error = e instanceof Error ? e.message : 'La impresora del equipo no respondió.';
+    for (let n = 0; n < ts.length; n++) {
+      try {
+        const r = await llamarPos<{ ok?: boolean; error?: string } | null>(pos, 'imprimirTicket', { ...ts[n], ...leerAjustesImpresora() });
+        if (!r || r.ok !== false) continue;
+        error = r.error || 'La impresora del equipo no respondió.';
+      } catch (e) {
+        error = e instanceof Error ? e.message : 'La impresora del equipo no respondió.';
+      }
+      pendientes = ts.slice(n);
+      break;
     }
+    if (!error) return;
     console.warn('Impresora del POS:', error);
-    // Si la impresora nativa falla, se avisa y se ofrece la impresión web (diálogo de Android).
+    // Si la impresora nativa falla, se avisa y se ofrece la impresión web (diálogo de Android) de lo que faltó.
     if (!(await avisoFalloImpresora(error))) return;
   }
+  abrirVentana('Ticket de infracción', pendientes.map(htmlTicket).join('<div style="page-break-after:always"></div>'), ticketCss(), 340);
+}
+
+function htmlTicket(t: DatosTicket): string {
   const campo = (label: string, valor: string) => `<div class="t-campo"><span class="t-label">${label}</span><span class="t-valor">${escapeHtml(valor)}</span></div>`;
   const cuerpo = `<div class="ticket">
     <div class="t-centro">${logoTicket()}<p class="t-muni">${escapeHtml(t.encabezado ?? ENCABEZADO_TICKET)}</p>${t.subencabezado ? `<p class="t-dir">${escapeHtml(t.subencabezado)}</p>` : ''}</div>
@@ -364,7 +393,7 @@ async function imprimirDatosTicket(t: DatosTicket, confirmar: boolean): Promise<
     <p class="t-leyenda">Escanee para ver el acta digital</p>
     ${t.codigo ? `<p class="t-codigo">Código: ${t.codigo}</p>` : ''}
   </div>`;
-  abrirVentana('Ticket de infracción', cuerpo, ticketCss(), 340);
+  return cuerpo;
 }
 
 /** Dirección del control de liberación que escanea el corralón (QR de la disposición y de la constancia). */

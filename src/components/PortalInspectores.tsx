@@ -4,12 +4,14 @@ import { useCallback, useEffect, useState } from 'react';
 import { http } from '@/lib/api-client';
 import { fechaHora } from '@/lib/dominio';
 import { useAuthUser } from '@/lib/use-auth-user';
-import { EstadoChip } from './EstadoChip';
+import { printTicketsDelActa } from '@/lib/print';
+import type { Infraccion } from '@/lib/types';
+import { useNotify } from './NotifyProvider';
 
 type Fila = {
-  uuid: string; acta: string; tipo: string; fecha: string | null; firmadaAt: number | null; estado: string; inspector: string | null; legajoInspector: string | null;
+  uuid: string; acta: string; tipo: string; fecha: string | null; firmadaAt: number | null; inspector: string | null; legajoInspector: string | null;
   dominio: string | null; vehiculo: string | null; licencia: string | null; infractor: string; documento: string | null; lugar: string;
-  retieneLicencia: boolean; retieneVehiculo: boolean; medidaVigente: boolean; ingreso?: number; dias?: number; liberacion?: string; vigenteHasta?: number | null;
+  retieneLicencia: boolean; retieneVehiculo: boolean; ingreso?: number; dias?: number; liberacion?: string; vigenteHasta?: number | null;
 };
 type Vista = 'actas' | 'retenciones' | 'playon';
 
@@ -38,6 +40,29 @@ const aMs = (d: string, fin = false) => (d ? new Date(`${d}T${fin ? '23:59:59' :
 export function PortalInspectores() {
   const user = useAuthUser();
   const soloPropias = user?.rol === 'Inspector';
+  const notify = useNotify();
+  const [imprimiendo, setImprimiendo] = useState('');
+
+  /** Reimprime el ticket del acta y, si hubo retención, también el del inspector (va con lo retenido). */
+  async function imprimir(f: Fila) {
+    setImprimiendo(f.uuid);
+    try {
+      const acta = await http.get<Infraccion>(`/api/inspeccion/ticket?uuid=${encodeURIComponent(f.uuid)}`);
+      await printTicketsDelActa(acta);
+    } catch (e) {
+      notify.error('No se pudo imprimir', (e as Error).message);
+    } finally {
+      setImprimiendo('');
+    }
+  }
+  const botonTicket = (f: Fila) => {
+    const dos = f.retieneLicencia || f.retieneVehiculo;
+    return (
+      <button type="button" className="btn btn-sm btn-outline-primary text-nowrap" disabled={imprimiendo === f.uuid} onClick={() => void imprimir(f)} title={dos ? 'Ticket del infractor y ticket del inspector (va con lo retenido)' : 'Ticket del infractor'}>
+        {imprimiendo === f.uuid ? <i className="fa-solid fa-spinner fa-spin" aria-hidden="true" /> : <i className="fa-solid fa-print" aria-hidden="true" />} {dos ? 'Imprimir tickets (2)' : 'Imprimir ticket'}
+      </button>
+    );
+  };
   const [vista, setVista] = useState<Vista>('actas');
   const [q, setQ] = useState('');
   const [desde, setDesde] = useState('');
@@ -104,9 +129,10 @@ export function PortalInspectores() {
               <thead>
                 <tr>
                   <th>Acta</th><th>Fecha</th><th>Inspector</th>
-                  {vista === 'actas' ? <><th>Infractor</th><th>Dominio</th><th>Lugar</th><th>Estado</th></> : null}
-                  {vista === 'retenciones' ? <><th>Infractor</th><th>Retuvo</th><th>Licencia / Dominio</th><th>Medida</th></> : null}
+                  {vista === 'actas' ? <><th>Infractor</th><th>Dominio</th><th>Lugar</th></> : null}
+                  {vista === 'retenciones' ? <><th>Infractor</th><th>Retuvo</th><th>Licencia / Dominio</th></> : null}
                   {vista === 'playon' ? <><th>Dominio</th><th>Vehículo</th><th>Días</th><th>Liberación</th></> : null}
+                  <th>Tickets</th>
                 </tr>
               </thead>
               <tbody>
@@ -115,13 +141,12 @@ export function PortalInspectores() {
                     <td><strong>{f.acta}</strong><div className="texto-ayuda">{f.tipo}</div></td>
                     <td>{fechaHora(f.firmadaAt)}</td>
                     <td>{f.inspector ?? '-'}{f.legajoInspector ? <div className="texto-ayuda">Leg. {f.legajoInspector}</div> : null}</td>
-                    {vista === 'actas' ? <><td>{f.infractor}{f.documento ? <div className="texto-ayuda">DNI {f.documento}</div> : null}</td><td>{f.dominio ?? '-'}</td><td>{f.lugar || '-'}</td><td><EstadoChip estado={f.estado} medida={f.medidaVigente} /></td></> : null}
+                    {vista === 'actas' ? <><td>{f.infractor}{f.documento ? <div className="texto-ayuda">DNI {f.documento}</div> : null}</td><td>{f.dominio ?? '-'}</td><td>{f.lugar || '-'}</td></> : null}
                     {vista === 'retenciones' ? (
                       <>
                         <td>{f.infractor}</td>
                         <td>{[f.retieneLicencia ? 'Licencia' : '', f.retieneVehiculo ? 'Vehículo' : ''].filter(Boolean).join(' y ')}</td>
                         <td>{f.retieneLicencia ? <div>Lic. {f.licencia ?? '-'}</div> : null}{f.retieneVehiculo ? <div>{f.dominio ?? '-'}</div> : null}</td>
-                        <td>{f.medidaVigente ? <span className="badge bg-danger">Vigente</span> : <span className="badge bg-success">Levantada</span>}</td>
                       </>
                     ) : null}
                     {vista === 'playon' ? (
@@ -132,6 +157,7 @@ export function PortalInspectores() {
                         <td><span className={`badge ${LIBERACION[f.liberacion ?? '']?.c ?? 'bg-secondary'}`}>{LIBERACION[f.liberacion ?? '']?.t ?? f.liberacion}</span>{f.liberacion === 'vigente' && f.vigenteHasta ? <div className="texto-ayuda">Hasta {fechaHora(f.vigenteHasta)}</div> : null}</td>
                       </>
                     ) : null}
+                    <td>{botonTicket(f)}</td>
                   </tr>
                 ))}
               </tbody>
