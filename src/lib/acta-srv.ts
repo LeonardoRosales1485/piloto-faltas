@@ -1,4 +1,4 @@
-import { modulosDe, type ModuloActa } from './dominio';
+import { modulosDe, SITUACIONES_VALIDAS, textoSituacion, type ModuloActa } from './dominio';
 import { valoresVigentes } from './causa-srv';
 import { causaPorUuid, check, configNum, historial, HttpError, nombreUsuario, sha, type Db } from './srv';
 import { ahoraArgentina, formatearNumeroActa, resolverLeyes, TIPOS_ACTA, tipoActa } from './dominio';
@@ -10,40 +10,80 @@ export async function reservar(d: Db, serie: string): Promise<number> {
   return Number(data);
 }
 
-/** Crea el borrador del acta con número de su serie y legajo común ya reservados (RN-02, RN-03). */
-/** Horas sin firmar tras las cuales el borrador de un inspector se da por abandonado (app cerrada a mitad del acta). */
-const HORAS_BORRADOR_ABANDONADO = 12;
+/**
+ * Plazo de labrado (reunión 27/10): el acta abierta vence si no se firma ni se extiende a tiempo y queda
+ * «Acta abandonada» (número anulado). Horas por tipo de acta en la configuración (Configuración → Labrado en el POS).
+ */
+export async function plazoLabradoMs(d: Db, tipo: string): Promise<number> {
+  const defecto = tipo === 'multas' ? 1 : 24;
+  const horas = await configNum(d, `labrado_plazo_horas_${tipo}`, defecto);
+  return Math.max(0.05, horas) * 3600 * 1000;
+}
 
-/** Anula borradores como «Acta incompleta» (número anulado, con historial). */
+/** Anula borradores como «Acta abandonada» (número anulado, con historial). */
 async function anularAbandonados(d: Db, filas: { id: number }[], motivo: string) {
   for (const f of filas) {
     await d.from('infraccion').update({ estado_faltas: 'Anulada', anulada_motivo: motivo }).eq('id', f.id).eq('estado_faltas', 'Borrador');
-    await historial(d, f.id, 'Sistema', 'Acta incompleta', motivo, { anterior: 'Borrador', nuevo: 'Anulada' });
+    await historial(d, f.id, 'Sistema', 'Acta abandonada', motivo, { anterior: 'Borrador', nuevo: 'Anulada' });
   }
+}
+
+type BorradorPlazo = { id: number; uuid: string; infraccion_tipo_nombre: string; date_created: number; labrado_vence_at?: number | null };
+
+/** Vencimiento del labrado: el guardado, o (actas anteriores a sql/034) la creación más el plazo de su tipo. */
+async function venceDe(d: Db, b: BorradorPlazo): Promise<number> {
+  return Number(b.labrado_vence_at) || Number(b.date_created) + (await plazoLabradoMs(d, b.infraccion_tipo_nombre));
 }
 
 /**
- * Borradores de inspectores que ya no se pueden retomar (no tienen listado ni «Guardar borrador»):
- * - los del mismo inspector, al empezar un acta nueva (cerró la app o salió sin pasar por el aviso);
- * - los de cualquier inspector con más de HORAS_BORRADOR_ABANDONADO horas sin firmar.
- * Los borradores del back office (Directora, Responsables, Administrador) no se tocan.
+ * Da por abandonados los borradores de inspectores con el plazo de labrado vencido. Los del back office no se tocan.
+ * Devuelve los borradores vigentes del inspector indicado (para retomarlos: el acta se termina sí o sí).
  */
-export async function abandonarBorradores(d: Db, user: UsuarioRow) {
-  if (user.rol === 'Inspector') {
-    const { data } = await d.from('infraccion').select('id').eq('estado_faltas', 'Borrador').eq('inspector_username', user.username);
-    await anularAbandonados(d, (data ?? []) as { id: number }[], 'Acta incompleta: el inspector empezó otra acta sin firmar esta');
-  }
+export async function abandonarVencidos(d: Db, inspector?: string): Promise<BorradorPlazo[]> {
   const { data: insp } = await d.from('usuario').select('username').eq('rol', 'Inspector');
   const nombres = ((insp ?? []) as { username: string }[]).map((x) => x.username);
-  if (!nombres.length) return;
-  const limite = Date.now() - HORAS_BORRADOR_ABANDONADO * 3600 * 1000;
-  const { data: viejos } = await d.from('infraccion').select('id').eq('estado_faltas', 'Borrador').in('inspector_username', nombres).lt('date_created', limite);
-  await anularAbandonados(d, (viejos ?? []) as { id: number }[], `Acta incompleta: más de ${HORAS_BORRADOR_ABANDONADO} horas sin firmar`);
+  if (!nombres.length) return [];
+  const { data } = await d.from('infraccion').select('*').eq('estado_faltas', 'Borrador').in('inspector_username', nombres);
+  const ahora = Date.now();
+  const vigentes: BorradorPlazo[] = [];
+  for (const b of (data ?? []) as (BorradorPlazo & { inspector_username: string })[]) {
+    const vence = await venceDe(d, b);
+    if (vence < ahora) await anularAbandonados(d, [b], `Acta abandonada: venció el plazo de labrado (${new Date(vence).toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' })}) sin firmarla ni extenderlo`);
+    else if (b.inspector_username === inspector) vigentes.push(b);
+  }
+  return vigentes;
 }
 
+/** Inspector con el plazo vencido: el acta queda abandonada y no se puede guardar ni firmar. */
+export async function controlarPlazo(d: Db, user: UsuarioRow, c: { id: number; estado_faltas: string } & Record<string, unknown>) {
+  if (user.rol !== 'Inspector' || c.estado_faltas !== 'Borrador') return;
+  const vence = await venceDe(d, c as unknown as BorradorPlazo);
+  if (vence >= Date.now()) return;
+  await anularAbandonados(d, [c], 'Acta abandonada: venció el plazo de labrado sin firmarla ni extenderlo');
+  throw new HttpError(409, 'Venció el plazo de labrado: el acta quedó abandonada (número anulado).');
+}
+
+/** Extiende el plazo de labrado del acta abierta (botón «Extender tiempo» del POS): suma el plazo de su tipo. */
+export async function extenderLabrado(d: Db, user: UsuarioRow, uuidActa: string) {
+  const c = await causaPorUuid(d, uuidActa);
+  check(c.estado_faltas === 'Borrador', 'El acta ya no está abierta', 409);
+  const b = c as unknown as BorradorPlazo;
+  const vence = await venceDe(d, b);
+  check(vence >= Date.now(), 'El plazo de labrado ya venció: el acta quedó abandonada', 409);
+  const nuevo = vence + (await plazoLabradoMs(d, b.infraccion_tipo_nombre));
+  const { error } = await d.from('infraccion').update({ labrado_vence_at: nuevo }).eq('id', c.id);
+  if (error) throw new HttpError(500, 'Falta correr sql/034 (plazo de labrado)');
+  await historial(d, c.id, nombreUsuario(user), 'Plazo de labrado extendido', `Nuevo vencimiento: ${new Date(nuevo).toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' })}`);
+  return { venceAt: nuevo };
+}
+
+/** Crea el borrador del acta con número de su serie y legajo común ya reservados (RN-02, RN-03). */
 export async function iniciarActa(d: Db, user: UsuarioRow, tipoNombre: string, uuid: string) {
-  // Antes de reservar un número nuevo: dar por abandonados los borradores que ya no se pueden retomar.
-  try { await abandonarBorradores(d, user); } catch { /* no impide labrar */ }
+  // Antes de reservar un número nuevo: se abandonan los vencidos y, si el inspector tiene un acta abierta vigente, se
+  // retoma esa (reunión 27/10: el acta iniciada se termina sí o sí).
+  let abiertas: BorradorPlazo[] = [];
+  try { abiertas = await abandonarVencidos(d, user.rol === 'Inspector' ? user.username : undefined); } catch { /* no impide labrar */ }
+  if (abiertas.length) return { ...(abiertas.sort((a, b) => b.id - a.id)[0] as { id: number; uuid: string }), retomada: true };
   const tipo = tipoActa(tipoNombre);
   const info = TIPOS_ACTA[tipo];
   const nActa = await reservar(d, info.serie);
@@ -72,6 +112,8 @@ export async function iniciarActa(d: Db, user: UsuarioRow, tipoNombre: string, u
   };
   const { data, error } = await d.from('infraccion').insert(row).select('*').single();
   if (error) throw new HttpError(500, error.message);
+  // Vencimiento del labrado (sql/034). Aparte: sin la columna, el acta se crea igual.
+  await d.from('infraccion').update({ labrado_vence_at: Date.now() + (await plazoLabradoMs(d, tipo)) }).eq('id', (data as { id: number }).id);
   return data as { id: number; uuid: string };
 }
 
@@ -86,21 +128,29 @@ export async function montoEstimado(d: Db, infraccionId: number): Promise<number
 }
 
 /** Valida y firma el acta. A partir de acá es inmutable y entra como causa «Iniciado». */
+/** true si alguno de los artículos del acta exige foto. */
+async function fotoRequeridaPor(d: Db, infraccionId: number): Promise<boolean> {
+  const { data: rel } = await d.from('infraccion_ley').select('ley_nombre').eq('infraccion_id', infraccionId);
+  const nombres = ((rel ?? []) as { ley_nombre: string }[]).map((r) => r.ley_nombre);
+  if (!nombres.length) return false;
+  const { data: leyes, error } = await d.from('ley').select('nombre, articulo, multiplicador, requiere_foto');
+  if (error) return false; // sin sql/034
+  return resolverLeyes(nombres, (leyes ?? []) as { nombre: string; articulo: string; multiplicador: number; requiere_foto?: number }[]).some((l) => Number((l as { requiere_foto?: number }).requiere_foto) === 1);
+}
+
 export async function firmarActa(d: Db, user: UsuarioRow, uuidActa: string, firmaInfractor: string | null) {
   const c = await causaPorUuid(d, uuidActa);
   check(c.estado_faltas === 'Borrador', 'El acta ya fue firmada o anulada', 409);
+  await controlarPlazo(d, user, c as unknown as { id: number; estado_faltas: string });
   check(modulosDe(user).includes(String(c.infraccion_tipo_nombre) as ModuloActa), 'No tiene autorizado labrar este tipo de acta', 403);
   check(user.firma_activa !== false, 'Su firma digital está inactiva: pida a la Dirección de Faltas que la habilite en «Inspectores».', 403);
   const sit = String(c.situacion_infractor ?? '');
-  check(['presente', 'ausente', 'se_niega', 'nn'].includes(sit), 'Indique la situación del infractor');
-  if (sit !== 'nn') {
-    // Ausente: nombre y documento no son obligatorios (se cargan si se pueden constatar).
-    if (sit !== 'ausente') check(String(c.infractor_nombre ?? '').trim() || String(c.infractor_razon_social ?? '').trim(), 'Complete el nombre o la razón social del infractor');
-    // Ausente: el documento o CUIT no es obligatorio (se carga si se puede constatar).
-    if (sit !== 'ausente') check(String(c.infractor_documento_numero ?? '').trim() || String(c.infractor_cuit ?? '').trim(), 'Complete el documento o CUIT del infractor');
-    if (sit === 'presente' || sit === 'se_niega') {
-      check(String(c.infractor_domicilio ?? '').trim(), 'Complete el domicilio del infractor');
-    }
+  check(SITUACIONES_VALIDAS.includes(sit), 'Indique la situación de la persona');
+  // Reunión 27/10: los datos de la persona se exigen solo si está presente (si no, se cargan los que se constaten).
+  if (sit === 'presente' || sit === 'se_niega') {
+    check(String(c.infractor_nombre ?? '').trim() || String(c.infractor_razon_social ?? '').trim(), 'Complete el nombre o la razón social del infractor');
+    check(String(c.infractor_documento_numero ?? '').trim() || String(c.infractor_cuit ?? '').trim(), 'Complete el documento o CUIT del infractor');
+    check(String(c.infractor_domicilio ?? '').trim(), 'Complete el domicilio del infractor');
   }
   check(String(c.domicilio_infraccion_calle ?? '').trim(), 'Complete el lugar de infracción');
   if (String(c.infraccion_tipo_nombre) !== 'contravenciones') {
@@ -110,13 +160,15 @@ export async function firmarActa(d: Db, user: UsuarioRow, uuidActa: string, firm
       const meta = (() => { try { return JSON.parse(String(c.metadata_json ?? '{}')) as Record<string, string>; } catch { return {}; } })();
       check(String(meta.marca ?? '').trim(), 'Complete la marca del vehículo');
       check(String(meta.modelo ?? '').trim(), 'Complete el modelo del vehículo');
-      check(String(meta.sentidoCirculacion ?? '').trim(), 'Complete el sentido de circulación');
     }
   }
-  const { count: fotos } = await d.from('infraccion_imagen').select('*', { count: 'exact', head: true }).eq('infraccion_id', c.id);
-  check((fotos ?? 0) > 0, 'Suba al menos una foto');
   const { count } = await d.from('infraccion_ley').select('*', { count: 'exact', head: true }).eq('infraccion_id', c.id);
   check((count ?? 0) > 0, 'Seleccione al menos un artículo');
+  // La foto es obligatoria solo si algún artículo la pide (Ordenanzas → «Requiere foto», sql/034).
+  if (await fotoRequeridaPor(d, c.id)) {
+    const { count: fotos } = await d.from('infraccion_imagen').select('*', { count: 'exact', head: true }).eq('infraccion_id', c.id);
+    check((fotos ?? 0) > 0, 'Suba al menos una foto: la pide uno de los artículos');
+  }
   if (sit === 'presente') check(firmaInfractor && firmaInfractor.startsWith('data:image'), 'Falta la firma del infractor');
 
   const medidas = (() => { try { return JSON.parse(String(c.medidas_preventivas ?? '[]')) as string[]; } catch { return []; } })();
@@ -133,7 +185,7 @@ export async function firmarActa(d: Db, user: UsuarioRow, uuidActa: string, firm
       estado_faltas: 'Iniciado',
       medida_vigente: conMedida ? 1 : 0,
       monto_estimado: monto,
-      legajo_caratula: `${c.legajo_numero_acta} · ${c.infractor_nombre || c.infractor_razon_social || 'NN'}`,
+      legajo_caratula: `${c.legajo_numero_acta} · ${c.infractor_nombre || c.infractor_razon_social || 'Sin identificar'}`,
     })
     .eq('id', c.id);
   if (error) throw new HttpError(500, error.message);
@@ -141,7 +193,9 @@ export async function firmarActa(d: Db, user: UsuarioRow, uuidActa: string, firm
   // Si falta sql/023 la columna no existe y la causa usa los valores vigentes, como antes.
   await d.from('infraccion').update({ valores_labrado_json: JSON.stringify(await valoresVigentes(d, c)) }).eq('id', c.id);
   const firmante = nombreUsuario(user);
-  await historial(d, c.id, firmante, 'Acta firmada', `Firma del inspector registrada (código ${hash.slice(0, 12)}). Situación del infractor: ${sit}.`, { anterior: 'Borrador', nuevo: 'Iniciado' });
+  const metaF = (() => { try { return JSON.parse(String(c.metadata_json ?? '{}')) as Record<string, string>; } catch { return {}; } })();
+  const motivo = metaF.motivoIncompleta ? ` Datos faltantes completados con «Desconocido» · motivo: ${metaF.motivoIncompleta}.` : '';
+  await historial(d, c.id, firmante, 'Acta firmada', `Firma del inspector registrada (código ${hash.slice(0, 12)}). Situación de la persona: ${textoSituacion(sit) || sit}.${motivo}`, { anterior: 'Borrador', nuevo: 'Iniciado' });
   await historial(d, c.id, 'Sistema', 'Ingreso como causa', conMedida ? 'El acta trae medida preventiva: queda pendiente de resolución.' : null);
   return { uuid: c.uuid, hash };
 }

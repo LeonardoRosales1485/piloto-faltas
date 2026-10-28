@@ -25,15 +25,16 @@ export default async function ActaPublicaPage({ params }: { params: Promise<{ uu
         <div className="portal-header-inner">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/images/Municipio_malvinas_argentinas_logo.png" alt="Municipalidad de Malvinas Argentinas" />
-          <div><strong>Verificación de acta</strong><span>Dirección de Faltas · Malvinas Argentinas</span></div>
+          <div><strong>Consulta de acta</strong><span>Dirección de Faltas · Malvinas Argentinas</span></div>
         </div>
       </header>
       <main className="portal-main" style={{ maxWidth: 560 }}>
         <div className="portal-card text-center">
           {valida ? (
             <>
-              <i className="fa-solid fa-circle-check" style={{ fontSize: 48, color: '#16a34a' }} aria-hidden="true" />
-              <h1 className="mt-2">Acta válida</h1>
+              <i className="fa-solid fa-file-lines" style={{ fontSize: 48, color: '#2563eb' }} aria-hidden="true" />
+              {/* Reunión 27/10: la validez la determina la Dirección; el título dice solo qué es. */}
+              <h1 className="mt-2">{tipoActa(String(a!.infraccion_tipo_nombre)) === 'multas' ? 'Acta de infracción' : 'Acta de contravención'}</h1>
               <p className="mb-1"><strong>{TIPOS_ACTA[tipoActa(String(a!.infraccion_tipo_nombre))].titulo} {String(a!.legajo_numero_acta)}</strong></p>
               <p className="texto-ayuda">Labrada el {String(a!.legajo_fecha ?? '').replace('T', ' ')} por {String(a!.inspector_nombre ?? 'inspector municipal')}.<br />Código de verificación: {String(a!.firma_inspector_hash ?? '').slice(0, 16).toUpperCase()}</p>
               <Link className="btn btn-primary btn-lg w-100" href={`/portal/causa/${uuid}`}>Ver y gestionar mi acta</Link>
@@ -44,7 +45,7 @@ export default async function ActaPublicaPage({ params }: { params: Promise<{ uu
           ) : (
             <>
               <i className="fa-solid fa-circle-xmark" style={{ fontSize: 48, color: '#dc2626' }} aria-hidden="true" />
-              <h1 className="mt-2">Acta no válida</h1>
+              <h1 className="mt-2">Acta no encontrada</h1>
               <p className="texto-ayuda mb-0">No existe un acta firmada para este código. Si recibió un ticket, comuníquese con la Dirección de Faltas.</p>
             </>
           )}

@@ -23,8 +23,9 @@ class ImpresoraTicket {
       await _p.printPic(logo.buffer.asUint8List());
       await _p.nextLine(1);
     } catch (_) {/* sin logo si la impresora no acepta la imagen */}
-    await _texto('MUNICIPALIDAD DE\nMALVINAS ARGENTINAS', tam: 28, negrita: true);
-    await _texto('Dirección de Faltas', tam: 24);
+    // Encabezado: lo manda la web (reunión 27/10: «Municipio Malvinas Argentinas», sin «Dirección de Faltas»).
+    await _texto('${t['encabezado'] ?? 'MUNICIPIO MALVINAS ARGENTINAS'}', tam: 28, negrita: true);
+    if ('${t['subencabezado'] ?? ''}'.isNotEmpty) await _texto('${t['subencabezado'] ?? ''}', tam: 24);
     await _separador();
     await _texto('${t['titulo'] ?? 'ACTA'}', tam: 28, negrita: true);
     await _texto('${t['numero'] ?? '-'}', tam: 48, negrita: true);
@@ -40,6 +41,14 @@ class ImpresoraTicket {
       await _texto('• $a', tam: 26, negrita: true);
     }
     await _p.nextLine(1);
+    final medidas = ((t['medidas'] as List?)?.map((e) => '$e').toList() ?? const <String>[]);
+    if (medidas.isNotEmpty) {
+      await _texto('MEDIDAS ADOPTADAS', tam: 22, negrita: true);
+      for (final m in medidas) {
+        await _texto('• $m', tam: 24, negrita: true);
+      }
+      await _p.nextLine(1);
+    }
     await _campo('REPARTICIÓN', '${t['reparticion'] ?? '-'}');
 
     // Aviso

@@ -182,6 +182,7 @@ export function PortalCausa() {
         {r.medidaVigente ? <div className="aviso aviso-peligro mt-2 mb-0"><i className="fa-solid fa-triangle-exclamation" aria-hidden="true" /> Esta acta tiene una <strong>medida preventiva vigente</strong> ({[d.acta?.retencionDeLicencia ? 'retención de licencia' : '', d.acta?.retencionDeVehiculo ? 'retención de vehículo' : '', ...(d.acta?.medidasPreventivas ?? [])].filter(Boolean).join(', ')}). Sigue vigente aunque pague, hasta que la Dirección de Faltas disponga su levantamiento.</div> : null}
       </div>
 
+      {d.noTitular ? <div className="aviso aviso-alerta"><i className="fa-solid fa-id-card" aria-hidden="true" /> <strong>El acta no está a nombre de su DNI/CUIT.</strong> Puede verla, pero no queda notificado/a ni puede pedir pagos o presentar descargos. Si es el titular, verifique el documento de su perfil o acérquese a la Dirección.</div> : null}
       {d.subsanacion ? <div className="aviso aviso-info"><i className="fa-solid fa-pen-to-square" aria-hidden="true" /> La Dirección de Faltas <strong>subsanó datos del acta</strong> el {fechaCorta(d.subsanacion.fecha)}. Se muestran los datos corregidos; la constancia está en sus documentos.</div> : null}
       {observada ? <div className="aviso aviso-alerta"><strong>Su descargo fue observado:</strong> {observada.respuesta}. Puede reenviarlo una única vez.</div> : null}
 

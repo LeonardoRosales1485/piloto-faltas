@@ -130,6 +130,20 @@ export async function historial(
     estado_nuevo: estados?.nuevo ?? null,
     detalle: detalle ?? null,
   });
+  await tocarResponsable(d, infraccionId, usuario);
+}
+
+/** Usuarios que no cuentan como responsables: el sistema, el portal ciudadano y los procesos automáticos. */
+const NO_RESPONSABLE = /^(sistema|portal|automático|automatico|cron|mercado ?pago)\b|\(portal\)|\(sistema\)/i;
+
+/**
+ * Reunión 27/10: el último usuario que trabaja la causa queda como «Responsable», salvo que se haya asignado
+ * uno fijo («Asignar a este usuario»). Si la columna todavía no existe (035 sin correr), no hace nada.
+ */
+export async function tocarResponsable(d: Db, infraccionId: number, usuario: string) {
+  const u = String(usuario ?? '').trim();
+  if (!u || NO_RESPONSABLE.test(u)) return;
+  await d.from('infraccion').update({ responsable: u }).eq('id', infraccionId).eq('responsable_fijo', 0);
 }
 
 /** Cambia el estado de Faltas de la causa y deja constancia. Valida la regla del archivo por pago. */

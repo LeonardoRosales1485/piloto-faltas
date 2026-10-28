@@ -1115,3 +1115,41 @@ html[data-text-size='muy-grande'] { font-size: 137.5%; }
 .firma-intendente .lista-items li.activo { background: var(--bo-bg-azul-50, #eff6ff); }
 [data-theme='dark'] .firma-intendente .lista-items li.activo { background: rgba(59, 130, 246, .15); }
 .firma-intendente .fi-hoja { display: block; width: 100%; height: 75vh; border: 0; border-top: 1px solid var(--bo-borde); margin-top: .75rem; background: #fff; border-radius: 0 0 var(--bo-radio-lg) var(--bo-radio-lg); }
+
+/* Reunión 27/10: labrado en el POS. */
+/* Stepper móvil en rojo cuando algún paso tiene datos faltantes. */
+.wizard-movil .wizard-movil-barra.con-faltantes { background: var(--bo-bg-rojo-50, #fef2f2); outline: 2px solid #dc2626; color: #991b1b; }
+.wizard-movil-barra.con-faltantes .wizard-movil-progreso span { background: #dc2626; }
+[data-theme='dark'] .wizard-movil-barra.con-faltantes { background: rgba(220, 38, 38, .18); color: #fecaca; }
+/* Aviso breve «Cuidado, faltó: …» (no bloquea: se va solo o con un toque). */
+.stopper-faltantes { position: fixed; inset: 0; z-index: 1300; display: flex; align-items: center; justify-content: center; padding: 1rem; background: rgba(0, 0, 0, .25); animation: stopper-in .15s ease-out; }
+.stopper-faltantes > div { max-width: 420px; width: 100%; background: #fff7ed; color: #7c2d12; border: 2px solid #f97316; border-radius: 14px; padding: 1rem 1.1rem; font-size: 1.05rem; box-shadow: 0 10px 30px rgba(0, 0, 0, .25); }
+.stopper-faltantes i { color: #ea580c; margin-right: .4rem; }
+.stopper-faltantes small { display: block; margin-top: .35rem; opacity: .8; font-size: .85rem; }
+[data-theme='dark'] .stopper-faltantes > div { background: #431407; color: #fed7aa; }
+@keyframes stopper-in { from { opacity: 0; } to { opacity: 1; } }
+/* Plazo de labrado y botón «Extender tiempo». */
+.plazo-labrado { display: inline-flex; align-items: center; flex-wrap: wrap; gap: .25rem; font-size: .85rem; }
+.plazo-labrado.por-vencer { color: #b91c1c; font-weight: 700; }
+/* «Más datos» (control interno de licencias viejas). */
+.mas-datos > summary { cursor: pointer; color: var(--bo-tx-azul-700, #1d4ed8); font-size: .9rem; margin-bottom: .35rem; }
+.input-pin { letter-spacing: .5em; font-size: 1.6rem; max-width: 220px; margin: 0 auto; }
+.wizard-movil-barra.con-faltantes .wizard-movil-num { background: #dc2626; }
+
+/* Exportar legajo: piezas ordenables (reunión 27/10) */
+.lista-piezas { list-style: decimal; padding-left: 1.5rem; margin: 0 0 .75rem;
+  li { display: flex; align-items: center; gap: .5rem; padding: .35rem .25rem; border-bottom: 1px solid var(--borde, #e3e6ea); }
+  li.excluida span { color: #8a9099; text-decoration: line-through; }
+}
+
+/* Membretes (reunión 27/10) */
+.lista-membretes { display: grid; gap: .75rem; }
+.membrete-item { display: flex; align-items: center; gap: 1rem; padding: .75rem; border: 1px solid var(--borde, #e3e6ea); border-radius: 8px; flex-wrap: wrap;
+  &.inactivo { opacity: .6; }
+  .membrete-datos { flex: 1; min-width: 180px; }
+}
+.membrete-preview { display: flex; flex-direction: column; align-items: center; text-align: center; font-family: 'Times New Roman', Times, serif; font-size: .7rem; width: 180px; border-bottom: 1px solid #000; padding-bottom: .25rem; background: #fff; color: #000;
+  img { height: 28px; margin-bottom: .2rem; }
+  strong { font-size: .75rem; }
+  &.grande { width: 100%; font-size: .85rem; padding: .75rem; border: 1px solid var(--borde, #e3e6ea); img { height: 48px; } strong { font-size: 1rem; } }
+}

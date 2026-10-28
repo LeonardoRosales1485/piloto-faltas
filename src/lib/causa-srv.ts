@@ -125,7 +125,7 @@ export async function camposDeCausa(d: Db, c0: CausaRow, user?: UsuarioRow) {
     const { data: cat } = await d.from('catalogo').select('nombre').in('id', ids);
     dependencia = ((cat ?? []) as { nombre: string }[]).map((x) => x.nombre).join(', ');
   }
-  const titular = c.infractor_razon_social || c.infractor_nombre || 'NN';
+  const titular = c.infractor_razon_social || c.infractor_nombre || 'Sin identificar';
   return {
     'Acta:Numero': c.legajo_numero_acta,
     'Acta:Expediente': `${c.legajo_number ?? ''}/${c.legajo_anio ?? ''}`,
@@ -456,16 +456,19 @@ export async function constanciaSinMonto(d: Db, c: CausaRow, quien: string, aNom
 // ---------------------------------------------------------------------------
 export async function emitirBoletas(
   d: Db, c: CausaRow, modo: 'voluntario' | 'total' | 'cuotas', cuotas: number, aNombre: string, quien: string,
+  /** Reunión 27/10: el plan de cuotas también puede ser sobre el monto con el 50 % (misma regla que el pago). */
+  opts: { cuotasConDescuento?: boolean } = {},
 ) {
   const v = await valorizacion(d, c);
   const descuento = await configNum(d, 'descuento_pago_voluntario', 50);
   const derecho = await configNum(d, 'finanza_derecho_oficina', 5000);
   const { count } = await d.from('boleta').select('*', { count: 'exact', head: true }).eq('infraccion_id', c.id).neq('estado', 'anulada');
   const yaCobroDerecho = (count ?? 0) > 0; // derecho de oficina: una vez por acta
-  const multa = modo === 'voluntario' ? v.multa * (1 - descuento / 100) : v.multa;
+  const conDesc = modo === 'voluntario' || (modo === 'cuotas' && opts.cuotasConDescuento === true);
+  const multa = conDesc ? v.multa * (1 - descuento / 100) : v.multa;
   const acarreoMonto = Number(c.acarreo) === 1 ? await tarifaAcarreo(d, claseVehiculo(c.vehiculo_tipo_nombre as string | null)) : 0;
   const total = multa + acarreoMonto + (yaCobroDerecho ? 0 : derecho);
-  const detalle = { multa, acarreo: acarreoMonto, derecho_oficina: yaCobroDerecho ? 0 : derecho, unidades: v.unidades, uf: v.uf, modo };
+  const detalle = { multa, acarreo: acarreoMonto, derecho_oficina: yaCobroDerecho ? 0 : derecho, unidades: v.unidades, uf: v.uf, modo, descuento: conDesc ? descuento : 0 };
   // Cobro por $0 (pedido 22/10): no se emite boleta; queda una constancia en PDF de que no hay nada para abonar.
   if (total <= 0) {
     const constancia = await constanciaSinMonto(d, c, quien, aNombre, 'multa');
@@ -479,7 +482,7 @@ export async function emitirBoletas(
     const num = await reservar(d, `BOL-${new Date().getFullYear()}`);
     filas.push({
       uuid: uuid(), infraccion_id: c.id, numero: `M2000-${String(num).padStart(7, '0')}`,
-      concepto: `${modo === 'voluntario' ? 'Pago voluntario (50 %)' : modo === 'cuotas' ? `Cuota ${i} de ${n}` : 'Multa'} · Acta ${c.legajo_numero_acta}`,
+      concepto: `${modo === 'voluntario' ? `Pago voluntario (${descuento} %)` : modo === 'cuotas' ? `Cuota ${i} de ${n}${conDesc ? ` (con ${descuento} % de descuento)` : ''}` : 'Multa'} · Acta ${c.legajo_numero_acta}`,
       detalle_json: JSON.stringify(detalle), monto: Math.round((total / n) * 100) / 100,
       vencimiento: i === 1 ? sumarHabiles(ahora, 10, fer) : sumarCorridos(ahora, 30 * (i - 1) + 10),
       cuota_nro: modo === 'cuotas' ? i : null, total_cuotas: modo === 'cuotas' ? n : null, a_nombre_de: aNombre,

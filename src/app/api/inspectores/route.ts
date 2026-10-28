@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
 
 type Body = {
   uuid?: string; username?: string; nombre?: string; apellido?: string; email?: string; sector?: string;
-  legajo?: string; terminal?: string; modulos_acta?: string; firma_activa?: boolean; activo?: boolean; password?: string;
+  legajo?: string; terminal?: string; modulos_acta?: string; firma_activa?: boolean; activo?: boolean; password?: string; pin?: string;
 };
 
 /** Alta y edición de inspectores (el rol queda fijo en «Inspector»). Las bajas son lógicas. */
@@ -67,6 +67,7 @@ export async function POST(req: NextRequest) {
         firma_activa: b.firma_activa !== false, activo: true, date_created: ahora,
       });
       if (error) throw new Error(error.message);
+      if (b.pin && /^\d{4,8}$/.test(b.pin.trim())) await db.from('usuario').update({ pin: b.pin.trim() }).eq('username', username);
       return { ok: true };
     }
 
@@ -78,6 +79,11 @@ export async function POST(req: NextRequest) {
     if (pass) cambios.password_hash = bcrypt.hashSync(pass, 10);
     const { error } = await db.from('usuario').update(cambios).eq('uuid', b.uuid);
     if (error) throw new Error(error.message);
+    // PIN para salir de la firma (sql/034). Aparte: sin la columna, el resto se guarda igual.
+    if (b.pin && b.pin.trim()) {
+      check(/^\d{4,8}$/.test(b.pin.trim()), 'El PIN debe tener de 4 a 8 números');
+      await db.from('usuario').update({ pin: b.pin.trim() }).eq('uuid', b.uuid);
+    }
     return { ok: true };
   }, 'inspectores');
 }

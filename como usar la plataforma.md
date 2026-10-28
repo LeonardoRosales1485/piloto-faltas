@@ -302,3 +302,27 @@ En **Configuración → Opciones sandbox** hay cuatro acciones. Todas piden escr
 - **Cobro por $0:** si al emitir la boleta (desde la causa o al aceptar un pedido de pago) el total da $ 0, no se emite boleta: se genera la **«Constancia: no registra monto a abonar»** (PDF, con código de verificación), que se abre sola y queda en «Escritos y documentos» y en el portal. Lo mismo con la boleta de estadía cuando no hay días con cargo. La causa no cambia de estado: si corresponde, se archiva desde «Archivar».
 - **Descartar acta (Administrador):** en la causa, «Más acciones › Descartar acta» anula el acta en cualquier estado, con motivo (por ejemplo, actas de prueba). Sale de las bandejas y del portal, y queda en el historial. Solo lo ve el usuario Administrador.
 - **Actas labradas** (back office, en el menú de cada tipo de acta; antes «Mis borradores»): todas las actas del tipo. El filtro «Estado» separa **Incompleta** (el inspector salió sin firmar, cerró la app, pasaron 12 h o completó con «Desconocido») de **Anulada** (descartada a mano). En **Reportes** figuran «Actas incompletas» y «Actas descartadas» del período.
+
+## Reunión de validación del 27/10/2026 (deploy post 1.0)
+
+> Todo esto va solo en **piloto-faltas-post** (base `uahubgleoemcvuzuumyv`, app **Faltas Post**). `piloto-faltas` queda congelado como referencia de la 1.0. Requiere `sql/034` y `sql/035`.
+
+**Labrado en el POS**
+- Situación del infractor: **Presente, Ausente, No aporta datos, De oficio, Fuga** (y «se niega a firmar» bajo la firma). Sin «NN».
+- Faltantes: el paso queda en rojo (en el celular, la barra entera) y al cambiar de paso aparece un aviso de unos segundos con lo que falta; no bloquea. Solo bloquean el **artículo** y la **foto** que exige el artículo (Ordenanzas › «Requiere foto»). Firmar con faltantes pide el motivo y completa con «Desconocido»; **«Se dio a la fuga»** firma sin datos del infractor.
+- Sin «Inicio» mientras se labra. **Plazo de labrado** por tipo (Configuración › Labrado en el POS: tránsito 1 h, contravenciones y sustancias 24 h) con **«Extender tiempo»**; vencido, el acta queda **abandonada** (número anulado). Al volver a «Crear nueva acta» se retoma la abierta.
+- **PIN del inspector** (Inspectores › PIN; por defecto 1234) al salir de la pantalla de firma. Pruebas: 7 toques en la barra superior descartan el acta.
+- DNI → completa el N.° de licencia. Sentido de circulación (hacia qué calle) y control interno («Más datos») opcionales. Alcoholímetros: marcas y modelos administrables.
+- Tickets: el del infractor (con **medidas adoptadas**) y el **del inspector** («va adjunto con la licencia / VTV»). Encabezado «Municipio Malvinas Argentinas · Subsecretaría de Tránsito y Bromatología».
+
+**Back office**
+- **Exportar** (un solo botón en la causa): Apremios (exige la nota de Apremios firmada), Juzgado de Paz (exige el escrito «Juzgado de Paz» firmado) o Solo PDF; se eligen y ordenan las piezas. La nota de Apremios firmada deja la causa en **«Nota apremios»**.
+- **Para firma** (bandeja de escritos): filtros por tipo (cédulas, fallos, resoluciones, disposiciones, Apremios, Juzgado de Paz, compromisos).
+- Estados del fallo: **«Fallo a la firma»** (en revisión), **«Fallo a la firma del Intendente»** y **«Fallo registrado»** (antes «Con Fallo»).
+- **Responsable de la causa:** el último usuario que la trabajó; «Cambiar» en la cabecera, con «Asignar a este usuario» para dejarlo fijo. Se ve en la lista de causas.
+- **Subsanaciones múltiples** (p. ej. transferencias sucesivas): cada una con su constancia; la ficha resalta los datos corregidos frente al acta original.
+- **Portal:** solo queda notificado quien tiene el mismo DNI/CUIT que el acta vigente; otro usuario (p. ej. desde el QR) la ve sin acciones. Si una subsanación cambia el DNI, la causa aparece en la cuenta del nuevo titular y sale de la del anterior.
+- **Cuotas sobre el 50 %:** el plan de cuotas sigue la misma regla del descuento (se quita con motivo).
+- **Fallos en UF:** el fallo condenatorio expresa la multa en unidades fijas, a liquidar al valor vigente.
+- **Configuración › Membretes:** logo, título y subtítulo por tipo de documento (el que no tiene tipos es el de por defecto).
+- **Portal de inspectores** (menú lateral y botón en el inicio del inspector): actas labradas, retenciones (licencias y vehículos) y playón con el estado de la liberación; solo lectura.

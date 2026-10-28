@@ -46,7 +46,18 @@ export async function POST(req: NextRequest) {
     if (t) lista = lista.filter((f) => [f.legajo_numero_acta, f.legajo_number, `${f.legajo_number}/${f.legajo_anio}`, f.legajo_anio, f.infractor_nombre, f.infractor_razon_social, f.infractor_documento_numero, f.infractor_cuit, f.vehiculo_numero_dominio].some((v) => String(v ?? '').toLowerCase().includes(t)));
     const size = body.size ?? 15;
     const page = body.page ?? 0;
-    const marcar = (f: FilaCausa) => ({ ...f, bandeja: bandejaDe.get(f.id) ?? null, marca: pendientes.has(f.id) ? 'Presentación a resolver' : vencidoSinPresentacion(f, ahora, conPresentacion) ? 'Sin presentación (vencido el plazo)' : null });
-    return { content: lista.slice(page * size, page * size + size).map(marcar), totalElements: lista.length, totalPages: Math.max(1, Math.ceil(lista.length / size)), page, size, conteos, conteosTrabajo: conB.conteos, cuotasVencidas: [...cuotasVencidas] };
+    // Reunión 27/10: estado del fallo en curso (en vez de «fallo en espera»): a la firma o a la firma del Intendente.
+    const pagina = lista.slice(page * size, page * size + size);
+    const fallos = new Map<number, string>();
+    const responsables = new Map<number, string>();
+    if (pagina.length) {
+      const { data: fd } = await db.from('documento').select('infraccion_id, estado, plantilla!inner(categoria)').in('infraccion_id', pagina.map((f) => f.id)).eq('plantilla.categoria', 'Fallo').in('estado', ['en_revision', 'para_firma']);
+      for (const x of (fd ?? []) as { infraccion_id: number; estado: string }[]) fallos.set(x.infraccion_id, x.estado === 'para_firma' ? 'Fallo a la firma del Intendente' : 'Fallo a la firma');
+      // Responsable de la causa (sql/035). Consulta aparte: si la columna no existe todavía, se omite.
+      const { data: rd, error: re } = await db.from('infraccion').select('id, responsable').in('id', pagina.map((f) => f.id));
+      if (!re) for (const x of (rd ?? []) as { id: number; responsable: string | null }[]) if (x.responsable) responsables.set(x.id, x.responsable);
+    }
+    const marcar = (f: FilaCausa) => ({ ...f, responsable: responsables.get(f.id) ?? null, bandeja: bandejaDe.get(f.id) ?? null, marca: pendientes.has(f.id) ? 'Presentación a resolver' : fallos.get(f.id) ?? (vencidoSinPresentacion(f, ahora, conPresentacion) ? 'Sin presentación (vencido el plazo)' : null) });
+    return { content: pagina.map(marcar), totalElements: lista.length, totalPages: Math.max(1, Math.ceil(lista.length / size)), page, size, conteos, conteosTrabajo: conB.conteos, cuotasVencidas: [...cuotasVencidas] };
   }, 'verCausas');
 }

@@ -158,7 +158,7 @@ export function Retenciones() {
                 <tbody>
                   {(d?.lista ?? []).map((x: R) => (
                     <tr key={x.uuid}>
-                      <td><Link href={`/private/causa/${x.uuid}`} className="fw-semibold">{x.acta}</Link><div className="texto-ayuda">{x.infractor ?? 'NN'}</div></td>
+                      <td><Link href={`/private/causa/${x.uuid}`} className="fw-semibold">{x.acta}</Link><div className="texto-ayuda">{x.infractor ?? 'Sin identificar'}</div></td>
                       <td>{x.dominio || '-'}</td>
                       <td>{x.tipoVehiculo || '-'}<div className="texto-ayuda">{x.clase}</div></td>
                       <td>{fechaCorta(x.ingreso)}</td>

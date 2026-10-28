@@ -3,7 +3,7 @@ import { constanciaSinMonto, correspondeDescuento, efectoNotificacionPositiva, e
 import { ESTADOS, esBoletaLiberacion, estadoFinal, puede, pesos, REQUISITOS_LIBERACION } from '@/lib/dominio';
 import { descargoPendiente } from '@/lib/camino';
 import { calculoLiberacion, claseVehiculo, diasEnDeposito, tarifaEstadia, validezLiberacionMs } from '@/lib/tarifas';
-import { CAMPOS_SUBSANABLES, subsanacionDe, valorDe } from '@/lib/subsanacion';
+import { aplicarSubsanacion, CAMPOS_SUBSANABLES, leyesVigentes, subsanacionDe, valorDe } from '@/lib/subsanacion';
 import { accionesDisponibles, type Presentacion } from '@/lib/portal-srv';
 import { controlarAdjuntos } from '@/lib/adjuntos-srv';
 import { elevarRecurso, movimientoRecurso, resolverRecurso } from '@/lib/recursos-srv';
@@ -50,16 +50,18 @@ export async function POST(req: NextRequest) {
         throw new HttpError(410, 'Las causas ya no se desestiman: ciérrela con fallo, archivo o nulidad.');
       case 'subsanar': {
         check(puede(user.rol, 'subsanar'), 'Sin permiso', 403);
-        check(!(await subsanacionDe(db, c.id)), 'La causa ya tiene una subsanación: no se puede hacer otra.', 409);
+        // Reunión 27/10: se puede subsanar más de una vez. El «antes» es el dato vigente (ya subsanado si hubo otra).
+        const previa = await subsanacionDe(db, c.id);
         const motivo = txt('motivo');
         check(motivo, 'Indique el motivo de la subsanación');
         const nuevos = (d.campos ?? {}) as Record<string, unknown>;
         const { data: rel } = await db.from('infraccion_ley').select('ley_nombre').eq('infraccion_id', c.id);
-        const leyesOrig = ((rel ?? []) as { ley_nombre: string }[]).map((r) => r.ley_nombre);
+        const leyesOrig = leyesVigentes(((rel ?? []) as { ley_nombre: string }[]).map((r) => r.ley_nombre), previa);
+        const vig = aplicarSubsanacion(c as unknown as Record<string, unknown>, previa);
         const cambios: Record<string, { antes: string; despues: string }> = {};
         for (const campo of CAMPOS_SUBSANABLES) {
           if (!(campo.k in nuevos)) continue;
-          const antes = valorDe(c as unknown as Record<string, unknown>, campo.k, leyesOrig);
+          const antes = valorDe(vig, campo.k, leyesOrig);
           const despues = campo.k === 'leyes'
             ? String(nuevos.leyes ?? '').split(/\s*[|,]\s*/).map((x) => x.trim()).filter(Boolean).join(' | ')
             : String(nuevos[campo.k] ?? '').trim();
@@ -70,7 +72,7 @@ export async function POST(req: NextRequest) {
         const etiqueta = (k: string) => CAMPOS_SUBSANABLES.find((x) => x.k === k)?.t ?? k;
         const esc = (x: string) => x.replace(/&/g, '&amp;').replace(/</g, '&lt;');
         const filas = Object.entries(cambios).map(([k, v]) => `<tr><td>${esc(etiqueta(k))}</td><td>${esc(v.antes || '—')}</td><td>${esc(v.despues || '—')}</td></tr>`).join('');
-        const html = `<p style="text-align:center"><strong>CONSTANCIA DE SUBSANACIÓN</strong></p><p>Acta ${esc(String(c.legajo_numero_acta))} · Legajo ${esc(String(c.legajo_number))}/${esc(String(c.legajo_anio))}.</p><p><strong>Motivo:</strong> ${esc(motivo)}</p><table border="1" cellpadding="4" style="border-collapse:collapse;width:100%"><thead><tr><th>Dato</th><th>Decía</th><th>Debe decir</th></tr></thead><tbody>${filas}</tbody></table><p>El acta firmada no se modifica: esta constancia integra el legajo y los datos corregidos se usan en adelante.</p><p>${esc(quien)} · ${new Date().toLocaleDateString('es-AR')}</p>`;
+        const html = `<p style="text-align:center"><strong>CONSTANCIA DE SUBSANACIÓN${previa ? ` N.° ${previa.lista.length + 1}` : ''}</strong></p><p>Acta ${esc(String(c.legajo_numero_acta))} · Legajo ${esc(String(c.legajo_number))}/${esc(String(c.legajo_anio))}.</p><p><strong>Motivo:</strong> ${esc(motivo)}</p><table border="1" cellpadding="4" style="border-collapse:collapse;width:100%"><thead><tr><th>Dato</th><th>Decía</th><th>Debe decir</th></tr></thead><tbody>${filas}</tbody></table><p>El acta firmada no se modifica: esta constancia integra el legajo y los datos corregidos se usan en adelante.</p><p>${esc(quien)} · ${new Date().toLocaleDateString('es-AR')}</p>`;
         const { data: doc } = await db.from('documento').insert({ uuid: uuid(), infraccion_id: c.id, tipo: 'escrito', titulo: 'Constancia de subsanación', contenido_html: html, estado: 'definitivo', creado_por: quien, date_created: Date.now(), date_updated: Date.now() }).select('id').single();
         const { error } = await db.from('subsanacion').insert({ uuid: uuid(), infraccion_id: c.id, campos_json: JSON.stringify(cambios), motivo, usuario: quien, documento_id: (doc as { id: number } | null)?.id ?? null, date_created: Date.now() });
         if (error) throw new HttpError(500, error.message);
@@ -217,16 +219,19 @@ export async function POST(req: NextRequest) {
       }
       case 'emitir_boleta': {
         check(puede(user.rol, 'emitirBoletas'), 'Sin permiso', 403);
-        check(['auto', 'voluntario', 'total', 'cuotas'].includes(txt('modo')), 'Modo inválido');
+        check(['auto', 'voluntario', 'total', 'cuotas', 'cuotas_sin'].includes(txt('modo')), 'Modo inválido');
         // Descuento (decisión 22/10): «auto» aplica el 50 % si corresponde (sin descargo ni fallo); «total» lo quita, con motivo.
-        const corresponde = txt('modo') !== 'cuotas' && await correspondeDescuento(db, c);
+        // Reunión 27/10: las cuotas siguen la misma regla («cuotas» = con 50 % si corresponde; «cuotas_sin» lo quita).
+        const corresponde = await correspondeDescuento(db, c);
         check(!(txt('modo') === 'voluntario' && !corresponde), 'No corresponde el descuento: el infractor presentó descargo o la causa ya tiene fallo', 409);
-        if (txt('modo') === 'total' && corresponde) {
+        if (['total', 'cuotas_sin'].includes(txt('modo')) && corresponde) {
           check(txt('motivo'), 'Indique por qué se quita el descuento');
           await historial(db, c.id, quien, 'Descuento del pago voluntario quitado', txt('motivo'));
         }
-        const modo = (txt('modo') === 'auto' ? (corresponde ? 'voluntario' : 'total') : txt('modo')) as 'voluntario' | 'total' | 'cuotas';
-        return emitirBoletas(db, c, modo, Number(d.cuotas ?? 1), txt('aNombre') || String(c.infractor_razon_social || c.infractor_nombre || ''), quien);
+        const enCuotas = txt('modo').startsWith('cuotas');
+        const modo = (enCuotas ? 'cuotas' : txt('modo') === 'auto' ? (corresponde ? 'voluntario' : 'total') : txt('modo')) as 'voluntario' | 'total' | 'cuotas';
+        if (enCuotas) check(Number(d.cuotas) >= 2 && Number(d.cuotas) <= 12, 'Indique entre 2 y 12 cuotas');
+        return emitirBoletas(db, c, modo, Number(d.cuotas ?? 1), txt('aNombre') || String(c.infractor_razon_social || c.infractor_nombre || ''), quien, { cuotasConDescuento: txt('modo') === 'cuotas' && corresponde });
       }
       case 'emitir_estadia': {
         check(puede(user.rol, 'emitirBoletas'), 'Sin permiso', 403);
@@ -333,6 +338,12 @@ export async function POST(req: NextRequest) {
         check(gestion, 'Sin permiso', 403);
         await controlarAdjuntos(db, [{ nombre: txt('archivoNombre'), raw: txt('archivoRaw') }]);
         await resolverRecurso(db, c, quien, txt('recursoUuid'), { resultado: txt('resultado'), monto: d.monto ? Number(d.monto) : null, detalle: txt('detalle'), archivoRaw: txt('archivoRaw'), archivoNombre: txt('archivoNombre'), aNombre: txt('aNombre') });
+        return { ok: true };
+      }
+      // Exportación «Juzgado de Paz» o «Solo PDF» (el PDF lo arma el navegador): queda constancia en el historial.
+      case 'registrar_exportacion': {
+        check(gestion, 'Sin permiso', 403);
+        await historial(db, c.id, quien, txt('destino') === 'juzgado' ? 'Legajo exportado para el Juzgado de Paz' : 'Legajo exportado en PDF', `${Number(d.piezas) || 0} pieza(s)`);
         return { ok: true };
       }
       case 'resultado_externo': {
@@ -451,6 +462,16 @@ export async function POST(req: NextRequest) {
         check(est.estado === 'vigente', est.estado === 'entregado' ? 'El vehículo ya fue entregado' : est.estado === 'vencida' ? 'La liberación está vencida: no se entrega' : 'La liberación todavía no está registrada en Faltas', 409);
         await db.from('infraccion').update({ vehiculo_liberacion_json: JSON.stringify({ ...datosLiberacion(c as unknown as CausaLib), entregadoAt: Date.now(), entregadoPor: quien, retiro: txt('retiro') || null }) }).eq('id', c.id);
         await historial(db, c.id, quien, 'Vehículo entregado en el corralón', txt('retiro') ? `Retiró: ${txt('retiro')}` : 'Liberación vigente controlada por QR');
+        return { ok: true };
+      }
+      case 'asignar_responsable': {
+        // Reunión 27/10: el responsable se puede cambiar a mano; con «Asignar a este usuario» queda fijo.
+        check(gestion, 'Sin permiso', 403);
+        const usuario = txt('usuario') || quien;
+        const fijo = d.fijo === true || d.fijo === 1 || d.fijo === '1';
+        const { error } = await db.from('infraccion').update({ responsable: usuario, responsable_fijo: fijo ? 1 : 0 }).eq('id', c.id);
+        if (error) throw new HttpError(409, 'Falta correr sql/035 en la base para usar el responsable de la causa.');
+        await db.from('causa_historial').insert({ infraccion_id: c.id, fecha: Date.now(), usuario: quien, accion: 'Responsable de la causa', detalle: `${usuario}${fijo ? ' (asignado fijo)' : ''}` });
         return { ok: true };
       }
       case 'correo_infractor': {

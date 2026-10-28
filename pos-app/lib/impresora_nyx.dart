@@ -26,8 +26,8 @@ class ImpresoraNyx {
         pasos.add({'tipo': 'imagen', 'png': logo.buffer.asUint8List(), 'ancho': 260, 'alinear': _centro});
       } catch (_) {/* sin logo */}
     }
-    texto('MUNICIPALIDAD DE\nMALVINAS ARGENTINAS', negrita: true, alinear: _centro);
-    texto('Dirección de Faltas', tam: 22, alinear: _centro);
+    texto('${t['encabezado'] ?? 'MUNICIPIO MALVINAS ARGENTINAS'}', negrita: true, alinear: _centro);
+    if ('${t['subencabezado'] ?? ''}'.isNotEmpty) texto('${t['subencabezado'] ?? ''}', tam: 22, alinear: _centro);
     texto('-' * 16, tam: 22, alinear: _centro);
     texto('${t['titulo'] ?? 'ACTA'}', negrita: true, alinear: _centro);
     texto('${t['numero'] ?? '-'}', tam: 40, negrita: true, alinear: _centro);
@@ -37,6 +37,13 @@ class ImpresoraNyx {
     texto('${t['tituloArticulos'] ?? 'DISPOSICIÓN LEGAL INFRINGIDA'}', tam: 20, negrita: true);
     for (final a in (articulos.isEmpty ? ['-'] : articulos)) {
       texto('• $a', tam: 22, negrita: true);
+    }
+    final medidas = ((t['medidas'] as List?)?.map((e) => '$e').toList() ?? const <String>[]);
+    if (medidas.isNotEmpty) {
+      texto('MEDIDAS ADOPTADAS', tam: 20, negrita: true);
+      for (final m in medidas) {
+        texto('• $m', tam: 22, negrita: true);
+      }
     }
     campo('REPARTICIÓN', '${t['reparticion'] ?? '-'}');
     texto('-' * 16, tam: 22, alinear: _centro);

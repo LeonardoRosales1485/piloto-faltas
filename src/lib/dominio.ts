@@ -89,6 +89,8 @@ export const PERMISOS = {
   ordenanzas: SUPERVISION,
   inspectores: SUPERVISION,
   seguimientoGps: SUPERVISION,
+  // Reunión 27/10: consulta de actas labradas, retenciones y playón (solo lectura).
+  portalInspectores: [...SUPERVISION, 'Inspector'],
   depuracionPos: ['Inspector'],
   auditoria: SUPERVISION,
   verPlantillas: ESCRITOS,
@@ -155,6 +157,7 @@ export const PERMISO_INFO: Record<Permiso, { g: string; t: string; d: string }> 
   ordenanzas: { g: 'Gestión', t: 'Ordenanzas', d: 'Alta y edición de ordenanzas y artículos' },
   inspectores: { g: 'Gestión', t: 'Inspectores', d: 'ABM de inspectores' },
   seguimientoGps: { g: 'Gestión', t: 'Seguimiento GPS', d: 'Mapa de seguimiento de inspectores' },
+  portalInspectores: { g: 'Gestión', t: 'Portal de inspectores', d: 'Consulta de actas labradas, retenciones (licencias y vehículos) y vehículos en el playón' },
   depuracionPos: { g: 'Actas', t: 'Depuración en el POS', d: 'En el inicio del inspector, 7 toques seguidos sobre el logo muestran todas las actas de sus tipos (solo para pruebas)' },
   auditoria: { g: 'Gestión', t: 'Auditoría', d: 'Registro de auditoría' },
   verPlantillas: { g: 'Escritos', t: 'Ver plantillas', d: 'Consultar las plantillas de escritos, su historial y el mapa de estados (sin editar)' },
@@ -220,7 +223,7 @@ export function puede(rol: string | { rol?: string | null; permisos?: string[] }
 // ---------------------------------------------------------------------------
 export type FamiliaEstado = 'inicio' | 'medida' | 'presentacion' | 'fallo' | 'externo' | 'archivo' | 'otro';
 
-export const ESTADOS: { nombre: string; familia: FamiliaEstado; portal: string; final?: boolean }[] = [
+export const ESTADOS: { nombre: string; familia: FamiliaEstado; portal: string; final?: boolean; etiqueta?: string }[] = [
   { nombre: 'Borrador', familia: 'otro', portal: 'En labrado' },
   { nombre: 'Anulada', familia: 'otro', portal: 'Anulada', final: true },
   { nombre: 'Iniciado', familia: 'inicio', portal: 'Iniciada' },
@@ -238,12 +241,15 @@ export const ESTADOS: { nombre: string; familia: FamiliaEstado; portal: string; 
   { nombre: 'Esp. Acreditar Pago', familia: 'presentacion', portal: 'Pago pendiente de acreditación' },
   { nombre: 'Cuotas', familia: 'presentacion', portal: 'En plan de cuotas' },
   { nombre: 'Archivo por pago', familia: 'archivo', portal: 'Pagada', final: true },
-  { nombre: 'Con Fallo', familia: 'fallo', portal: 'Con fallo' },
+  // Reunión 27/10: «Con Fallo» se muestra como «Fallo registrado» (no «fallo en espera»).
+  { nombre: 'Con Fallo', familia: 'fallo', portal: 'Con fallo', etiqueta: 'Fallo registrado' },
   { nombre: 'En notificación de fallo', familia: 'fallo', portal: 'Con fallo' },
   { nombre: 'Fallo notificado', familia: 'fallo', portal: 'Fallo notificado' },
   { nombre: 'Archivo absolución', familia: 'archivo', portal: 'Absuelta', final: true },
   { nombre: 'Archivo fallo no notificado', familia: 'archivo', portal: 'Archivada', final: true },
   { nombre: 'En Juzgado', familia: 'externo', portal: 'En Juzgado de Paz' },
+  // Reunión 27/10: nota de Apremios firmada; falta exportar el legajo y remitirlo.
+  { nombre: 'Nota apremios', familia: 'externo', portal: 'En gestión de Apremios' },
   { nombre: 'En Apremios', familia: 'externo', portal: 'En Apremios' },
   { nombre: 'Pago en Apremios', familia: 'archivo', portal: 'Pagada en Apremios', final: true },
   { nombre: 'Archivo judicial', familia: 'archivo', portal: 'Archivada', final: true },
@@ -262,7 +268,7 @@ export const ESTADOS: { nombre: string; familia: FamiliaEstado; portal: string; 
 export const ESTADOS_CAUSA = ESTADOS.filter((e) => e.nombre !== 'Borrador' && e.nombre !== 'Anulada');
 
 export function infoEstado(nombre?: string | null) {
-  return ESTADOS.find((e) => e.nombre === nombre) ?? { nombre: nombre ?? '-', familia: 'otro' as FamiliaEstado, portal: nombre ?? '-' };
+  return ESTADOS.find((e) => e.nombre === nombre) ?? { nombre: nombre ?? '-', familia: 'otro' as FamiliaEstado, portal: nombre ?? '-', etiqueta: undefined };
 }
 
 export function estadoFinal(nombre?: string | null): boolean {
@@ -342,12 +348,27 @@ export function esBoletaDeposito(b: BoletaLike): boolean {
   return esBoletaLiberacion(b) || String(b.concepto ?? '').startsWith('Estadía en depósito');
 }
 
+/**
+ * Situación de la persona (reunión 27/10): Presente, Ausente, No aporta datos, De oficio y Se dio a la fuga.
+ * «Se niega a firmar» se marca en la firma (cuenta como presente). «nn» es el valor viejo de «De oficio».
+ */
 export const SITUACIONES = [
   { v: 'presente', t: 'Presente' },
   { v: 'ausente', t: 'Ausente' },
+  { v: 'no_aporta', t: 'No aporta datos' },
+  { v: 'de_oficio', t: 'De oficio' },
+  { v: 'fuga', t: 'Se dio a la fuga' },
   { v: 'se_niega', t: 'Presente, se niega a firmar' },
-  { v: 'nn', t: 'No identificado' },
 ] as const;
+export const SITUACIONES_VALIDAS = ['presente', 'ausente', 'no_aporta', 'de_oficio', 'fuga', 'se_niega', 'nn'];
+/** Acta de oficio (sin persona identificada): no se cargan datos del infractor. Incluye el valor viejo «nn». */
+export const esDeOficio = (s?: string | null) => s === 'de_oficio' || s === 'nn';
+/** Con la persona presente firma el infractor (o se niega); en el resto firma solo el inspector. */
+export const firmaInfractorRequerida = (s?: string | null) => s === 'presente';
+export function textoSituacion(s?: string | null): string {
+  if (s === 'nn') return 'De oficio';
+  return SITUACIONES.find((x) => x.v === s)?.t ?? '';
+}
 
 export function formatearNumeroActa(serie: string, n: number): string {
   return `${serie}-${String(n).padStart(6, '0')}`;

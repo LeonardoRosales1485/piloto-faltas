@@ -3,14 +3,15 @@
 
 import { ESTADO_RECURSO, INSTANCIAS_RECURSO, movimientosDe, RESULTADOS_RECURSO } from '@/lib/recursos';
 import { exportarApremios } from '@/lib/apremios-client';
+import { ExportarLegajo } from './ExportarLegajo';
 import { ArticulosValorizacion } from './ArticulosValorizacion';
 import Link from 'next/link';
 import { LoaderLogo } from './LoaderLogo';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { http } from '@/lib/api-client';
-import { printActa, printTicket, printTicketRetencion } from '@/lib/print';
-import { ESTADOS_CAUSA, TIPOS_ACTA, claveLey, esBoletaLiberacion, estadoFinal, fechaCorta, fechaHora, infoEstado, ordenarCategoriasLicencia, pagoAConciliar, pesos, puede, tipoActa } from '@/lib/dominio';
+import { printActa, printTicket, printTicketInspector } from '@/lib/print';
+import { ESTADOS_CAUSA, TIPOS_ACTA, claveLey, esBoletaLiberacion, estadoFinal, fechaCorta, fechaHora, infoEstado, esDeOficio, ordenarCategoriasLicencia, pagoAConciliar, pesos, puede, tipoActa } from '@/lib/dominio';
 import { useAuthUser } from '@/lib/use-auth-user';
 import type { Infraccion } from '@/lib/types';
 import { RoadmapCausa } from './RoadmapCausa';
@@ -31,7 +32,7 @@ import { EVENTO_DATOS } from '@/lib/avisos-datos';
 type R = Record<string, any>;
 type Detalle = {
   bandeja?: BandejaTrabajoId | null;
-  acta: Infraccion; actaVigente: Infraccion | null; subsanacion: R | null; subsanables: { k: string; t: string; grupo: string; valor: string }[]; memos: R[]; recursos?: R[]; historial: R[]; documentos: R[]; presentaciones: R[]; boletas: R[]; notificaciones: R[]; imagenes: R[];
+  acta: Infraccion; actaVigente: Infraccion | null; responsable?: string | null; responsableFijo?: boolean; subsanacion: R | null; subsanables: { k: string; t: string; grupo: string; valor: string }[]; memos: R[]; recursos?: R[]; historial: R[]; documentos: R[]; presentaciones: R[]; boletas: R[]; notificaciones: R[]; imagenes: R[];
   valorizacion: { uf: number; unidades: number; subtotal?: number; multa: number; valores?: { fijados: boolean; fecha: number | null; ufVigente: number; difiere: boolean }; leyes: R[]; ajustado: number | null; motivoAjuste: string | null };
 };
 type Modal = { titulo: string; icono?: string; campos: CampoModal[]; accion: string; textoOk?: string; textoCancelar?: string; onNo?: () => Promise<void> | void; peligro?: boolean; aviso?: string; extra?: R } | null;
@@ -85,6 +86,7 @@ export function CausaDetalle({ embebida }: { embebida?: { uuid: string; onCambio
   const [leyesCat, setLeyesCat] = useState<R[]>([]);
   const [vista, setVista] = useState<'subsanada' | 'original'>('subsanada');
   const [memo, setMemo] = useState('');
+  const [exportar, setExportar] = useState(false);
 
   // Si la primera carga falla (causa inexistente o de un tipo de acta fuera del alcance del usuario) se muestra el
   // error en pantalla en lugar de quedar «Cargando causa…», y no se reintenta solo hasta que el usuario lo pida.
@@ -248,6 +250,23 @@ export function CausaDetalle({ embebida }: { embebida?: { uuid: string; onCambio
   const presT = d.presentaciones as { tipo: string; estado: string; date_created?: number }[];
   const descPend = descargoPendiente(presT);
   const camino = caminoInfractor({ estado_faltas: estado, notificada_at: c.notificadaAt, vence_plazo_at: c.vencePlazoAt }, presT);
+  /** Reunión 27/10: responsable de la causa (último que la trabajó) editable, con opción de dejarlo fijo. */
+  async function abrirResponsable() {
+    let usuarios: { nombre: string; rol: string }[] = [];
+    try { usuarios = await http.get<{ nombre: string; rol: string }[]>('/api/causa/responsables'); } catch { /* lista vacía */ }
+    const actual = String(d?.responsable ?? '');
+    const opciones = usuarios.map((u) => ({ v: u.nombre, t: `${u.nombre} · ${u.rol}` }));
+    if (actual && !opciones.some((o) => o.v === actual)) opciones.unshift({ v: actual, t: actual });
+    setModal({
+      titulo: 'Responsable de la causa', icono: 'fa-solid fa-user-check', accion: 'asignar_responsable', textoOk: 'Guardar',
+      aviso: 'Por defecto queda como responsable el último usuario que trabajó la causa. Si marca «Asignar a este usuario», queda fijo aunque otros la trabajen.',
+      campos: [
+        { k: 'usuario', t: 'Responsable', tipo: 'select', opciones, valor: actual || (opciones[0]?.v ?? '') },
+        { k: 'fijo', t: 'Asignar a este usuario (no cambia cuando otro trabaja la causa)', tipo: 'check', valor: d?.responsableFijo ? '1' : '' },
+      ],
+    });
+  }
+
   const abrirFallo = () => setModal({ titulo: 'Dictar fallo', icono: 'fa-solid fa-scale-balanced', accion: 'generar_escrito', textoOk: 'Generar y editar', aviso: 'El fallo se genera desde plantilla, va a revisión y firma de la Directora y después se notifica.', campos: [{ k: 'plantillaId', t: 'Tipo de fallo', tipo: 'select', opciones: ['FALLO_CONDENATORIO', 'FALLO_ABSOLUTORIO'].map((cod) => plantillaPorCodigo(cod)).filter(Boolean).map((p) => ({ v: String(p!.id), t: p!.titulo })) }] });
   const puedeFallo = gestion && ['Descargo', 'Notificado', 'Cuotas', 'Esp. Acreditar Pago'].includes(estado) && !tieneEscrito('FALLO_CONDENATORIO') && !tieneEscrito('FALLO_ABSOLUTORIO');
   if (falloPedido && plantillas.length) { setFalloPedido(false); if (puedeFallo && !descPend) abrirFallo(); }
@@ -277,31 +296,35 @@ export function CausaDetalle({ embebida }: { embebida?: { uuid: string; onCambio
     { t: 'Emitir boleta', rec: ['Notificado', 'Fallo notificado'].includes(estado), i: 'fa-solid fa-receipt', ver: puede(user?.rol, 'emitirBoletas') && !final && !['Esp. Acreditar Pago', 'Cuotas', 'En Juzgado', 'En Apremios'].includes(estado), on: () => setModal({
       titulo: 'Emitir boleta (Malvinas 2000 simulado)', icono: 'fa-solid fa-receipt', accion: 'emitir_boleta', textoOk: 'Emitir',
       campos: [
-        { k: 'modo', t: 'Tipo', tipo: 'select', opciones: [{ v: 'auto', t: 'Pago: 50 % si no presentó descargo (si no, monto pleno)' }, { v: 'total', t: 'Pago sin descuento (quitar el beneficio)' }, { v: 'cuotas', t: 'Plan de cuotas' }] },
-        { k: 'motivo', t: 'Motivo para quitar el descuento', tipo: 'texto', ayuda: 'Solo si elige «sin descuento» y correspondía el 50 %. Queda en el historial.' },
-        { k: 'cuotas', t: 'Cantidad de cuotas (solo plan de cuotas)', tipo: 'numero', valor: '3' },
+        { k: 'modo', t: 'Tipo', tipo: 'select', opciones: [{ v: 'auto', t: 'Pago: 50 % si no presentó descargo (si no, monto pleno)' }, { v: 'total', t: 'Pago sin descuento (quitar el beneficio)' }, { v: 'cuotas', t: 'Plan de cuotas: sobre el 50 % si no presentó descargo (si no, monto pleno)' }, { v: 'cuotas_sin', t: 'Plan de cuotas sin descuento (quitar el beneficio)' }] },
+        { k: 'cuotas', t: 'Cantidad de cuotas', tipo: 'numero', valor: '3', req: true, si: (v) => String(v.modo).startsWith('cuotas'), ayuda: 'Entre 2 y 12.' },
+        { k: 'motivo', t: 'Motivo para quitar el descuento', tipo: 'texto', si: (v) => v.modo === 'total' || v.modo === 'cuotas_sin', ayuda: 'Obligatorio si correspondía el 50 %. Queda en el historial.' },
         { k: 'aNombre', t: 'A nombre de (quien firma el compromiso)', tipo: 'texto', valor: String(c.infractorRazonSocial || c.infractorNombre || '') },
       ],
     }) },
     { t: 'Boleta de estadía', rec: true, i: 'fa-solid fa-warehouse', ver: puede(user?.rol, 'emitirBoletas') && vehiculoRetenido && !hayBoletaLiberacion, on: () => setModal({ titulo: 'Boleta de estadía', accion: 'emitir_estadia', icono: 'fa-solid fa-warehouse', aviso: 'Se cobra al retirar el vehículo. La fecha de ingreso al depósito la carga Faltas.', campos: [{ k: 'ingreso', t: 'Fecha de ingreso al depósito', tipo: 'fecha', req: true }], extra: { conv: 'ingreso' } }) },
     { t: 'Ajustar valorización', i: 'fa-solid fa-scale-unbalanced', ver: gestion && !final, on: () => setModal({ titulo: 'Ajustar valorización', accion: 'ajustar_monto', icono: 'fa-solid fa-scale-unbalanced', campos: [{ k: 'monto', t: 'Monto de la multa ($)', tipo: 'numero', req: true, valor: String(d.valorizacion.multa) }, { k: 'motivo', t: 'Motivo', tipo: 'area', req: true, ayuda: 'Por ejemplo: falta de exhibición de documentación acreditada luego.' }] }) },
     { t: 'Continuar procedimiento', rec: true, i: 'fa-solid fa-forward', ver: gestion && estado === 'Cuotas' && cuotasVencidas, peligro: true, on: () => setModal({ titulo: 'Caducidad del plan de cuotas', accion: 'continuar_procedimiento', campos: [], aviso: 'Hay cuotas vencidas sin pagar. La causa sigue a fallo, o a Apremios si las cuotas eran de un fallo.', textoOk: 'Continuar' }) },
-    { t: 'Derivar a Apremios', rec: true, i: 'fa-solid fa-building-columns', ver: gestion && ['Fallo notificado', 'Cuotas'].includes(estado), on: () => setModal({ titulo: 'Derivar a Apremios', accion: 'derivar', extra: { destino: 'apremios' }, campos: [{ k: 'detalle', t: 'Detalle', tipo: 'area', valor: 'Vencido el plazo de 5 días hábiles sin pago ni apelación. Se remite el legajo completo en PDF.' }] }) },
+    // Reunión 27/10: la nota de Apremios firmada deja la causa «Nota apremios»; después se exporta.
+    { t: 'Nota de Apremios', rec: true, i: 'fa-solid fa-building-columns', ver: puede(user?.rol, 'redactarEscritos') && ['Fallo notificado', 'Cuotas', 'Nota apremios'].includes(estado), on: () => setModal({ titulo: 'Nota de Apremios', icono: 'fa-solid fa-building-columns', accion: 'generar_escrito', textoOk: 'Generar y editar', aviso: 'La nota va a revisión y firma de la Directora. Firmada, la causa queda «Nota apremios» y se exporta el legajo.', campos: [{ k: 'plantillaId', t: 'Nota', tipo: 'select', opciones: plantillas.filter((p) => String(p.codigo ?? '').startsWith('NOTA_APREMIOS')).map((p) => ({ v: String(p.id), t: p.titulo })) }] }) },
     { t: 'Elevar recurso al Juzgado', rec: true, i: 'fa-solid fa-landmark', ver: gestion && estado === 'Fallo notificado' && !(d.recursos ?? []).some((r) => r.estado !== 'resuelto'), on: () => setModal(modalElevar()) },
-    { t: 'Exportar para Apremios', i: 'fa-solid fa-file-export', rec: ['Fallo notificado', 'En Apremios'].includes(estado), ver: gestion && !['Borrador', 'Anulada'].includes(estado), on: () => setModal({ titulo: 'Exportar para Apremios', icono: 'fa-solid fa-file-export', accion: 'exportar_apremios', textoOk: 'Generar PDF', aviso: 'Se genera un PDF con el remito, la carátula con el saldo adeudado a hoy y el legajo completo (sin memos internos), para enviarlo a Apremios por correo. Queda constancia en el historial.', campos: estado === 'En Apremios' ? [] : [{ k: 'derivar', t: 'Pasar la causa a «En Apremios»', tipo: 'select', opciones: [{ v: 'si', t: 'Sí, derivarla ahora' }, { v: 'no', t: 'No, solo generar el PDF' }] }] }) },
+    // Reunión 27/10: un solo «Exportar» con Apremios, Juzgado de Paz y Solo PDF (orden de piezas configurable).
+    { t: 'Exportar', i: 'fa-solid fa-file-export', rec: ['Nota apremios', 'En Apremios', 'En Juzgado'].includes(estado), ver: gestion && !['Borrador', 'Anulada'].includes(estado), on: () => setExportar(true) },
     { t: 'Registrar resultado externo', rec: true, i: 'fa-solid fa-flag-checkered', ver: gestion && infoEstado(estado).familia === 'externo', on: () => setModal({ titulo: 'Resultado informado por Juzgado de Paz o Apremios', accion: 'resultado_externo', campos: [{ k: 'estado', t: 'Resultado', tipo: 'select', opciones: ['Pago en Apremios', 'Archivo judicial', 'Archivo absolución', 'Archivo nulidad', 'Archivo prescripción'].map((x) => ({ v: x, t: x })) }, { k: 'detalle', t: 'Detalle', tipo: 'area' }] }) },
     { t: 'Presentación en mesa', i: 'fa-solid fa-person-walking', ver: gestion && !final, on: () => setModal({ titulo: 'Registrar presentación en mesa', accion: 'presentacion_mesa', campos: [{ k: 'tipo', t: 'Tipo', tipo: 'select', opciones: Object.entries(TIPO_PRES).map(([v, t]) => ({ v, t })) }, { k: 'texto', t: 'Detalle', tipo: 'area', req: true }, { k: 'cuotas', t: 'Cuotas solicitadas', tipo: 'numero' }] }) },
     { t: 'Descartar acta', i: 'fa-solid fa-ban', ver: user?.rol === 'Administrador' && estado !== 'Anulada', peligro: true, on: () => setModal({ titulo: `Descartar el acta ${c.legajoNumeroActa ?? ''}`, icono: 'fa-solid fa-ban', accion: 'descartar_acta', textoOk: 'Descartar', peligro: true, aviso: 'Solo el administrador. El acta queda anulada en cualquier estado: sale de las bandejas y del portal, y queda constancia en el historial. No se puede deshacer.', campos: [{ k: 'motivo', t: 'Motivo', tipo: 'area', req: true, valor: 'Acta de prueba' }] }) },
     { t: 'Adjuntar documento', i: 'fa-solid fa-paperclip', ver: puede(user?.rol, 'redactarEscritos'), on: () => setModal({ titulo: 'Adjuntar documento escaneado', accion: 'adjuntar', icono: 'fa-solid fa-paperclip', campos: [{ k: 'titulo', t: 'Título', tipo: 'texto', req: true }, { k: 'archivo', t: 'Archivo (imagen o PDF)', tipo: 'archivo', req: true }], extra: { conv: 'archivo' } }) },
-    { t: d.subsanacion ? 'Ver subsanación' : 'Subsanar datos', i: 'fa-solid fa-pen-to-square', ver: puede(user?.rol, 'subsanar') || Boolean(d.subsanacion), on: () => (d.subsanacion ? (setTab('resumen'), setVista('subsanada'), window.scrollTo({ top: 0, behavior: 'smooth' })) : setModal({
-      titulo: 'Subsanar datos del acta', accion: 'subsanar', icono: 'fa-solid fa-pen-to-square', textoOk: 'Guardar subsanación', extra: { conv: 'subsanar' },
-      aviso: 'Corrija solo los datos que correspondan. El acta firmada no se modifica: la corrección se guarda aparte, se genera una constancia y se usa en adelante. Solo se puede subsanar una vez.',
+    { t: 'Ver subsanaciones', i: 'fa-solid fa-eye', ver: Boolean(d.subsanacion), on: () => { setTab('resumen'); setVista('subsanada'); window.scrollTo({ top: 0, behavior: 'smooth' }); } },
+    // Reunión 27/10: se puede subsanar más de una vez (p. ej. transferencias sucesivas). Parte de los datos vigentes.
+    { t: d.subsanacion ? 'Nueva subsanación' : 'Subsanar datos', i: 'fa-solid fa-pen-to-square', ver: puede(user?.rol, 'subsanar'), on: () => setModal({
+      titulo: d.subsanacion ? 'Nueva subsanación de datos' : 'Subsanar datos del acta', accion: 'subsanar', icono: 'fa-solid fa-pen-to-square', textoOk: 'Guardar subsanación', extra: { conv: 'subsanar' },
+      aviso: `Corrija solo los datos que correspondan. El acta firmada no se modifica: la corrección se guarda aparte, se genera una constancia y se usa en adelante.${d.subsanacion ? ' Los valores precargados ya incluyen las subsanaciones anteriores.' : ''}`,
       campos: [
         ...d.subsanables.filter((f) => f.k !== 'leyes' && !(tipo === 'contravenciones' && f.grupo === 'Vehículo')).map((f) => ({ k: f.k, t: `${f.grupo} · ${f.t}`, tipo: 'texto' as const, valor: f.valor })),
         { k: 'leyes', t: 'Artículos', tipo: 'multi' as const, valor: (d.subsanables.find((f) => f.k === 'leyes')?.valor ?? '').split(' | ').filter(Boolean).join(','), opciones: leyesCat.filter((l) => tipoActa(l.infraccionTipoNombre) === tipo).map((l) => ({ v: claveLey(l as { nombre: string; articulo?: string }), t: `${claveLey(l as { nombre: string; articulo?: string })} — ${l.descripcion ?? ''}` })) },
         { k: 'motivo', t: 'Motivo de la subsanación', tipo: 'area' as const, req: true },
       ],
-    })) },
+    }) },
     { t: 'Memo interno', i: 'fa-solid fa-note-sticky', ver: puede(user?.rol, 'memos'), on: () => { setTab('memos'); setTimeout(() => document.getElementById('memo-nuevo')?.focus(), 50); } },
     { t: 'Cambiar estado', i: 'fa-solid fa-arrows-rotate', ver: puede(user?.rol, 'cambiarEstadoManual'), on: () => setModal({ titulo: 'Cambiar estado manualmente', accion: 'cambiar_estado', campos: [{ k: 'estado', t: 'Nuevo estado', tipo: 'select', opciones: ESTADOS_CAUSA.filter((e) => e.nombre !== 'Desestimada').map((e) => ({ v: e.nombre, t: e.nombre })) }, { k: 'motivo', t: 'Motivo', tipo: 'area', req: true }] }) },
     { t: 'Archivar', i: 'fa-solid fa-box-archive', ver: puede(user?.rol, 'archivar') && !final, on: () => setModal({ titulo: 'Archivar causa', accion: 'archivar', campos: [{ k: 'motivo', t: 'Tipo de archivo', tipo: 'select', opciones: motivos.map((m) => ({ v: m, t: m })) }, { k: 'detalle', t: 'Detalle', tipo: 'area' }], aviso: c.medidaVigente === 1 ? 'La causa tiene una medida vigente: el archivo por pago no procede hasta su levantamiento.' : undefined }) },
@@ -376,9 +399,10 @@ export function CausaDetalle({ embebida }: { embebida?: { uuid: string; onCambio
           <EstadoChip estado={estado} medida={c.medidaVigente === 1} />
           <Plazo vence={c.vencePlazoAt} estado={estado} ocultarSinPlazo />
           <span className="sub">
-            {TIPOS_ACTA[tipo].titulo} · Legajo {c.legajoNumber}/{c.legajoAnio} · {c.infractorRazonSocial || c.infractorNombre || 'NN'} · En el portal se ve como «{infoEstado(estado).portal}»
+            {TIPOS_ACTA[tipo].titulo} · Legajo {c.legajoNumber}/{c.legajoAnio} · {c.infractorRazonSocial || c.infractorNombre || 'Sin identificar'} · En el portal se ve como «{infoEstado(estado).portal}»
           </span>
           <span className="sub d-flex flex-wrap align-items-center gap-3">
+            <span><i className="fa-solid fa-user-check" aria-hidden="true" /> Responsable: <strong>{d.responsable || 'Sin asignar'}</strong>{d.responsableFijo ? <span className="badge bg-secondary ms-1" title="Asignado fijo">Fijo</span> : null}{gestion ? <button type="button" className="btn btn-link btn-sm p-0 ms-2 align-baseline" onClick={() => void abrirResponsable()}>Cambiar</button> : null}</span>
             {d.bandeja ? <span><i className="fa-solid fa-folder-open" aria-hidden="true" /> Bandeja: <a href={`/private/causas?b=${d.bandeja}`} onClick={(e) => { e.preventDefault(); router.push(`/private/causas?b=${d.bandeja}`); }}>{infoBandeja(d.bandeja)?.titulo}</a></span> : null}
             <label className="form-check form-switch seguir-acta m-0" title="Si una acción cambia la bandeja de la causa, la causa queda abierta y el menú marca la bandeja nueva. Desactivado, vuelve a la bandeja de origen.">
               <input type="checkbox" role="switch" className="form-check-input" checked={seguir} onChange={(e) => setSeguir(e.target.checked)} /> Seguir acta
@@ -440,7 +464,18 @@ export function CausaDetalle({ embebida }: { embebida?: { uuid: string; onCambio
                     </div>
                     {vista === 'subsanada' ? (
                       <div className="aviso aviso-info">
-                        <strong>Datos subsanados</strong> por {d.subsanacion.usuario} el {fechaHora(d.subsanacion.date_created)}. Motivo: {d.subsanacion.motivo}. Los datos corregidos están resaltados (pase el mouse para ver el valor anterior).
+                        {(d.subsanacion.lista as R[] | undefined)?.length && (d.subsanacion.lista as R[]).length > 1 ? (
+                          <>
+                            <strong>{(d.subsanacion.lista as R[]).length} subsanaciones.</strong> Los datos corregidos están resaltados (pase el mouse para ver el valor del acta original).
+                            <ol className="mb-0 mt-1">
+                              {(d.subsanacion.lista as R[]).map((s) => (
+                                <li key={String(s.uuid)}>{fechaHora(s.date_created)} · {String(s.usuario)} · {Object.keys((s.campos ?? {}) as R).map((k) => d.subsanables.find((f) => f.k === k)?.t ?? k).join(', ')}. Motivo: {String(s.motivo)}</li>
+                              ))}
+                            </ol>
+                          </>
+                        ) : (
+                          <><strong>Datos subsanados</strong> por {d.subsanacion.usuario} el {fechaHora(d.subsanacion.date_created)}. Motivo: {d.subsanacion.motivo}. Los datos corregidos están resaltados (pase el mouse para ver el valor anterior).</>
+                        )}
                       </div>
                     ) : <div className="aviso aviso-alerta">Acta tal como se firmó (solo lectura).</div>}
                   </>
@@ -451,7 +486,7 @@ export function CausaDetalle({ embebida }: { embebida?: { uuid: string; onCambio
                   <div><dt>Legajo</dt><dd>{cf.legajoNumber || '-'}</dd></div>
                   <div><dt>Año</dt><dd>{cf.legajoAnio || '-'}</dd></div>
                   <div><dt>Ejido</dt><dd>{cf.ejido === 'dentro' ? 'Dentro del ejido urbano' : cf.ejido === 'fuera' ? 'Fuera del ejido urbano' : 'Sin determinar'}</dd></div>
-                  <div {...marcaCambio(["infractor_nombre", "infractor_razon_social", "infractor_documento_numero", "infractor_cuit"])}><dt>Infractor</dt><dd>{cf.situacionInfractor === 'nn' ? 'No identificado (NN)' : `${cf.infractorRazonSocial || cf.infractorNombre || '-'} · ${cf.infractorCuit ? `CUIT ${cf.infractorCuit}` : `${cf.infractorDocumentoTipoNombre ?? ''} ${cf.infractorDocumentoNumero ?? ''}`}`}</dd></div>
+                  <div {...marcaCambio(["infractor_nombre", "infractor_razon_social", "infractor_documento_numero", "infractor_cuit"])}><dt>Infractor</dt><dd>{esDeOficio(cf.situacionInfractor) ? 'De oficio (sin persona identificada)' : `${cf.infractorRazonSocial || cf.infractorNombre || '-'} · ${cf.infractorCuit ? `CUIT ${cf.infractorCuit}` : `${cf.infractorDocumentoTipoNombre ?? ''} ${cf.infractorDocumentoNumero ?? ''}`}`}</dd></div>
                   <div {...marcaCambio(["infractor_domicilio", "infractor_calle_altura", "infractor_departamento", "infractor_localidad_nombre", "infractor_partido_nombre"])}><dt>Domicilio</dt><dd>{[[cf.infractorDomicilio, cf.infractorCalleAltura, cf.infractorDepartamento].filter(Boolean).join(' '), cf.infractorLocalidadNombre, cf.infractorPartidoNombre].filter(Boolean).join(' · ') || '-'}</dd></div>
                   <div><dt>Correo electrónico</dt><dd>{cf.infractorEmail || <span className="texto-ayuda">Sin dato</span>}{gestion && !final ? <button type="button" className="btn btn-link btn-sm py-0" onClick={() => setModal({ titulo: 'Correo del infractor', icono: 'fa-solid fa-at', accion: 'correo_infractor', textoOk: 'Guardar', aviso: 'Completar solo si se conoce el dato. No forma parte del acta.', campos: [{ k: 'correo', t: 'Correo electrónico', tipo: 'texto', valor: cf.infractorEmail ?? '' }] })}><i className="fa-solid fa-pen" aria-hidden="true" /> {cf.infractorEmail ? 'Editar' : 'Agregar'}</button> : null}</dd></div>
                   {tipo !== 'contravenciones' ? <div {...marcaCambio(["vehiculo_numero_dominio", "vehiculo_tipo_nombre", "vehiculo_numero_licencia", "meta.marca", "meta.modelo"])}><dt>Vehículo</dt><dd>{cf.vehiculoNumeroDominio || '-'} {cf.vehiculoTipoNombre ?? ''} {[cf.metadata?.marca, cf.metadata?.modelo].filter(Boolean).join(' ')} {cf.vehiculoNumeroLicencia ? `· Lic. ${cf.vehiculoNumeroLicencia}` : ''}</dd></div> : null}
@@ -497,8 +532,7 @@ export function CausaDetalle({ embebida }: { embebida?: { uuid: string; onCambio
                     })}><i className="fa-solid fa-file-circle-check" aria-hidden="true" /> Acta con correcciones (PDF)</button>
                   ) : null}
                   <button type="button" className="btn btn-outline-secondary" onClick={() => void printTicket(c)}><i className="fa-solid fa-print" aria-hidden="true" /> Ticket</button>
-                  {c.retencionDeVehiculo ? <button type="button" className="btn btn-outline-secondary" onClick={() => void printTicketRetencion(c, 'vehiculo')}><i className="fa-solid fa-car" aria-hidden="true" /> Ticket retención vehículo</button> : null}
-                  {c.retencionDeLicencia ? <button type="button" className="btn btn-outline-secondary" onClick={() => void printTicketRetencion(c, 'licencia')}><i className="fa-solid fa-id-card" aria-hidden="true" /> Ticket retención licencia</button> : null}
+                  {c.retencionDeVehiculo || c.retencionDeLicencia ? <button type="button" className="btn btn-outline-secondary" onClick={() => void printTicketInspector(c)}><i className="fa-solid fa-id-card" aria-hidden="true" /> Ticket del inspector</button> : null}
                   <a className="btn btn-outline-secondary" href={`/imprimir/legajo/${uuid}`} target="_blank" rel="noreferrer"><i className="fa-solid fa-book" aria-hidden="true" /> Legajo completo (PDF)</a>
                 </div>
               </>
@@ -684,6 +718,7 @@ export function CausaDetalle({ embebida }: { embebida?: { uuid: string; onCambio
         </aside>
       </div>
 
+      {exportar ? <ExportarLegajo d={d} uuid={uuid} onCerrar={() => setExportar(false)} onHecho={() => { setExportar(false); cargar(); }} /> : null}
       {modal ? <ModalForm titulo={modal.titulo} icono={modal.icono} campos={modal.campos} textoOk={modal.textoOk} textoCancelar={modal.textoCancelar} onNo={modal.onNo} peligro={modal.peligro} aviso={modal.aviso} onCancel={() => setModal(null)} onOk={confirmarModal} /> : null}
     </div>
   );

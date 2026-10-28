@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server';
 import { notificarActa } from '@/lib/causa-srv';
 import { infoEstado, TIPOS_ACTA, tipoActa } from '@/lib/dominio';
 import { loadInfraccionByUuid } from '@/lib/load-infraccion';
-import { accionesDisponibles, handlePortal, nombreCiudadano, type Presentacion } from '@/lib/portal-srv';
+import { accionesDisponibles, esTitular, handlePortal, nombreCiudadano, type Presentacion } from '@/lib/portal-srv';
 import { causaPorUuid, check, historial, type Db } from '@/lib/srv';
 import { causaVigente, subsanacionDe } from '@/lib/subsanacion';
 
@@ -30,9 +30,12 @@ export async function GET(req: NextRequest, ctx: Ctx) {
   return handlePortal(req, async ({ ciu, db }) => {
     const c = await causaPorUuid(db, uuid);
     check(!['Borrador', 'Anulada'].includes(c.estado_faltas) && Number(c.visible_portal) === 1, 'Causa no disponible', 404);
-    if (abrir && !c.notificada_at) await notificarActa(db, c, 'portal', nombreCiudadano(ciu));
-    else if (c.notificada_at) await registrarReingreso(db, c.id, nombreCiudadano(ciu), Number(c.notificada_at));
     const cv = await causaVigente(db, c);
+    // Reunión 27/10: solo notifica (y registra reingresos) si el DNI/CUIT del usuario coincide con el del acta vigente.
+    const titular = esTitular(ciu, cv);
+    if (titular && abrir && !c.notificada_at) await notificarActa(db, c, 'portal', nombreCiudadano(ciu));
+    else if (titular && c.notificada_at) await registrarReingreso(db, c.id, nombreCiudadano(ciu), Number(c.notificada_at));
+    if (!titular) await historial(db, c.id, `${nombreCiudadano(ciu)} (portal)`, 'Consulta del acta por un usuario que no es el titular', 'El DNI/CUIT del usuario no coincide con el del acta: no queda notificado ni puede presentar.').catch(() => undefined);
     const resumen = {
       uuid: c.uuid, numero: c.legajo_numero_acta, legajo: `${c.legajo_number}/${c.legajo_anio}`, fecha: c.legajo_fecha,
       tipo: tipoActa(c.infraccion_tipo_nombre), tipoTitulo: TIPOS_ACTA[tipoActa(c.infraccion_tipo_nombre)].titulo,
@@ -40,7 +43,7 @@ export async function GET(req: NextRequest, ctx: Ctx) {
       estadoVisible: infoEstado(c.estado_faltas).portal, estado: c.estado_faltas, medidaVigente: Number(c.medida_vigente) === 1,
       notificadaAt: c.notificada_at, venceAt: c.vence_plazo_at, dominio: cv.vehiculo_numero_dominio,
     };
-    if (!c.notificada_at) return { resumen, requiereAviso: true };
+    if (!c.notificada_at && titular) return { resumen, requiereAviso: true };
     const sub = await subsanacionDe(db, c.id);
     const [acta, pres, bol, docs, notif, imgs] = await Promise.all([
       loadInfraccionByUuid(uuid, { vigente: true }),
@@ -59,6 +62,12 @@ export async function GET(req: NextRequest, ctx: Ctx) {
       .map((d) => ({ ...d, pendienteNotificacion: notifs.some((n) => n.documento_id === d.id && n.estado === 'pendiente') }));
     if (acta) {
       delete (acta as Record<string, unknown>).firmaInfractor;
+    }
+    if (!titular) {
+      // Ve el acta, sin acciones ni documentos personales.
+      const motivo = 'El acta no está a nombre de su DNI/CUIT: puede verla, pero no hacer presentaciones ni pagos.';
+      const acciones = Object.fromEntries(['pago_voluntario', 'descargo', 'boleta', 'cuotas', 'apelacion', 'reenviar_descargo'].map((k) => [k, { ok: false, motivo }]));
+      return { resumen, acta, imagenes: imgs.data ?? [], presentaciones: [], subsanacion: null, boletas: [], documentos: [], notificaciones: [], acciones, noTitular: true };
     }
     return {
       resumen, acta, imagenes: imgs.data ?? [], presentaciones, subsanacion: sub ? { motivo: sub.motivo, fecha: sub.date_created } : null, boletas, documentos, notificaciones: notif.data ?? [],

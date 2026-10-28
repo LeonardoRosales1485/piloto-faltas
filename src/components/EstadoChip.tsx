@@ -6,7 +6,7 @@ export function EstadoChip({ estado, medida, portal }: { estado?: string | null;
   return (
     <span className="d-inline-flex align-items-center gap-1 flex-wrap">
       <span className={`estado-chip estado-${estado === 'Borrador' ? 'presentacion' : info.familia}`} title={portal ? `Interno: ${info.nombre}` : `Visible en el portal: ${info.portal}`}>
-        {portal ? info.portal : info.nombre}
+        {portal ? info.portal : info.etiqueta ?? info.nombre}
       </span>
       {medida ? (
         <span className="medida-chip" title="Medida preventiva vigente">

@@ -5,12 +5,15 @@ import { useState } from 'react';
 import { BuscadorOpciones, type OpcionBuscable } from './BuscadorOpciones';
 import { ACCEPT_ADJUNTOS, leerAdjunto } from '@/lib/adjuntos';
 
+/** `si`: el campo se muestra (y se exige) solo cuando la condición se cumple con los valores actuales. */
+type Base = { k: string; t: string; req?: boolean; ayuda?: string; valor?: string; si?: (v: Record<string, string>) => boolean };
 export type CampoModal =
-  | { k: string; t: string; tipo: 'texto' | 'area' | 'numero' | 'fecha' | 'clave'; req?: boolean; ayuda?: string; valor?: string }
-  | { k: string; t: string; tipo: 'select'; opciones: { v: string; t: string }[]; req?: boolean; ayuda?: string; valor?: string }
-  | { k: string; t: string; tipo: 'buscar'; opciones: OpcionBuscable[]; req?: boolean; ayuda?: string; valor?: string; placeholder?: string }
-  | { k: string; t: string; tipo: 'multi'; opciones: { v: string; t: string }[]; req?: boolean; ayuda?: string; valor?: string }
-  | { k: string; t: string; tipo: 'archivo'; req?: boolean; ayuda?: string; valor?: string };
+  | (Base & { tipo: 'texto' | 'area' | 'numero' | 'fecha' | 'clave' })
+  | (Base & { tipo: 'select'; opciones: { v: string; t: string }[] })
+  | (Base & { tipo: 'buscar'; opciones: OpcionBuscable[]; placeholder?: string })
+  | (Base & { tipo: 'multi'; opciones: { v: string; t: string }[] })
+  | (Base & { tipo: 'archivo' })
+  | (Base & { tipo: 'check' }); // valor '1' / ''
 
 /** Formulario modal genérico para las acciones de la causa. */
 export function ModalForm({
@@ -23,7 +26,8 @@ export function ModalForm({
 }) {
   const [v, setV] = useState<Record<string, string>>(() => Object.fromEntries(campos.map((c) => [c.k, c.valor ?? (c.tipo === 'select' ? c.opciones[0]?.v ?? '' : '')])));
   const [enviando, setEnviando] = useState(false);
-  const faltan = campos.some((c) => c.req && !String(v[c.k] ?? '').trim());
+  const visibles = campos.filter((c) => !c.si || c.si(v));
+  const faltan = visibles.some((c) => c.req && !String(v[c.k] ?? '').trim());
 
   async function archivo(k: string, f?: File) {
     if (!f) return;
@@ -41,10 +45,12 @@ export function ModalForm({
         </div>
         <div className="modal-fake-body">
           {aviso ? <div className="aviso aviso-info">{aviso}</div> : null}
-          {campos.map((c) => (
+          {visibles.map((c) => (
             <div key={c.k} className="form-group mb-3">
-              <label htmlFor={`m-${c.k}`}>{c.t} {c.req ? <span className="requerido">*</span> : null}</label>
-              {c.tipo === 'area' ? (
+              {c.tipo === 'check' ? null : <label htmlFor={`m-${c.k}`}>{c.t} {c.req ? <span className="requerido">*</span> : null}</label>}
+              {c.tipo === 'check' ? (
+                <label className="form-check mb-0"><input id={`m-${c.k}`} type="checkbox" className="form-check-input" checked={v[c.k] === '1'} onChange={(e) => setV({ ...v, [c.k]: e.target.checked ? '1' : '' })} /> <span className="form-check-label">{c.t}</span></label>
+              ) : c.tipo === 'area' ? (
                 <textarea id={`m-${c.k}`} className="form-control" rows={4} value={v[c.k]} onChange={(e) => setV({ ...v, [c.k]: e.target.value })} />
               ) : c.tipo === 'select' ? (
                 <select id={`m-${c.k}`} className="form-select" value={v[c.k]} onChange={(e) => setV({ ...v, [c.k]: e.target.value })}>
@@ -75,7 +81,7 @@ export function ModalForm({
         </div>
         <div className="modal-fake-footer">
           <button type="button" className="btn btn-outline-secondary" disabled={enviando} onClick={async () => { if (!onNo) return onCancel(); setEnviando(true); try { await onNo(); } finally { setEnviando(false); } }}>{textoCancelar}</button>
-          <button type="button" className={`btn ${peligro ? 'btn-danger' : 'btn-primary'}`} disabled={faltan || enviando} onClick={async () => { setEnviando(true); try { await onOk(v); } finally { setEnviando(false); } }}>
+          <button type="button" className={`btn ${peligro ? 'btn-danger' : 'btn-primary'}`} disabled={faltan || enviando} onClick={async () => { setEnviando(true); try { await onOk(Object.fromEntries(Object.entries(v).filter(([k]) => { const c = campos.find((x) => x.k === k || `${x.k}Nombre` === k); return !c || !c.si || c.si(v); }))); } finally { setEnviando(false); } }}>
             {enviando ? <i className="fa-solid fa-spinner fa-spin" aria-hidden="true" /> : null} {textoOk}
           </button>
         </div>

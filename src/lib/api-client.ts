@@ -139,8 +139,8 @@ export const apiClient = {
         ? `${filtros.fechaHasta}T23:59`
         : filtros.fechaHasta;
     addFiltro(body, 't', 'legajo_fecha', '<=', hasta);
-    // «Incompleta» y «Anulada» son el mismo estado en la base; el servidor las separa por el motivo.
-    const anulacion = filtros.estado === 'Incompleta' ? 'incompletas' : filtros.estado === 'Anulada' ? 'descartadas' : '';
+    // «Abandonada» y «Anulada» son el mismo estado en la base; el servidor las separa por el motivo.
+    const anulacion = filtros.estado === 'Abandonada' || filtros.estado === 'Incompleta' ? 'incompletas' : filtros.estado === 'Anulada' ? 'descartadas' : '';
     addFiltro(body, 't', 'estado_faltas', '=', anulacion ? 'Anulada' : filtros.estado);
     if (anulacion) (body as { anulacion?: string }).anulacion = anulacion;
     addFiltro(body, 't', 'inspector_username', '=', (filtros as FiltrosInfraccion & { inspector?: string }).inspector);

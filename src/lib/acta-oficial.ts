@@ -1,7 +1,7 @@
 import { leyendasDelActa } from './leyendas';
 import QRCode from 'qrcode';
 import type { Infraccion } from './types';
-import { ordenarCategoriasLicencia } from './dominio';
+import { ordenarCategoriasLicencia, textoSituacion } from './dominio';
 
 const pad = (n: number) => String(n).padStart(2, '0');
 
@@ -132,7 +132,7 @@ export function actaTransitoHtml(i: Infraccion, extras: ActaExtras = {}): string
   const sit = i.situacionInfractor ?? 'presente';
   const firmaInfractor = /^data:image\/(png|jpe?g|svg\+xml);base64,[A-Za-z0-9+/=]{100,}/.test(i.firmaInfractor ?? '')
     ? `<img src="${i.firmaInfractor}" alt="Firma del infractor" />`
-    : `<span class="digital">${sit === 'se_niega' ? 'Se negó a firmar' : sit === 'ausente' ? 'Infractor ausente' : sit === 'nn' ? 'Infractor no identificado (NN)' : ''}</span>`;
+    : `<span class="digital">${sit === 'se_niega' ? 'Se negó a firmar' : sit === 'presente' ? '' : textoSituacion(sit)}</span>`;
 
   return `
   <div class="acta-transito">
@@ -278,7 +278,7 @@ export function actaMunicipalHtml(i: Infraccion, extras: ActaExtras = {}): strin
   const sit = i.situacionInfractor ?? 'presente';
   const firmaInfractor = /^data:image\/(png|jpe?g|svg\+xml);base64,[A-Za-z0-9+/=]{100,}/.test(i.firmaInfractor ?? '')
     ? `<img src="${i.firmaInfractor}" alt="Firma del infractor" />`
-    : `<span class="digital">${sit === 'se_niega' ? 'Se negó a firmar' : sit === 'ausente' ? 'Infractor ausente' : sit === 'nn' ? 'Infractor no identificado (NN)' : ''}</span>`;
+    : `<span class="digital">${sit === 'se_niega' ? 'Se negó a firmar' : sit === 'presente' ? '' : textoSituacion(sit)}</span>`;
 
   return `
   <div class="acta-transito">

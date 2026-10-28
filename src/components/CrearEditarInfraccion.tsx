@@ -5,10 +5,10 @@ import { useParams, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { apiClient, http } from '@/lib/api-client';
 import { useLayout } from '@/lib/layout-context';
-import { guardarUltimoTicket, hayImpresoraPos, printTicket, printTicketRetencion, tomarFotosPos } from '@/lib/print';
-import { CATEGORIAS_LICENCIA, ordenarCategoriasLicencia, puede, SITUACIONES, TIPOS_ACTA, claveLey, fechaHora, tipoActa } from '@/lib/dominio';
+import { guardarUltimoTicket, hayImpresoraPos, printTicket, printTicketInspector, tomarFotosPos } from '@/lib/print';
+import { CATEGORIAS_LICENCIA, esDeOficio, ordenarCategoriasLicencia, puede, SITUACIONES, TIPOS_ACTA, claveLey, fechaHora, textoSituacion, tipoActa } from '@/lib/dominio';
 import type { ImgModel, Infraccion, Ley, OpcionCatalogo } from '@/lib/types';
-import { type Paso, MAX_IMAGENES, completarConDesconocido, ejidoPorGps, faltantesPorPaso, pasosPara, readImageFile, toDateTimeLocal, vacia } from './crear-editar-utils';
+import { type Paso, MAX_IMAGENES, MOTIVOS_INCOMPLETA, NO_COMPLETABLES, completarConDesconocido, ejidoPorGps, faltantesPorPaso, pasosPara, readImageFile, toDateTimeLocal, vacia } from './crear-editar-utils';
 import { useNotify } from './NotifyProvider';
 import { FirmaPantallaCompleta } from './FirmaPantallaCompleta';
 import { BarraSuperior } from './BarraSuperior';
@@ -39,8 +39,15 @@ function Campo({ id, label, children, req }: { id: string; label: string; childr
   );
 }
 
+/** PIN del inspector: teclado numérico, oculto. */
+function InputPin({ valor, onChange, onEnter }: { valor: string; onChange: (v: string) => void; onEnter: () => void }) {
+  return (
+    <input className="form-control form-control-lg text-center input-pin" type="password" inputMode="numeric" pattern="[0-9]*" autoComplete="off" maxLength={8} autoFocus
+      aria-label="PIN" value={valor} onChange={(e) => onChange(e.target.value.replace(/\D/g, ''))} onKeyDown={(e) => { if (e.key === 'Enter') onEnter(); }} />
+  );
+}
+
 // Lugar de infracción precargado entre actas del mismo operativo (por inspector, en este dispositivo).
-const SENTIDOS_CIRCULACION = ['Mano', 'Contramano'];
 const CAMPOS_LUGAR = ['domicilioInfraccionCalle', 'domicilioInfraccionNumero', 'domicilioInfraccionLocalidadNombre', 'entreCalle1', 'entreCalle2', 'ejido', 'gpsLat', 'gpsLng', 'nomenclaturaCatastral'] as const;
 const claveLugar = (u?: string | null) => `faltas-piloto:ultimo-lugar:${u ?? ''}`;
 function leerUltimoLugar(usuario?: string | null): Partial<Infraccion> {
@@ -89,59 +96,73 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
   const iniciado = useRef(false);
 
   const soloLectura = form.estadoFaltas !== undefined && form.estadoFaltas !== 'Borrador';
-  // Inspector: sin «Guardar borrador» ni «Descartar acta». Si vuelve al inicio con el acta sin firmar, se le avisa
-  // y se da por «acta incompleta» (el número queda anulado, como un descarte).
+  // Reunión 27/10: el acta iniciada se termina sí o sí (sin «Inicio» ni abandono manual). Si faltan datos al firmar se
+  // completan con «Desconocido» indicando el motivo, y se firma igual. Solo vence (y queda «Acta abandonada») si se
+  // pasa el plazo de labrado sin extenderlo. Para pruebas, 7 toques en la barra abren «Descartar acta».
   const esInspector = user?.rol === 'Inspector';
-  const [abandonar, setAbandonar] = useState<string | null>(null);
-  const [abandonando, setAbandonando] = useState(false);
-  // Último paso con datos sin completar (inspector): ofrecer «Desconocido» y registrar el acta como «Acta incompleta».
-  const [incompleta, setIncompleta] = useState(false);
-  const [artIncompleta, setArtIncompleta] = useState<string[]>([]);
-  const [registrando, setRegistrando] = useState(false);
+  const [salidaBloqueada, setSalidaBloqueada] = useState(false);
+  const [motivoModal, setMotivoModal] = useState(false);
+  const [motivoSel, setMotivoSel] = useState('');
+  const [motivoOtro, setMotivoOtro] = useState('');
+  // Aviso breve al dejar un paso incompleto (no bloquea): «Cuidado, faltó: …».
+  const [stopper, setStopper] = useState<{ paso: string; faltan: string[] } | null>(null);
+  useEffect(() => {
+    if (!stopper) return;
+    const t = setTimeout(() => setStopper(null), 2800);
+    return () => clearTimeout(t);
+  }, [stopper]);
+  // PIN: una vez que el equipo pasó al infractor para firmar, salir de la firma pide el PIN del inspector.
+  const [bloqueoPin, setBloqueoPin] = useState(false);
+  const [pidePin, setPidePin] = useState<null | (() => void)>(null);
+  const [pin, setPin] = useState('');
+  const [pinError, setPinError] = useState('');
+  async function validarPin() {
+    try {
+      await http.post('/api/auth/pin', { pin });
+      const seguir = pidePin;
+      setBloqueoPin(false); setPidePin(null); setPin(''); setPinError('');
+      seguir?.();
+    } catch (e) {
+      setPinError((e as Error).message || 'PIN incorrecto');
+    }
+  }
+  const conPin = (accion: () => void) => (bloqueoPin && esInspector ? setPidePin(() => accion) : accion());
   useEffect(() => {
     if (!esInspector || soloLectura || recienFirmada || !form.uuid) return;
-    registrarGuardiaSalida((destino) => setAbandonar(destino));
+    registrarGuardiaSalida(() => (bloqueoPin ? setPidePin(() => () => setSalidaBloqueada(true)) : setSalidaBloqueada(true)));
     return () => registrarGuardiaSalida(null);
-  }, [esInspector, soloLectura, recienFirmada, form.uuid]);
-  /** Completa con «Desconocido», guarda y anula el número como «Acta incompleta» (no se firma). */
-  async function registrarIncompleta() {
-    const sinArticulo = !(form.leyesNombre ?? []).length;
-    if (sinArticulo && !artIncompleta.length) return;
-    setRegistrando(true);
+  }, [esInspector, soloLectura, recienFirmada, form.uuid, bloqueoPin]);
+  // Descartar (solo pruebas): 7 toques en la barra superior.
+  useEffect(() => {
+    const f = () => { if (!soloLectura && form.uuid) setDescartar(true); };
+    window.addEventListener('faltas:descartar-acta', f);
+    return () => window.removeEventListener('faltas:descartar-acta', f);
+  }, [soloLectura, form.uuid]);
+  // Plazo de labrado: cuenta regresiva, «Extender tiempo» y vencimiento (acta abandonada).
+  const [ahora, setAhora] = useState(() => Date.now());
+  useEffect(() => { const t = setInterval(() => setAhora(Date.now()), 15000); return () => clearInterval(t); }, []);
+  const venceAt = Number(form.labradoVenceAt) || 0;
+  const restanMs = venceAt ? venceAt - ahora : null;
+  const [extendiendo, setExtendiendo] = useState(false);
+  async function extenderTiempo() {
+    setExtendiendo(true);
     try {
-      const completo = completarConDesconocido({ ...form, leyesNombre: sinArticulo ? artIncompleta : form.leyesNombre }) as Infraccion;
-      const campos = pasos.filter((p) => p.id !== 'firma').flatMap((p) => faltantes[p.id] ?? []).filter((t) => t !== 'al menos una foto' && t !== 'al menos un artículo');
-      setForm(completo);
-      await apiClient.saveInfraccion(completo);
-      await apiClient.anularActa(form.uuid!, `Acta incompleta: el inspector indicó «Desconocido» en ${campos.join(', ') || 'los datos faltantes'}`);
-      registrarGuardiaSalida(null);
-      notify.info('Acta incompleta', `Se registró el acta ${form.legajoNumeroActa ?? ''} como incompleta (número anulado, sin firmar).`);
-      router.push('/private/inicio');
+      const r = await http.post<{ venceAt: number }>('/api/acta/extender', { uuid: form.uuid });
+      patch({ labradoVenceAt: r.venceAt });
+      setAhora(Date.now());
+      notify.success('Tiempo extendido', `El acta vence ${fechaHora(r.venceAt)}.`);
     } catch (e) {
-      notify.error('No se pudo registrar el acta incompleta', (e as Error).message);
+      notify.error('No se pudo extender', (e as Error).message);
     } finally {
-      setRegistrando(false);
+      setExtendiendo(false);
     }
   }
-
-  async function confirmarAbandono() {
-    const destino = abandonar ?? '/private/inicio';
-    setAbandonando(true);
-    try {
-      await apiClient.anularActa(form.uuid!, 'Acta incompleta: el inspector volvió al inicio sin firmarla');
-      notify.info('Acta incompleta', `El número ${form.legajoNumeroActa ?? ''} quedó anulado.`);
-    } catch (e) {
-      notify.warning('No se pudo registrar el abandono', (e as Error).message);
-    } finally {
-      registrarGuardiaSalida(null);
-      setAbandonando(false);
-      setAbandonar(null);
-      router.push(destino);
-    }
-  }
+  const vencida = esInspector && !soloLectura && !recienFirmada && restanMs !== null && restanMs <= 0;
   const habilitado = !soloLectura && !guardando;
   const pasos = useMemo(() => pasosPara(tipo, form.situacionInfractor), [tipo, form.situacionInfractor]);
-  const faltantes = useMemo(() => faltantesPorPaso(form, firma, imagenes.length), [form, firma, imagenes.length]);
+  // Foto obligatoria solo si algún artículo elegido la pide (Ordenanzas → «Requiere foto»).
+  const leyesConFoto = useMemo(() => leyes.filter((l) => l.requiereFoto && (form.leyesNombre ?? []).includes(claveLey(l))), [leyes, form.leyesNombre]);
+  const faltantes = useMemo(() => faltantesPorPaso(form, firma, imagenes.length, leyesConFoto.length > 0), [form, firma, imagenes.length, leyesConFoto.length]);
   const paso = pasos[Math.min(idx, pasos.length - 1)];
 
   const patch = useCallback((partial: Partial<Infraccion>) => setForm((prev) => ({ ...prev, ...partial })), []);
@@ -168,6 +189,12 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
   useEffect(() => () => setOcultarTopbar(false), [setOcultarTopbar]);
   // Confirmación final: sin la barra «Acta de …» (no es navegable y confundía); las acciones están en la tarjeta.
   useEffect(() => { if (recienFirmada) setOcultarTopbar(true); }, [recienFirmada, setOcultarTopbar]);
+  // Pantalla final: siempre desde arriba (reunión 27/10).
+  useEffect(() => {
+    if (!recienFirmada) return;
+    const ir = () => { window.scrollTo({ top: 0 }); document.querySelectorAll('.layout-contenido, .inspector-contenido').forEach((el) => { (el as HTMLElement).scrollTop = 0; }); };
+    ir(); const t = setTimeout(ir, 150); return () => clearTimeout(t);
+  }, [recienFirmada]);
 
   useEffect(() => {
     apiClient.constantes().then((c) => {
@@ -181,6 +208,8 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
         dependencia: c.dependencias ?? [],
         medida: extra.medidasContravencion ?? [],
         municipio: extra.municipios ?? [],
+        alcMarca: extra.alcoholimetroMarcas ?? [],
+        alcModelo: extra.alcoholimetroModelos ?? [],
       });
     });
     apiClient.leyes(tipo, { articulo: '', nombre: '', categoria: '' }, 0, 300).then((res) => setLeyes(res.content ?? []));
@@ -198,7 +227,13 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
         setForm({ ...vacia(tipo), ...inf, ...lugar, legajoFecha: toDateTimeLocal(inf.legajoFecha) });
         setFirma(inf.firmaInfractor ?? null);
         if (uuid) apiClient.imagenes(uuid).then((r) => setImagenes(r.content ?? []));
-        if (!uuid && inf.uuid) window.history.replaceState(null, '', `/private/crear-editar/${tipo}/${inf.uuid}`);
+        // Si el inspector tenía un acta abierta (de este u otro tipo), se retoma esa: el acta se termina sí o sí.
+        if (!uuid && inf.uuid && inf.infraccionTipoNombre && inf.infraccionTipoNombre !== tipo) { window.location.replace(`/private/crear-editar/${inf.infraccionTipoNombre}/${inf.uuid}`); return; }
+        if (!uuid && inf.uuid) {
+          window.history.replaceState(null, '', `/private/crear-editar/${tipo}/${inf.uuid}`);
+          if ((inf as Infraccion & { retomada?: boolean }).retomada) notify.info('Acta abierta', `Se retomó el acta ${inf.legajoNumeroActa}: hay que terminarla antes de labrar otra.`);
+          apiClient.imagenes(inf.uuid).then((r) => setImagenes(r.content ?? [])).catch(() => undefined);
+        }
       })
       .catch((e: Error) => {
         notify.error('No se pudo abrir el acta', e.message);
@@ -286,10 +321,10 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
     navigator.geolocation.getCurrentPosition(ok, (e) => fallo(e, false), { enableHighAccuracy: true, timeout: 25000, maximumAge: 60000 });
   }
 
-  async function guardarBorrador(silencioso = true): Promise<Infraccion | null> {
-    if (soloLectura) return form;
+  async function guardarBorrador(silencioso = true, datos: Infraccion = form): Promise<Infraccion | null> {
+    if (soloLectura) return datos;
     try {
-      const g = await apiClient.saveInfraccion(form);
+      const g = await apiClient.saveInfraccion(datos);
       const persistidas = await apiClient.imagenes(g.uuid ?? '');
       const keep = new Set(imagenes.filter((i) => i.uuid).map((i) => i.uuid));
       for (const p of persistidas.content) if (p.uuid && !keep.has(p.uuid)) await apiClient.deleteImagen(p.uuid);
@@ -304,52 +339,79 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
     }
   }
 
-  async function irA(n: number) {
+  async function irA(n: number, sinPin = false) {
     const next = Math.min(pasos.length - 1, Math.max(0, n));
+    // Salir de la firma con el equipo en manos del infractor: pide el PIN del inspector.
+    if (!sinPin && bloqueoPin && esInspector && paso.id === 'firma' && next !== idx) { setPidePin(() => () => void irA(n, true)); return; }
     if (next !== idx) setVisitados((v) => new Set(v).add(paso.id));
-    // Al dejar un paso incompleto se avisa qué falta (QA STEPS); el paso queda marcado y se puede completar después.
+    // Al dejar un paso incompleto se avisa qué falta, un momento y sin bloquear (reunión 27/10).
     const faltan = faltantes[paso.id] ?? [];
-    if (next !== idx && !soloLectura && paso.id !== 'firma' && faltan.length) notify.warning(`${paso.titulo}: faltan datos`, faltan.join(', '));
+    if (next !== idx && !soloLectura && paso.id !== 'firma' && faltan.length) setStopper({ paso: paso.titulo, faltan });
     if (!soloLectura && next !== idx) void guardarBorrador();
     setIdx(next);
-    // Inspector: al llegar al último paso con datos sin completar, se ofrece indicar «Desconocido» (acta incompleta).
-    if (esInspector && !soloLectura && next !== idx && pasos[next]?.id === 'firma' && pasos.some((p) => p.id !== 'firma' && (faltantes[p.id] ?? []).filter((t) => t !== 'al menos una foto').length)) {
-      setArtIncompleta([]);
-      setIncompleta(true);
-    }
-    // La barra «Acta de tránsito» queda visible en todos los pasos (lleva el estado del borrador).
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    subirArriba();
   }
 
-  async function firmarYConfirmar() {
+  /** Lleva la vista al principio (la página puede desplazarse en la ventana o en el contenedor del layout). */
+  function subirArriba() {
+    const ir = () => {
+      window.scrollTo({ top: 0 });
+      document.querySelectorAll('.layout-contenido, .inspector-contenido').forEach((el) => { (el as HTMLElement).scrollTop = 0; });
+    };
+    ir();
+    requestAnimationFrame(ir);
+    setTimeout(ir, 120);
+  }
+
+  async function firmarYConfirmar(motivoIncompleta?: string) {
     setIntentoFirma(true);
-    const pendientes = pasos.filter((p) => faltantes[p.id]?.length);
-    if (pendientes.some((p) => p.id !== 'firma')) {
-      notify.error('Faltan datos', pendientes.map((p) => `${p.corto}: ${faltantes[p.id]!.join(', ')}`).join(' · '));
+    let f = form;
+    const pendientes = pasos.filter((p) => p.id !== 'firma' && faltantes[p.id]?.length);
+    // Artículo (y la foto que pide un artículo) son obligatorios sí o sí.
+    const duros = pendientes.flatMap((p) => (faltantes[p.id] ?? []).filter((t) => NO_COMPLETABLES.includes(t)).map((t) => `${p.corto}: ${t}`));
+    if (duros.length) { notify.error('Falta completar', duros.join(' · ')); return; }
+    if (pendientes.length && !motivoIncompleta) {
+      // El resto se completa con «Desconocido», indicando por qué no se pudo cargar.
+      setMotivoSel(''); setMotivoOtro(''); setMotivoModal(true);
       return;
     }
-    if (form.situacionInfractor === 'presente' && !firma) {
-      notify.error('Falta la firma', 'El infractor presente debe firmar el acta. Si se niega, marque «Se negó a firmar» debajo del recuadro.');
+    if (motivoIncompleta) {
+      const sitMotivo = MOTIVOS_INCOMPLETA.find((m) => m.t === motivoIncompleta)?.v;
+      const sit = sitMotivo && sitMotivo !== 'otro' && (!f.situacionInfractor || f.situacionInfractor === 'presente') ? sitMotivo : f.situacionInfractor || 'no_aporta';
+      f = completarConDesconocido({ ...f, situacionInfractor: sit, metadata: { ...(f.metadata ?? {}), motivoIncompleta } }) as Infraccion;
+      setForm(f);
+    }
+    if (f.situacionInfractor === 'presente' && !firma) {
+      notify.error('Falta la firma', 'El infractor presente debe firmar el acta. Si se niega, marque «Se negó a firmar» debajo del recuadro; si se fue, use «Se dio a la fuga».');
       return;
     }
     setGuardando(true);
     try {
-      const g = await guardarBorrador();
+      const g = await guardarBorrador(true, f);
       if (!g) return;
-      // La firma devuelve el acta final: el inspector no puede volver a abrirla después (solo sus borradores).
-      const r = await apiClient.firmarActa(g.uuid!, form.situacionInfractor === 'presente' ? firma : null);
+      // La firma devuelve el acta final: el inspector no puede volver a abrirla después.
+      const r = await apiClient.firmarActa(g.uuid!, f.situacionInfractor === 'presente' ? firma : null);
       const final = r.acta;
       setForm({ ...final, legajoFecha: toDateTimeLocal(final.legajoFecha) });
+      setBloqueoPin(false);
       setRecienFirmada(true);
-      guardarUltimoLugar(form);
-      void guardarUltimoTicket(final, user?.username); // «Imprimir último ticket» en el inicio
-      window.scrollTo({ top: 0 });
+      guardarUltimoLugar(f);
+      void guardarUltimoTicket({ ...final, leyesDetalle: leyesSeleccionadas.map((l) => ({ nombre: l.nombre, articulo: l.articulo ?? '', descripcion: l.descripcion ?? '' })) }, user?.username); // «Imprimir último ticket» en el inicio
+      subirArriba();
       notify.success('Acta firmada', `${final.legajoNumeroActa} ingresó como causa.`);
     } catch (e) {
       notify.error('No se pudo firmar', (e as Error).message);
     } finally {
       setGuardando(false);
     }
+  }
+
+  /** «Se dio a la fuga» (paso final): la persona se fue sin firmar; firma solo el inspector. */
+  function seDioALaFuga() {
+    setFirma(null);
+    patch({ situacionInfractor: 'fuga' });
+    setBloqueoPin(false);
+    notify.info('Se dio a la fuga', 'Firma solo el inspector. Revise los datos y toque «Firmar y confirmar».');
   }
 
   async function confirmarDescarte() {
@@ -419,7 +481,7 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
   // ---------------------------------------------------------------- confirmación final (recién firmada)
   if (recienFirmada && form.estadoFaltas !== 'Borrador') {
     const fila = (t: string, v: React.ReactNode) => <div><dt>{t}</dt><dd>{v || '-'}</dd></div>;
-    const sit = SITUACIONES.find((x) => x.v === form.situacionInfractor)?.t ?? form.situacionInfractor;
+    const sit = textoSituacion(form.situacionInfractor) || form.situacionInfractor;
     return (
       <div className="pagina pagina-steps acta-confirmada">
         <article className="card-step">
@@ -437,14 +499,9 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
               <button type="button" className="btn btn-outline-primary btn-lg" onClick={() => void printTicket(paraTicket())}>
                 <i className="fa-solid fa-print" aria-hidden="true" /> Imprimir ticket
               </button>
-              {form.retencionDeVehiculo ? (
-                <button type="button" className="btn btn-outline-warning btn-lg" onClick={() => void printTicketRetencion(paraTicket(), 'vehiculo')}>
-                  <i className="fa-solid fa-car" aria-hidden="true" /> Ticket de retención (vehículo)
-                </button>
-              ) : null}
-              {form.retencionDeLicencia ? (
-                <button type="button" className="btn btn-outline-warning btn-lg" onClick={() => void printTicketRetencion(paraTicket(), 'licencia')}>
-                  <i className="fa-solid fa-id-card" aria-hidden="true" /> Ticket de retención (licencia)
+              {form.retencionDeVehiculo || form.retencionDeLicencia ? (
+                <button type="button" className="btn btn-outline-warning btn-lg" onClick={() => void printTicketInspector(paraTicket())}>
+                  <i className="fa-solid fa-id-card" aria-hidden="true" /> Ticket del inspector (va con la {form.retencionDeLicencia ? 'licencia' : 'VTV'})
                 </button>
               ) : null}
             </div>
@@ -455,11 +512,12 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
             <h3 className="subtitulo-paso">Resumen de lo cargado</h3>
             <dl className="ficha">
               {fila('Fecha y hora', String(form.legajoFecha ?? '').replace('T', ' '))}
-              {fila('Situación del infractor', sit)}
+              {fila('Situación de la persona', sit)}
+              {form.metadata?.motivoIncompleta ? fila('Datos «Desconocido»', `Motivo: ${form.metadata.motivoIncompleta}`) : null}
               {fila('Lugar de infracción', [[form.domicilioInfraccionCalle, form.domicilioInfraccionNumero].filter(Boolean).join(' ') + (form.entreCalle1 ? ` (entre ${form.entreCalle1} y ${form.entreCalle2 ?? ''})` : ''), form.domicilioInfraccionLocalidadNombre].filter(Boolean).join(' · '))}
               {fila('Ejido', form.ejido === 'dentro' ? 'Dentro del ejido urbano' : form.ejido === 'fuera' ? 'Fuera del ejido urbano' : 'Sin determinar')}
-              {form.situacionInfractor !== 'nn' ? fila('Infractor', esJuridica ? `${form.infractorRazonSocial ?? ''} · CUIT ${form.infractorCuit ?? ''}` : `${form.infractorNombre ?? ''} · ${form.infractorDocumentoTipoNombre ?? ''} ${form.infractorDocumentoNumero ?? ''}`) : null}
-              {form.situacionInfractor !== 'nn' ? fila('Domicilio', [[form.infractorDomicilio, form.infractorCalleAltura, form.infractorDepartamento].filter(Boolean).join(' '), form.infractorLocalidadNombre, form.infractorPartidoNombre].filter(Boolean).join(' · ')) : null}
+              {!esDeOficio(form.situacionInfractor) ? fila('Infractor', esJuridica ? `${form.infractorRazonSocial ?? ''} · CUIT ${form.infractorCuit ?? ''}` : `${form.infractorNombre ?? ''} · ${form.infractorDocumentoTipoNombre ?? ''} ${form.infractorDocumentoNumero ?? ''}`) : null}
+              {!esDeOficio(form.situacionInfractor) ? fila('Domicilio', [[form.infractorDomicilio, form.infractorCalleAltura, form.infractorDepartamento].filter(Boolean).join(' '), form.infractorLocalidadNombre, form.infractorPartidoNombre].filter(Boolean).join(' · ')) : null}
               {form.vehiculoNumeroLicencia ? fila('Licencia de conducir', form.vehiculoNumeroLicencia) : null}
               {form.vehiculoLicenciaCategorias?.length ? fila('Categorías de la licencia', ordenarCategoriasLicencia(form.vehiculoLicenciaCategorias).join(' · ')) : null}
               {form.vehiculoMunicipalidadEmisora ? fila('Municipio emisor de la licencia', form.vehiculoMunicipalidadEmisora) : null}
@@ -533,14 +591,9 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
                   <button type="button" className="btn btn-primary btn-lg" onClick={() => void printTicket(paraTicket())}>
                     <i className="fa-solid fa-print" aria-hidden="true" /> Imprimir ticket
                   </button>
-                  {form.retencionDeVehiculo ? (
-                    <button type="button" className="btn btn-outline-warning btn-lg" onClick={() => void printTicketRetencion(paraTicket(), 'vehiculo')}>
-                      <i className="fa-solid fa-car" aria-hidden="true" /> Ticket de retención (vehículo)
-                    </button>
-                  ) : null}
-                  {form.retencionDeLicencia ? (
-                    <button type="button" className="btn btn-outline-warning btn-lg" onClick={() => void printTicketRetencion(paraTicket(), 'licencia')}>
-                      <i className="fa-solid fa-id-card" aria-hidden="true" /> Ticket de retención (licencia)
+                  {form.retencionDeVehiculo || form.retencionDeLicencia ? (
+                    <button type="button" className="btn btn-outline-warning btn-lg" onClick={() => void printTicketInspector(paraTicket())}>
+                      <i className="fa-solid fa-id-card" aria-hidden="true" /> Ticket del inspector (va con la {form.retencionDeLicencia ? 'licencia' : 'VTV'})
                     </button>
                   ) : null}
                   <BotonVerActa acta={form as Infraccion} imagenes={imagenes.map((x) => x.previewRaw ?? '').filter(Boolean)} className="btn btn-outline-primary btn-lg" />
@@ -591,11 +644,20 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
           <i className="fa-solid fa-hashtag" aria-hidden="true" /> {form.legajoNumeroActa}
         </span>
         <span>Legajo {form.legajoNumber}/{form.legajoAnio}</span>
+        {/* Plazo de labrado (reunión 27/10): si vence sin firmar ni extender, el acta queda abandonada. */}
+        {esInspector && restanMs !== null ? (
+          <span className={`plazo-labrado ${restanMs < 15 * 60000 ? 'por-vencer' : ''}`}>
+            <i className="fa-solid fa-hourglass-half" aria-hidden="true" /> {restanMs > 0 ? `Vence ${fechaHora(venceAt).split(', ').pop()} (${restanMs >= 3600000 ? `${Math.floor(restanMs / 3600000)} h ` : ''}${Math.ceil((restanMs % 3600000) / 60000)} min)` : 'Venció'}
+            <button type="button" className="btn btn-sm btn-outline-primary ms-2" disabled={extendiendo || restanMs <= 0} onClick={() => void extenderTiempo()}>
+              {extendiendo ? <i className="fa-solid fa-spinner fa-spin" aria-hidden="true" /> : <i className="fa-solid fa-clock-rotate-left" aria-hidden="true" />} Extender tiempo
+            </button>
+          </span>
+        ) : null}
       </div>
 
       {/* Móvil: barra compacta con el paso actual; al tocarla se despliegan todos los pasos. */}
       <div className="wizard-movil">
-        <button type="button" className="wizard-movil-barra" aria-expanded={pasosAbiertos} aria-controls="wizard-movil-lista" onClick={() => setPasosAbiertos((v) => !v)}>
+        <button type="button" className={`wizard-movil-barra ${hayRojo ? 'con-faltantes' : ''}`} aria-expanded={pasosAbiertos} aria-controls="wizard-movil-lista" onClick={() => setPasosAbiertos((v) => !v)}>
           <span className="wizard-movil-num">{idx + 1}/{pasos.length}{hayRojo ? <span className="wizard-movil-alerta" title="Hay pasos con datos faltantes" /> : null}</span>
           <span className="wizard-movil-titulo">{paso.corto}</span>
           <i className={`fa-solid fa-chevron-down wizard-movil-chev ${pasosAbiertos ? 'abierto' : ''}`} aria-hidden="true" />
@@ -709,11 +771,12 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
               </div>
               {tipo === 'multas' ? (
                 <div className="col-12 col-md-5">
-                  <Campo id="sentidoCirculacion" label="Sentido de circulación" req>
-                    <select id="sentidoCirculacion" className="form-select" disabled={!habilitado} value={form.metadata?.sentidoCirculacion ?? ''} onChange={(e) => patchMeta('sentidoCirculacion', e.target.value)}>
-                      <option value="">Seleccionar...</option>
-                      {SENTIDOS_CIRCULACION.map((o) => <option key={o} value={o}>{o}</option>)}
-                    </select>
+                  {/* Reunión 27/10: hacia qué calle circulaba (no «mano / contramano»). Opcional. */}
+                  <Campo id="sentidoCirculacion" label="Sentido de circulación: hacia (opcional)">
+                    <input id="sentidoCirculacion" className="form-control" list="sentido-calles" disabled={!habilitado} placeholder="Ej.: hacia 25 de Mayo" value={form.metadata?.sentidoCirculacion ?? ''} onChange={(e) => patchMeta('sentidoCirculacion', e.target.value)} />
+                    <datalist id="sentido-calles">
+                      {[form.entreCalle1, form.entreCalle2, form.domicilioInfraccionCalle].filter(Boolean).map((c) => <option key={c} value={`hacia ${c}`} />)}
+                    </datalist>
                   </Campo>
                 </div>
               ) : null}
@@ -742,7 +805,7 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
               {/* Identificación de la persona: define qué datos se piden y quién firma. */}
               <div className="col-12">
                 <fieldset className="form-group" disabled={!habilitado}>
-                  <legend>Identificación de la persona</legend>
+                  <legend>Situación de la persona</legend>
                   <div className="opciones-grandes">
                     {SITUACIONES.filter((s) => s.v !== 'se_niega').map((s) => {
                       // «Se niega a firmar» se marca al final, debajo de la firma: acá cuenta como «Presente».
@@ -757,11 +820,11 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
                   </div>
                 </fieldset>
               </div>
-              {form.situacionInfractor !== 'nn' ? (
+              {!esDeOficio(form.situacionInfractor) ? (
               <>
-              {form.situacionInfractor === 'ausente' || form.situacionInfractor === 'se_niega' ? (
+              {['ausente', 'se_niega', 'no_aporta', 'fuga'].includes(form.situacionInfractor ?? '') ? (
                 <div className="col-12">
-                  <div className="aviso aviso-info">El infractor {form.situacionInfractor === 'ausente' ? 'está ausente' : 'se niega a firmar'}: cargue los datos que pueda constatar (por ejemplo, del titular del vehículo).</div>
+                  <div className="aviso aviso-info">{({ ausente: 'La persona está ausente', se_niega: 'La persona se niega a firmar', no_aporta: 'La persona no aporta sus datos', fuga: 'La persona se dio a la fuga' } as Record<string, string>)[form.situacionInfractor ?? '']}: cargue los datos que pueda constatar (por ejemplo, del titular del vehículo). Los que falten quedan como «Desconocido».</div>
                 </div>
               ) : null}
               <div className="col-12">
@@ -785,12 +848,12 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
               {esJuridica ? (
                 <>
                   <div className="col-12 col-md-8">
-                    <Campo id="infractorRazonSocial" label="Razón social" req={form.situacionInfractor !== 'ausente'}>
+                    <Campo id="infractorRazonSocial" label="Razón social" req={form.situacionInfractor === 'presente' || form.situacionInfractor === 'se_niega'}>
                       {inp('infractorRazonSocial')}
                     </Campo>
                   </div>
                   <div className="col-12 col-md-4">
-                    <Campo id="infractorCuit" label="CUIT" req={form.situacionInfractor !== 'ausente'}>
+                    <Campo id="infractorCuit" label="CUIT" req={form.situacionInfractor === 'presente' || form.situacionInfractor === 'se_niega'}>
                       {inp('infractorCuit', { inputMode: 'numeric', placeholder: '30-12345678-9' })}
                     </Campo>
                   </div>
@@ -803,7 +866,7 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
               ) : (
                 <>
                   <div className="col-12 col-md-6">
-                    <Campo id="infractorNombre" label="Nombre y apellido" req={form.situacionInfractor !== 'ausente'}>
+                    <Campo id="infractorNombre" label="Nombre y apellido" req={form.situacionInfractor === 'presente' || form.situacionInfractor === 'se_niega'}>
                       {inp('infractorNombre')}
                     </Campo>
                   </div>
@@ -813,14 +876,15 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
                     </Campo>
                   </div>
                   <div className="col-7 col-md-4">
-                    <Campo id="infractorDocumentoNumero" label="Número de documento" req={form.situacionInfractor !== 'ausente'}>
-                      {inp('infractorDocumentoNumero', { inputMode: 'numeric' })}
+                    <Campo id="infractorDocumentoNumero" label="Número de documento" req={form.situacionInfractor === 'presente' || form.situacionInfractor === 'se_niega'}>
+                      {/* Reunión 27/10: el DNI completa el N.° de licencia (es el mismo número); borrar la licencia no toca el DNI. */}
+                      {inp('infractorDocumentoNumero', { inputMode: 'numeric', onChange: (e) => { const v = e.target.value; setForm((prev) => ({ ...prev, infractorDocumentoNumero: v, vehiculoNumeroLicencia: tipo === 'multas' && (!prev.vehiculoNumeroLicencia || prev.vehiculoNumeroLicencia === String(prev.infractorDocumentoNumero ?? '').replace(/\D/g, '')) ? v.replace(/\D/g, '') : prev.vehiculoNumeroLicencia })); } })}
                     </Campo>
                   </div>
                 </>
               )}
               <div className="col-8 col-md-6">
-                <Campo id="infractorDomicilio" label="Domicilio (calle)" req={form.situacionInfractor !== 'ausente'}>
+                <Campo id="infractorDomicilio" label="Domicilio (calle)" req={form.situacionInfractor === 'presente' || form.situacionInfractor === 'se_niega'}>
                   {inp('infractorDomicilio')}
                 </Campo>
               </div>
@@ -897,7 +961,7 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
               </>
               ) : (
                 <div className="col-12">
-                  <div className="aviso aviso-info">Infractor no identificado: no hace falta cargar sus datos. Firma solo el inspector.</div>
+                  <div className="aviso aviso-info">Acta de oficio: no hace falta cargar datos de la persona. Firma solo el inspector.</div>
                 </div>
               )}
             </div>
@@ -915,10 +979,14 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
                   {sel(cat.vehiculo, form.vehiculoTipoNombre, (v) => patch({ vehiculoTipoNombre: v }), 'vehiculoTipoNombre')}
                 </Campo>
               </div>
+              {/* Reunión 27/10: el control interno es de las licencias viejas; opcional y escondido. */}
               <div className="col-12 col-md-4">
-                <Campo id="vehiculoNumeroControlInterno" label="N.° de control interno">
-                  {inp('vehiculoNumeroControlInterno', soloNumeros('vehiculoNumeroControlInterno'))}
-                </Campo>
+                <details className="mas-datos" open={Boolean(form.vehiculoNumeroControlInterno)}>
+                  <summary>Más datos (licencias anteriores)</summary>
+                  <Campo id="vehiculoNumeroControlInterno" label="N.° de control interno (opcional)">
+                    {inp('vehiculoNumeroControlInterno', soloNumeros('vehiculoNumeroControlInterno'))}
+                  </Campo>
+                </details>
               </div>
               {tipo === 'multas' ? (
                 <>
@@ -969,7 +1037,7 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
                       <tr key={claveLey(l)}>
                         <td>{l.articulo || '-'}</td>
                         <td>{l.nombre}</td>
-                        <td>{l.descripcion || '-'}</td>
+                        <td>{l.descripcion || '-'}{l.requiereFoto ? <div className="texto-ayuda"><i className="fa-solid fa-camera" aria-hidden="true" /> Requiere foto</div> : null}</td>
                         <td className="text-end">
                           <button type="button" className="btn btn-outline-danger btn-sm" aria-label={`Quitar artículo ${l.articulo}`} title="Quitar artículo" disabled={!habilitado} onClick={() => patch({ leyesNombre: (form.leyesNombre ?? []).filter((k) => k !== claveLey(l) && k !== l.nombre) })}>
                             <i className="fa-solid fa-trash" aria-hidden="true" />
@@ -1030,7 +1098,20 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
                       ].map(([k, t]) => (
                         <div key={k} className="col-6 col-md-4">
                           <Campo id={k} label={t}>
-                            {k === 'alcoholimetroValor'
+                            {k === 'alcoholimetroMarca'
+                              // Reunión 27/10: marca y modelo del equipo desde listas (Configuración → Labrado en el POS).
+                              ? <select id={k} className="form-select" disabled={!habilitado} value={form.metadata?.[k] ?? ''} onChange={(e) => setForm((prev) => ({ ...prev, metadata: { ...(prev.metadata ?? {}), alcoholimetroMarca: e.target.value, alcoholimetroModelo: '' } }))}>
+                                  <option value="">Seleccionar...</option>
+                                  {(cat.alcMarca ?? []).map((m) => <option key={m.id} value={m.nombre}>{m.nombre}</option>)}
+                                  {form.metadata?.[k] && !(cat.alcMarca ?? []).some((m) => m.nombre === form.metadata?.[k]) ? <option value={form.metadata[k]}>{form.metadata[k]}</option> : null}
+                                </select>
+                              : k === 'alcoholimetroModelo'
+                              ? <select id={k} className="form-select" disabled={!habilitado || !form.metadata?.alcoholimetroMarca} value={form.metadata?.[k] ?? ''} onChange={(e) => patchMeta(k, e.target.value)}>
+                                  <option value="">{form.metadata?.alcoholimetroMarca ? 'Seleccionar...' : 'Elija la marca'}</option>
+                                  {(cat.alcModelo ?? []).filter((m) => m.nombre.startsWith(`${form.metadata?.alcoholimetroMarca} · `)).map((m) => { const mod = m.nombre.slice(`${form.metadata?.alcoholimetroMarca} · `.length); return <option key={m.id} value={mod}>{mod}</option>; })}
+                                  {form.metadata?.[k] && !(cat.alcModelo ?? []).some((m) => m.nombre === `${form.metadata?.alcoholimetroMarca} · ${form.metadata?.[k]}`) ? <option value={form.metadata[k]}>{form.metadata[k]}</option> : null}
+                                </select>
+                              : k === 'alcoholimetroValor'
                               // g/l admite decimales (ej.: 0,5): solo dígitos y un separador decimal.
                               ? <input id={k} className="form-control" inputMode="decimal" placeholder="Ej.: 0,5" disabled={!habilitado} value={form.metadata?.[k] ?? ''}
                                   onChange={(e) => { const t = e.target.value.replace('.', ',').replace(/[^\d,]/g, ''); const [ent, ...dec] = t.split(','); patchMeta(k, dec.length ? `${ent},${dec.join('').slice(0, 3)}` : ent); }} />
@@ -1063,6 +1144,11 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
 
           {paso.id === 'fotos' ? (
             <div className="row g-3">
+              <div className="col-12">
+                {leyesConFoto.length
+                  ? <div className={`aviso ${imagenes.length ? 'aviso-ok' : 'aviso-alerta'}`}><i className="fa-solid fa-camera" aria-hidden="true" /> La foto es obligatoria: la pide {leyesConFoto.map((l) => l.descripcion || claveLey(l)).join(', ')}.</div>
+                  : <p className="texto-ayuda mb-0">Las fotos son opcionales para estos artículos.</p>}
+              </div>
               <div className="col-12">
                 {!imagenes.length ? (
                   <div className="img-carrousel-vacio">
@@ -1117,7 +1203,7 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
                   <div><dt>Acta</dt><dd>{form.legajoNumeroActa} · {info.corto}</dd></div>
                   <div><dt>Fecha</dt><dd>{form.legajoFecha?.replace('T', ' ')}</dd></div>
                   <div><dt>Lugar de infracción</dt><dd>{[form.domicilioInfraccionCalle, form.domicilioInfraccionNumero].filter(Boolean).join(' ') || <span className="texto-error">Falta</span>}{form.entreCalle1 ? ` (entre ${form.entreCalle1} y ${form.entreCalle2 ?? ''})` : ''}</dd></div>
-                  <div><dt>Infractor</dt><dd>{form.situacionInfractor === 'nn' ? 'No identificado' : (esJuridica ? `${form.infractorRazonSocial ?? ''} · CUIT ${form.infractorCuit ?? ''}` : `${form.infractorNombre || '—'} · ${form.infractorDocumentoTipoNombre ?? ''} ${form.infractorDocumentoNumero ?? ''}`)}</dd></div>
+                  <div><dt>Infractor</dt><dd>{esDeOficio(form.situacionInfractor) ? 'De oficio' : (esJuridica ? `${form.infractorRazonSocial ?? ''} · CUIT ${form.infractorCuit ?? ''}` : `${form.infractorNombre || '—'} · ${form.infractorDocumentoTipoNombre ?? ''} ${form.infractorDocumentoNumero ?? ''}`)}</dd></div>
                   {tipo === 'multas' && (form.vehiculoNumeroLicencia || form.vehiculoLicenciaCategorias?.length || form.vehiculoMunicipalidadEmisora) ? <div><dt>Licencia</dt><dd>{[form.vehiculoNumeroLicencia ? `N.° ${form.vehiculoNumeroLicencia}` : '', form.vehiculoLicenciaCategorias?.length ? `Categorías ${ordenarCategoriasLicencia(form.vehiculoLicenciaCategorias).join(', ')}` : '', form.vehiculoMunicipalidadEmisora ? `Emitida por ${form.vehiculoMunicipalidadEmisora}` : ''].filter(Boolean).join(' · ')}</dd></div> : null}
                   {tipo !== 'contravenciones' ? <div><dt>Vehículo</dt><dd>{form.vehiculoNumeroDominio || '-'} {form.vehiculoTipoNombre ?? ''}</dd></div> : null}
                   <div><dt>Artículos</dt><dd>{leyesSeleccionadas.map((l) => claveLey(l)).join(' · ') || <span className="texto-error">Falta</span>}</dd></div>
@@ -1127,8 +1213,8 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
               </div>
               {pendientesFirma.length ? (
                 <div className="col-12">
-                  <div className="aviso aviso-error faltantes-firma">
-                    <strong><i className="fa-solid fa-triangle-exclamation" aria-hidden="true" /> Antes de firmar complete:</strong>
+                  <div className="aviso aviso-alerta faltantes-firma">
+                    <strong><i className="fa-solid fa-triangle-exclamation" aria-hidden="true" /> Faltan datos:</strong>
                     <ul>
                       {pendientesFirma.map((p) => (
                         <li key={p.id}>
@@ -1136,11 +1222,7 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
                         </li>
                       ))}
                     </ul>
-                    {esInspector ? (
-                      <button type="button" className="btn btn-sm btn-outline-danger mt-1" onClick={() => { setArtIncompleta([]); setIncompleta(true); }}>
-                        Indicar «Desconocido» y registrar como acta incompleta
-                      </button>
-                    ) : null}
+                    <span className="texto-ayuda">El artículo{leyesConFoto.length ? ' y la foto que pide' : ''} es obligatorio. El resto, si no se puede cargar, se completa con «Desconocido» al firmar, indicando el motivo.</span>
                   </div>
                 </div>
               ) : null}
@@ -1149,7 +1231,7 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
                   <h3 className="subtitulo-paso">1. Firma del infractor</h3>
                   {/* El infractor firma a pantalla completa (el equipo lo tiene él o lo sostiene el inspector). */}
                   <div className="firma-opciones">
-                    <button type="button" className="firma-abrir" disabled={!habilitado || form.situacionInfractor === 'se_niega'} onClick={() => setPadAbierto(true)}>
+                    <button type="button" className="firma-abrir" disabled={!habilitado || form.situacionInfractor === 'se_niega'} onClick={() => { if (esInspector) setBloqueoPin(true); setPadAbierto(true); }}>
                       {firma && form.situacionInfractor !== 'se_niega' ? (
                         <>
                           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -1169,13 +1251,18 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
                         onChange={(e) => { if (e.target.checked) setFirma(null); patch({ situacionInfractor: e.target.checked ? 'se_niega' : 'presente' }); }} />
                       <span>El infractor se niega a firmar</span>
                     </label>
+                    {/* Reunión 27/10: si la persona se va sin firmar, firma solo el inspector. */}
+                    <button type="button" className="btn btn-outline-danger btn-lg w-100" disabled={!habilitado} onClick={() => conPin(seDioALaFuga)}>
+                      <i className="fa-solid fa-person-running" aria-hidden="true" /> Se dio a la fuga
+                    </button>
                   </div>
+                  {/* Al pasar el equipo al infractor para firmar, salir de la firma pide el PIN del inspector. */}
                   {padAbierto ? <FirmaPantallaCompleta onCancelar={() => setPadAbierto(false)} onListo={(f) => { setFirma(f); setPadAbierto(false); }} /> : null}
                 </div>
               ) : (
                 <div className="col-12 col-lg-7">
                   <div className="aviso aviso-info">
-                    {form.situacionInfractor === 'nn' ? 'Infractor no identificado: firma solo el inspector.' : form.situacionInfractor === 'ausente' ? 'Infractor ausente: firma solo el inspector.' : 'Elija primero la situación del infractor en «Datos del infractor».'}
+                    {form.situacionInfractor ? `${textoSituacion(form.situacionInfractor)}: firma solo el inspector${form.situacionInfractor === 'no_aporta' ? ' (si la persona quiere firmar, vuelva a «Presente»)' : ''}.` : 'Elija primero la situación de la persona en «Datos del infractor».'}
                   </div>
                 </div>
               )}
@@ -1207,59 +1294,101 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
         </div>
       ) : null}
 
-      {incompleta ? (() => {
-        const faltan = pasos.filter((p) => p.id !== 'firma').flatMap((p) => (faltantes[p.id] ?? []).filter((t) => t !== 'al menos una foto').map((t) => ({ p, t })));
-        const sinArticulo = !(form.leyesNombre ?? []).length;
-        const opcArt = leyes.map((l) => ({ v: claveLey(l), t: claveLey(l), sub: l.descripcion ?? '' }));
+      {stopper ? (
+        <div className="stopper-faltantes" role="alert" onClick={() => setStopper(null)}>
+          <div>
+            <i className="fa-solid fa-triangle-exclamation" aria-hidden="true" />
+            <strong>Cuidado, faltó:</strong> {stopper.faltan.join(', ')}
+            <small>{stopper.paso} · se puede completar después</small>
+          </div>
+        </div>
+      ) : null}
+
+      {motivoModal ? (() => {
+        const faltan = pasos.filter((p) => p.id !== 'firma').flatMap((p) => (faltantes[p.id] ?? []).map((t) => ({ p, t })));
+        const motivo = motivoSel === 'otro' ? motivoOtro.trim() : MOTIVOS_INCOMPLETA.find((m) => m.v === motivoSel)?.t ?? '';
         return (
-          <div className="modal-fake-overlay" onClick={(e) => e.target === e.currentTarget && !registrando && setIncompleta(false)}>
-            <div className="modal-fake" role="alertdialog" aria-modal="true" aria-label="Faltan datos a completar">
+          <div className="modal-fake-overlay" onClick={(e) => e.target === e.currentTarget && setMotivoModal(false)}>
+            <div className="modal-fake" role="alertdialog" aria-modal="true" aria-label="Faltan datos">
               <div className="modal-fake-header">
                 <i className="fa-solid fa-triangle-exclamation" aria-hidden="true" />
-                <h2>Faltan datos a completar</h2>
+                <h2>Faltan datos</h2>
               </div>
               <div className="modal-fake-body">
-                <p>¿Desea indicar «Desconocido» en los siguientes campos?</p>
-                <ul>
-                  {faltan.filter((x) => x.t !== 'al menos un artículo').map((x) => <li key={`${x.p.id}-${x.t}`}><strong>{x.p.corto}:</strong> {x.t}</li>)}
-                </ul>
-                {sinArticulo ? (
-                  <div className="mb-2">
-                    <label className="form-label-v2" htmlFor="art-incompleta">Artículo (obligatorio, al menos uno)</label>
-                    <BuscadorOpciones id="art-incompleta" valor="" placeholder="Buscar artículo…" opciones={opcArt.filter((o) => !artIncompleta.includes(o.v))} onChange={(v) => v && setArtIncompleta((a) => [...a, v])} />
-                    {artIncompleta.length ? (
-                      <ul className="mt-2 mb-0">
-                        {artIncompleta.map((k) => (
-                          <li key={k}>{k} <button type="button" className="btn btn-link btn-sm p-0 ms-1" onClick={() => setArtIncompleta((a) => a.filter((x) => x !== k))}>Quitar</button></li>
-                        ))}
-                      </ul>
-                    ) : <p className="texto-ayuda texto-error mt-1 mb-0">Elija al menos un artículo.</p>}
+                <p>Estos datos se completan con <strong>«Desconocido»</strong> y el acta se firma igual:</p>
+                <ul>{faltan.map((x) => <li key={`${x.p.id}-${x.t}`}><strong>{x.p.corto}:</strong> {x.t}</li>)}</ul>
+                <fieldset className="form-group">
+                  <legend>¿Por qué no se pudieron cargar?</legend>
+                  <div className="opciones-grandes">
+                    {MOTIVOS_INCOMPLETA.map((m) => (
+                      <label key={m.v} className={`opcion-grande ${motivoSel === m.v ? 'activa' : ''}`}>
+                        <input type="radio" name="motivo-incompleta" checked={motivoSel === m.v} onChange={() => setMotivoSel(m.v)} />
+                        <span>{m.t}</span>
+                      </label>
+                    ))}
                   </div>
-                ) : null}
-                <div className="aviso aviso-alerta mb-0">El acta se registrará como <strong>«Acta incompleta»</strong>: no se firma y el número {form.legajoNumeroActa} queda anulado.</div>
+                </fieldset>
+                {motivoSel === 'otro' ? <textarea className="form-control" rows={2} placeholder="Explique el motivo" value={motivoOtro} onChange={(e) => setMotivoOtro(e.target.value)} aria-label="Otro motivo" /> : null}
               </div>
               <div className="modal-fake-footer">
-                <button type="button" className="btn btn-outline-secondary" disabled={registrando} onClick={() => setIncompleta(false)}>Volver a completar</button>
-                <button type="button" className="btn btn-danger" disabled={registrando || (sinArticulo && !artIncompleta.length)} onClick={() => void registrarIncompleta()}>{registrando ? 'Registrando…' : 'Indicar «Desconocido»'}</button>
+                <button type="button" className="btn btn-outline-secondary" onClick={() => setMotivoModal(false)}>Volver a completar</button>
+                <button type="button" className="btn btn-success" disabled={!motivo || guardando} onClick={() => { setMotivoModal(false); void firmarYConfirmar(motivo); }}>Completar y firmar</button>
               </div>
             </div>
           </div>
         );
       })() : null}
 
-      {abandonar ? (
-        <div className="modal-fake-overlay" onClick={(e) => e.target === e.currentTarget && !abandonando && setAbandonar(null)}>
-          <div className="modal-fake modal-fake-sm" role="alertdialog" aria-modal="true" aria-label="Salir sin firmar el acta">
+      {salidaBloqueada ? (
+        <div className="modal-fake-overlay" onClick={(e) => e.target === e.currentTarget && setSalidaBloqueada(false)}>
+          <div className="modal-fake modal-fake-sm" role="alertdialog" aria-modal="true" aria-label="El acta se tiene que terminar">
             <div className="modal-fake-header">
-              <i className="fa-solid fa-triangle-exclamation" aria-hidden="true" />
-              <h2>¿Salir sin firmar el acta {form.legajoNumeroActa}?</h2>
+              <i className="fa-solid fa-circle-info" aria-hidden="true" />
+              <h2>Termine el acta {form.legajoNumeroActa}</h2>
             </div>
             <div className="modal-fake-body">
-              <p className="mb-0">Si vuelve al inicio, el acta se considerará <strong>«Acta incompleta»</strong>: el número {form.legajoNumeroActa} quedará anulado y no se podrá retomar.</p>
+              <p className="mb-0">Un acta iniciada se termina sí o sí. Si faltan datos, al firmar se completan con «Desconocido» indicando el motivo.{restanMs !== null ? ` Si no se firma ni se extiende el tiempo antes de ${fechaHora(venceAt)}, queda como «Acta abandonada».` : ''}</p>
             </div>
             <div className="modal-fake-footer">
-              <button type="button" className="btn btn-outline-secondary" disabled={abandonando} onClick={() => setAbandonar(null)}>Seguir con el acta</button>
-              <button type="button" className="btn btn-danger" disabled={abandonando} onClick={() => void confirmarAbandono()}>{abandonando ? 'Anulando…' : 'Salir (acta incompleta)'}</button>
+              <button type="button" className="btn btn-primary" onClick={() => setSalidaBloqueada(false)}>Seguir con el acta</button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {pidePin ? (
+        <div className="modal-fake-overlay">
+          <div className="modal-fake modal-fake-sm" role="dialog" aria-modal="true" aria-label="PIN del inspector">
+            <div className="modal-fake-header">
+              <i className="fa-solid fa-lock" aria-hidden="true" />
+              <h2>PIN del inspector</h2>
+              <button type="button" aria-label="Cerrar" onClick={() => { setPidePin(null); setPin(''); setPinError(''); }}>&times;</button>
+            </div>
+            <div className="modal-fake-body">
+              <p>El equipo pasó al infractor para firmar. Para salir de la firma, ingrese su PIN.</p>
+              <InputPin valor={pin} onChange={(v) => { setPin(v); setPinError(''); }} onEnter={() => void validarPin()} />
+              {pinError ? <p className="texto-error mt-2 mb-0" role="alert">{pinError}</p> : null}
+            </div>
+            <div className="modal-fake-footer">
+              <button type="button" className="btn btn-outline-secondary" onClick={() => { setPidePin(null); setPin(''); setPinError(''); }}>Cancelar</button>
+              <button type="button" className="btn btn-primary" disabled={!pin} onClick={() => void validarPin()}>Continuar</button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {vencida ? (
+        <div className="modal-fake-overlay">
+          <div className="modal-fake modal-fake-sm" role="alertdialog" aria-modal="true" aria-label="Venció el plazo de labrado">
+            <div className="modal-fake-header">
+              <i className="fa-solid fa-hourglass-end" aria-hidden="true" />
+              <h2>Venció el plazo de labrado</h2>
+            </div>
+            <div className="modal-fake-body">
+              <p className="mb-0">El acta {form.legajoNumeroActa} no se firmó ni se extendió a tiempo: queda como <strong>«Acta abandonada»</strong> (número anulado).</p>
+            </div>
+            <div className="modal-fake-footer">
+              <button type="button" className="btn btn-primary" onClick={() => { void apiClient.saveInfraccion(form).catch(() => undefined).finally(() => { registrarGuardiaSalida(null); router.push('/private/inicio'); }); }}>Volver al inicio</button>
             </div>
           </div>
         </div>
@@ -1310,6 +1439,7 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
                       <div>
                         <strong>{l.articulo || '-'} · {l.nombre}</strong>
                         {l.descripcion ? <span>{l.descripcion}</span> : null}
+                        {l.requiereFoto ? <span className="texto-ayuda"><i className="fa-solid fa-camera" aria-hidden="true" /> Requiere foto</span> : null}
                       </div>
                       <button type="button" className={`btn btn-sm ${agregado ? 'btn-secondary' : 'btn-primary'}`} disabled={agregado || !habilitado}
                         onClick={() => patch({ leyesNombre: [...(form.leyesNombre ?? []), claveLey(l)] })}>

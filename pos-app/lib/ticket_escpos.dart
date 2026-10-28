@@ -139,8 +139,8 @@ class TicketEscPos {
         _b.addByte(0x0A);
       } catch (_) {/* sin logo si falla la imagen */}
     }
-    _texto('MUNICIPALIDAD DE\nMALVINAS ARGENTINAS', negrita: true);
-    _texto('Dirección de Faltas');
+    _texto('${t['encabezado'] ?? 'MUNICIPIO MALVINAS ARGENTINAS'}', negrita: true);
+    if ('${t['subencabezado'] ?? ''}'.isNotEmpty) _texto('${t['subencabezado'] ?? ''}');
     _separador();
     _texto('${t['titulo'] ?? 'ACTA'}', negrita: true);
     _texto('${t['numero'] ?? '-'}', ancho: 2, alto: 2, negrita: true);
@@ -158,6 +158,13 @@ class TicketEscPos {
     _texto('${t['tituloArticulos'] ?? 'DISPOSICIÓN LEGAL INFRINGIDA'}', negrita: true);
     for (final a in (articulos.isEmpty ? ['-'] : articulos)) {
       _texto('- $a');
+    }
+    final medidas = ((t['medidas'] as List?)?.map((e) => '$e').toList() ?? const <String>[]);
+    if (medidas.isNotEmpty) {
+      _texto('MEDIDAS ADOPTADAS', negrita: true);
+      for (final m in medidas) {
+        _texto('- $m');
+      }
     }
     campo('REPARTICIÓN', '${t['reparticion'] ?? '-'}');
 

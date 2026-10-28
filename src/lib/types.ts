@@ -77,6 +77,8 @@ export type Infraccion = {
   firmaInfractor?: string;
   firmaInspectorHash?: string;
   firmadaAt?: number | null;
+  /** Vencimiento del plazo de labrado (sql/034). */
+  labradoVenceAt?: number | null;
   anuladaMotivo?: string;
   notificadaAt?: number | null;
   vencePlazoAt?: number | null;
@@ -107,6 +109,8 @@ export type Ley = {
   categoriaNombre?: string;
   multiplicador?: number;
   infraccionTipoNombre?: string;
+  /** Reunión 27/10: el artículo exige al menos una foto en el acta (sql/034). */
+  requiereFoto?: boolean;
 };
 
 export type OpcionCatalogo = {
@@ -265,6 +269,7 @@ export type InfraccionRow = {
   firma_infractor: string | null;
   firma_inspector_hash: string | null;
   firmada_at: number | null;
+  labrado_vence_at?: number | null;
   anulada_motivo: string | null;
   notificada_at: number | null;
   vence_plazo_at: number | null;
@@ -282,6 +287,7 @@ export type LeyRow = {
   multiplicador: number;
   infraccion_tipo_id: number;
   infraccion_tipo_nombre: string;
+  requiere_foto?: number | null;
 };
 
 export type ImagenRow = {

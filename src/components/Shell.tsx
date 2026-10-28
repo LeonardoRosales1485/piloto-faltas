@@ -96,6 +96,7 @@ const GRUPOS: MenuItem[] = [
     ],
   },
   { id: 'inspectores', titulo: 'Inspectores', icono: 'fa-solid fa-id-badge', route: '/private/inspectores', permiso: 'inspectores' },
+  { id: 'inspeccion', titulo: 'Portal de inspectores', icono: 'fa-solid fa-binoculars', route: '/private/inspeccion', permiso: 'portalInspectores' },
   { id: 'gps', titulo: 'Seguimiento GPS', icono: 'fa-solid fa-location-crosshairs', route: '/private/seguimiento-gps', permiso: 'seguimientoGps' },
   { id: 'reportes', titulo: 'Reportes', icono: 'fa-solid fa-chart-column', route: '/private/reportes', permiso: 'verReportes' },
   { id: 'finanzas', titulo: 'Valores y tarifas', icono: 'fa-solid fa-coins', route: '/private/finanzas', permiso: 'valores' },
@@ -106,11 +107,13 @@ const GRUPOS: MenuItem[] = [
     permiso: 'parametrizar',
     children: [
       { titulo: 'Plantillas de escritos', route: '/private/plantillas', permiso: 'plantillas' },
+      { titulo: 'Membretes', route: '/private/membretes', permiso: 'parametrizar' },
       { titulo: 'Textos del portal', route: '/private/textos', permiso: 'textos' },
       { titulo: 'Feriados', route: '/private/feriados', permiso: 'feriados' },
       { titulo: 'Usuarios y permisos', route: '/private/usuarios', permiso: 'parametrizar' },
       { titulo: 'Marcas y modelos', route: '/private/marcas-modelos', permiso: 'marcasModelos' },
       { titulo: 'Registro de correos', route: '/private/correos', permiso: 'correos' },
+      { titulo: 'Labrado en el POS', route: '/private/labrado-config', permiso: 'parametrizar' },
       { titulo: 'Funciones opcionales', route: '/private/funciones', permiso: 'parametrizar' },
       { titulo: 'Opciones sandbox', route: '/private/sandbox', permiso: 'sandbox' },
     ],
@@ -143,9 +146,12 @@ const TITULOS: Record<string, string> = {
   '/private/marcas-modelos': 'Marcas y modelos',
   '/private/inspectores': 'Inspectores',
   '/private/seguimiento-gps': 'Seguimiento GPS',
+  '/private/inspeccion': 'Portal de inspectores',
   '/private/funciones': 'Funciones opcionales',
   '/private/sandbox': 'Opciones sandbox',
   '/private/firma-intendente': 'Para firmar',
+  '/private/labrado-config': 'Labrado en el POS',
+  '/private/membretes': 'Membretes',
   '/private/correos': 'Registro de correos',
   '/private/retenciones': 'Retenciones',
   '/private/auditoria': 'Auditoría',
@@ -195,6 +201,7 @@ function ShellInner({ children }: { children: ReactNode }) {
   const porHover = useRef(false);
   const punteroRail = useRef<{ y: number; grupo: string | null }>({ y: 0, grupo: null });
   const toquesMarca = useRef<{ n: number; t: number }>({ n: 0, t: 0 }); // easter egg del inspector (logo)
+  const toquesBarra = useRef<{ n: number; t: number }>({ n: 0, t: 0 }); // descartar acta en pruebas (barra del labrado)
   const cancelarHover = () => { if (timerHover.current) { clearTimeout(timerHover.current); timerHover.current = null; } };
   const moverEnRail = (e: React.MouseEvent) => {
     punteroRail.current = { y: e.clientY, grupo: (e.target as HTMLElement).closest('[data-grupo]')?.getAttribute('data-grupo') ?? null };
@@ -433,7 +440,7 @@ function ShellInner({ children }: { children: ReactNode }) {
 
   // Inspectores: interfaz propia, sin menú lateral (móvil y escritorio). Barra superior con Inicio, tema y salir.
   if (user?.rol === 'Inspector') {
-    // Con un acta sin firmar abierta, el labrado avisa que se considerará «acta incompleta» antes de salir.
+    // Con un acta sin firmar abierta, el labrado avisa que hay que terminarla (reunión 27/10: no se sale del acta).
     const irInicio = () => { if (!interceptarSalida('/private/inicio')) router.push('/private/inicio'); };
     // «Easter egg» de depuración (si el admin activó «Depuración en el POS»): en el inicio, 7 toques seguidos sobre el
     // logo abren la lista con todas las actas de sus tipos. Fuera del inicio, el logo vuelve al inicio como siempre.
@@ -449,15 +456,25 @@ function ShellInner({ children }: { children: ReactNode }) {
       router.push(`/private/lista-infracciones/${m}`);
     };
     const enInicio = pathname.startsWith('/private/inicio');
+    // Reunión 27/10: en el labrado no hay «Inicio» (el acta se termina sí o sí). Para pruebas, 7 toques seguidos en la
+    // barra (no en el logo ni en los botones) abren «Descartar acta».
+    const toqueBarra = (e: React.MouseEvent) => {
+      if (!enCrearEditar || (e.target as HTMLElement).closest('button, a, input')) return;
+      const ahora = Date.now();
+      toquesBarra.current = ahora - toquesBarra.current.t < 1000 ? { n: toquesBarra.current.n + 1, t: ahora } : { n: 1, t: ahora };
+      if (toquesBarra.current.n < 7) return;
+      toquesBarra.current = { n: 0, t: 0 };
+      window.dispatchEvent(new Event('faltas:descartar-acta'));
+    };
     return (
       <div className={`layout-inspector ${layout.isMobile ? 'layout-movil' : ''}`}>
-        <header className="inspector-topbar">
+        <header className="inspector-topbar" onClick={toqueBarra}>
           <button type="button" className="inspector-topbar-marca" onClick={tocarMarca} aria-label="Ir al inicio">
             <img src="/images/Municipio_malvinas_argentinas_logo.png" alt="" />
             <span><strong>SISTEMA DE FALTAS</strong><small>{user.nombre} {user.apellido}</small></span>
           </button>
           <div className="inspector-topbar-acciones">
-            {!enInicio ? (
+            {!enInicio && !enCrearEditar ? (
               <button type="button" className="inspector-topbar-btn inicio" onClick={irInicio} title="Volver al inicio" aria-label="Volver al inicio">
                 <i className="fa-solid fa-house" aria-hidden="true" /><span>Inicio</span>
               </button>
@@ -474,13 +491,17 @@ function ShellInner({ children }: { children: ReactNode }) {
         </header>
         <main className={`layout-contenido inspector-contenido ${enCrearEditar && layout.isMobile ? 'topbar-al-pie' : ''} ${enInicio ? 'en-inicio' : ''}`}>
           {!enInicio && !layout.ocultarTopbar ? (
-            <header className={`top-navbar ${layout.isMobile ? 'top-navbar-movil' : ''}`}>
-              {/* Migas: «Inicio» es el único elemento navegable; la sección es solo un título. */}
+            <header className={`top-navbar ${layout.isMobile ? 'top-navbar-movil' : ''}`} onClick={toqueBarra}>
+              {/* Migas: «Inicio» es el único elemento navegable; la sección es solo un título. En el labrado no hay «Inicio». */}
               <nav className="top-navbar-migas" aria-label="Ubicación">
-                <button type="button" onClick={irInicio}>
-                  <i className="fa-solid fa-arrow-left" aria-hidden="true" /> Inicio
-                </button>
-                <i className="fa-solid fa-chevron-right separador" aria-hidden="true" />
+                {!enCrearEditar ? (
+                  <>
+                    <button type="button" onClick={irInicio}>
+                      <i className="fa-solid fa-arrow-left" aria-hidden="true" /> Inicio
+                    </button>
+                    <i className="fa-solid fa-chevron-right separador" aria-hidden="true" />
+                  </>
+                ) : null}
                 <span aria-current="page">{titulo()}</span>
               </nav>
               <div id="topbar-extra" className="top-navbar-extra" />

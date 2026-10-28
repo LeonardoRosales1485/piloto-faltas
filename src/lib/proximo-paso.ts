@@ -217,8 +217,10 @@ export function proximoPaso(x: Ctx): ProximoPaso {
       return { titulo: 'Notificar el fallo', detalle: 'El fallo está firmado pero no se encontró su notificación. Notifíquelo desde «Escritos y documentos».', quien: 'Agente', tono: 'alerta', acciones: [{ tipo: 'tab', tab: 'documentos', t: 'Ver escritos' }] };
     case 'Fallo notificado':
       return vencido
-        ? { titulo: 'Derivar a Apremios', detalle: `${plazoTxt} No pagó ni apeló.`, quien: 'Agente', tono: 'alerta', acciones: [...boton('Derivar a Apremios'), ...boton('Exportar para Apremios')] }
-        : { titulo: 'Plazo del infractor para pagar o apelar', detalle: `${plazoTxt} Si apela, se deriva al Juzgado de Paz; si no paga, a Apremios.`, quien: 'Infractor', tono: 'espera', acciones: [...boton('Emitir boleta'), ...boton('Derivar a Juzgado de Paz')] };
+        ? { titulo: 'Redactar la nota de Apremios', detalle: `${plazoTxt} No pagó ni apeló. Con la nota firmada, la causa queda «Nota apremios» y se exporta el legajo.`, quien: 'Agente', tono: 'alerta', acciones: boton('Nota de Apremios') }
+        : { titulo: 'Plazo del infractor para pagar o apelar', detalle: `${plazoTxt} Si apela, se eleva el recurso al Juzgado de Paz; si no paga, va a Apremios.`, quien: 'Infractor', tono: 'espera', acciones: [...boton('Emitir boleta'), ...boton('Elevar recurso al Juzgado')] };
+    case 'Nota apremios':
+      return { titulo: 'Exportar el legajo para Apremios', detalle: 'La nota de Apremios está firmada. Exporte el PDF (orden de piezas configurable) y pase la causa a «En Apremios».', quien: 'Agente', tono: 'accion', acciones: boton('Exportar') };
     case 'En Apremios':
     case 'En Juzgado':
       return { titulo: `Esperando el resultado ${x.estado === 'En Juzgado' ? 'del Juzgado de Paz' : 'de Apremios'}`, detalle: 'Cuando lo informen, regístrelo para cerrar la causa.', quien: 'Organismo externo', tono: 'espera', acciones: boton('Registrar resultado externo') };

@@ -100,7 +100,26 @@ export type DatosTicket = {
   aviso?: string;
   /** Título del bloque de artículos (por defecto «Disposición legal infringida»). */
   tituloArticulos?: string;
+  /** Encabezado institucional (reunión 27/10: «Municipio Malvinas Argentinas»; provisorio hasta que lo valide Hernán). */
+  encabezado?: string;
+  /** Segunda línea del encabezado. Vacía: no se imprime (antes «Dirección de Faltas»). */
+  subencabezado?: string;
+  /** Medidas adoptadas (retención de licencia o de vehículo): el ticket del infractor es uno solo (reunión 27/10). */
+  medidas?: string[];
 };
+
+/** Textos institucionales del ticket (reunión 27/10). */
+export const ENCABEZADO_TICKET = 'MUNICIPIO MALVINAS ARGENTINAS';
+export const REPARTICION_TRANSITO = 'SUBSECRETARÍA DE TRÁNSITO Y BROMATOLOGÍA';
+
+/** Retenciones del acta, para el ticket único del infractor y el del inspector. */
+export function medidasDelActa(i: Infraccion): string[] {
+  return [
+    i.retencionDeLicencia ? `Retención de licencia${i.vehiculoNumeroLicencia ? ` N.° ${i.vehiculoNumeroLicencia}` : ''}` : '',
+    i.retencionDeVehiculo ? `Retención del vehículo${i.vehiculoNumeroDominio ? ` dominio ${String(i.vehiculoNumeroDominio).toUpperCase()}` : ''}` : '',
+    ...(i.medidasPreventivas ?? []),
+  ].filter(Boolean);
+}
 
 /**
  * Artículos del ticket con la descripción coloquial primero y la cita de la norma después (minuta 20/10:
@@ -127,7 +146,10 @@ export function datosTicket(infraccion: Infraccion, textos: Record<string, strin
     lugar: lugar || '-',
     dominio: String(infraccion.vehiculoNumeroDominio || '').toUpperCase(),
     articulos: articulosParaCiudadano(infraccion),
-    reparticion: tipo === 'contravenciones' ? 'CONTRAVENCIONES' : tipo === 'sustancias' ? 'SUSTANCIAS ALIMENTICIAS' : 'TRÁNSITO',
+    reparticion: tipo === 'contravenciones' ? 'CONTRAVENCIONES' : REPARTICION_TRANSITO,
+    encabezado: ENCABEZADO_TICKET,
+    subencabezado: '',
+    medidas: medidasDelActa(infraccion),
     url: infraccion.uuid ? actaPublicaUrl(infraccion.uuid) : window.location.origin,
     codigo: String(infraccion.firmaInspectorHash ?? '').slice(0, 8).toUpperCase(),
     leyendas: leyendasDelActa(infraccion, textos),
@@ -179,7 +201,7 @@ export async function imprimirPrueba(a: AjustesImpresora): Promise<string> {
   if (!pos) throw new Error('Solo funciona en la app del POS');
   const t: DatosTicket = {
     titulo: 'TICKET DE PRUEBA', numero: 'T-000000', fecha: formatearFechaTicket(new Date().toISOString()), lugar: 'Av. Pte. Perón 1500, Los Polvorines',
-    dominio: 'AB123CD', articulos: ['Ordenanza 261/2022 · Art. 45 (prueba de tildes: ñ á é í ó ú)'], reparticion: 'TRÁNSITO',
+    dominio: 'AB123CD', articulos: ['Ordenanza 261/2022 · Art. 45 (prueba de tildes: ñ á é í ó ú)'], reparticion: REPARTICION_TRANSITO, encabezado: ENCABEZADO_TICKET, subencabezado: '', medidas: ['Retención de licencia N.° 12345678'],
     url: `${window.location.origin}/acta/prueba`, codigo: 'PRUEBA', leyendas: [LEYENDAS_DEFECTO.leyenda_compactacion],
   };
   const r = await llamarPos<{ ok?: boolean; via?: string; error?: string } | null>(pos, 'imprimirTicket', { ...t, ...a });
@@ -286,23 +308,24 @@ export async function printTicket(infraccion: Infraccion, confirmar = true): Pro
 }
 
 /**
- * Ticket de retención (minuta 20/10): identifica el vehículo o la licencia retenidos con el número de acta y un QR,
- * para pegar en el parabrisas al ingresar al depósito o abrochar a la licencia. Uno por cada retención del acta.
+ * Ticket del inspector (reunión 27/10): copia que queda con lo retenido. Va adjunto con la licencia retenida o, si solo
+ * se retuvo el vehículo, con la VTV. Indica las dos retenciones. El infractor recibe un único ticket (printTicket).
  */
-export async function printTicketRetencion(infraccion: Infraccion, que: 'vehiculo' | 'licencia'): Promise<void> {
-  const base = datosTicket(infraccion);
-  const meta = infraccion.metadata ?? {};
-  const vehiculo = [infraccion.vehiculoTipoNombre, meta.marca, meta.modelo].filter((x) => x && x !== '-').join(' ');
+export async function printTicketInspector(infraccion: Infraccion): Promise<void> {
+  const base = datosTicket(infraccion, await textosLeyendas());
+  const licencia = Boolean(infraccion.retencionDeLicencia);
   const t: DatosTicket = {
     ...base,
-    titulo: que === 'vehiculo' ? 'RETENCIÓN DE VEHÍCULO' : 'RETENCIÓN DE LICENCIA',
-    tituloArticulos: que === 'vehiculo' ? 'VEHÍCULO RETENIDO' : 'LICENCIA RETENIDA',
-    articulos: que === 'vehiculo'
-      ? [`Vehículo: ${vehiculo || '-'}`, `Dominio: ${base.dominio || 'sin dominio'}`]
-      : [`Licencia N.° ${infraccion.vehiculoNumeroLicencia || '-'}`, `Titular: ${infraccion.infractorNombre || infraccion.infractorRazonSocial || '-'}`],
-    reparticion: que === 'vehiculo' ? 'TRÁNSITO · DEPÓSITO MUNICIPAL' : 'TRÁNSITO · DIRECCIÓN DE FALTAS',
-    aviso: que === 'vehiculo' ? 'PEGAR EN EL PARABRISAS DEL VEHÍCULO RETENIDO' : 'ABROCHAR A LA LICENCIA RETENIDA',
-    leyendas: [`Corresponde al acta ${base.numero}. No retirar este comprobante: identifica ${que === 'vehiculo' ? 'el vehículo' : 'la licencia'} hasta su devolución.`],
+    titulo: 'COMPROBANTE DEL INSPECTOR',
+    tituloArticulos: 'RETENCIONES',
+    articulos: [
+      `Licencia: ${licencia ? `RETENIDA${infraccion.vehiculoNumeroLicencia ? ` · N.° ${infraccion.vehiculoNumeroLicencia}` : ''}` : 'no retenida'}`,
+      `Vehículo: ${infraccion.retencionDeVehiculo ? `RETENIDO${base.dominio ? ` · ${base.dominio}` : ''}` : 'no retenido'}`,
+      `Titular: ${infraccion.infractorNombre || infraccion.infractorRazonSocial || '-'}`,
+    ],
+    medidas: [],
+    aviso: licencia ? 'VA ADJUNTO CON LA LICENCIA RETENIDA' : 'VA ADJUNTO CON LA VTV',
+    leyendas: [`Corresponde al acta ${base.numero}.`],
   };
   return imprimirDatosTicket(t, true);
 }
@@ -326,13 +349,14 @@ async function imprimirDatosTicket(t: DatosTicket, confirmar: boolean): Promise<
   }
   const campo = (label: string, valor: string) => `<div class="t-campo"><span class="t-label">${label}</span><span class="t-valor">${escapeHtml(valor)}</span></div>`;
   const cuerpo = `<div class="ticket">
-    <div class="t-centro">${logoTicket()}<p class="t-muni">MUNICIPALIDAD DE MALVINAS ARGENTINAS</p><p class="t-dir">Dirección de Faltas</p></div>
+    <div class="t-centro">${logoTicket()}<p class="t-muni">${escapeHtml(t.encabezado ?? ENCABEZADO_TICKET)}</p>${t.subencabezado ? `<p class="t-dir">${escapeHtml(t.subencabezado)}</p>` : ''}</div>
     <hr class="t-sep" />
     <div class="t-centro"><p class="t-tipo">${t.titulo}</p><p class="t-numero">${escapeHtml(t.numero)}</p></div>
     ${campo('FECHA Y HORA', t.fecha)}
     ${campo('LUGAR', t.lugar)}
     ${t.dominio ? campo('DOMINIO', t.dominio) : ''}
     <div class="t-campo"><span class="t-label">${escapeHtml(t.tituloArticulos ?? 'DISPOSICIÓN LEGAL INFRINGIDA')}</span><ul class="t-art">${(t.articulos.length ? t.articulos : ['-']).map((a) => `<li>${escapeHtml(a)}</li>`).join('')}</ul></div>
+    ${t.medidas?.length ? `<div class="t-campo"><span class="t-label">MEDIDAS ADOPTADAS</span><ul class="t-art">${t.medidas.map((m) => `<li>${escapeHtml(m)}</li>`).join('')}</ul></div>` : ''}
     ${campo('REPARTICIÓN', t.reparticion)}
     ${t.aviso === '' ? '' : `<div class="t-aviso">${escapeHtml(t.aviso ?? 'IMPORTANTE: no debe abonar monto de dinero alguno a la autoridad que confeccionó la presente acta.')}</div>`}
     ${t.leyendas.map((l) => `<p class="t-leyenda-legal">${escapeHtml(l)}</p>`).join('')}
@@ -356,7 +380,7 @@ export function liberacionUrl(uuid: string): string {
 export function printConstanciaLiberacion(x: { uuid: string; acta: string; dominio?: string | null; vehiculo?: string | null; vigenteHasta?: number | null }): void {
   const fecha = (ms?: number | null) => (ms ? new Date(ms).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'America/Argentina/Buenos_Aires' }) : '-');
   const cuerpo = `<div class="constancia">
-    <div class="c-centro">${logoTicket()}<p class="c-muni">MUNICIPALIDAD DE MALVINAS ARGENTINAS</p><p>Dirección de Faltas</p></div>
+    <div class="c-centro">${logoTicket()}<p class="c-muni">${ENCABEZADO_TICKET}</p><p>Dirección de Faltas</p></div>
     <h1>CONSTANCIA DE LIBERACIÓN DE VEHÍCULO</h1>
     <p><strong>Acta:</strong> ${escapeHtml(x.acta)}</p>
     <p><strong>Dominio:</strong> <span class="c-dominio">${escapeHtml(x.dominio || 'Sin dominio')}</span></p>

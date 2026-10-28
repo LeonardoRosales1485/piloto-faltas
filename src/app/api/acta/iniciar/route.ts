@@ -9,6 +9,7 @@ export async function POST(req: NextRequest) {
   return handle(req, async ({ user, db }) => {
     check(modulosDe(user).includes(body.tipo as ModuloActa), 'No tiene autorizado labrar este tipo de acta', 403);
     const row = await iniciarActa(db, user, body.tipo, body.uuid || uuid());
-    return loadInfraccionByUuid(row.uuid);
+    const acta = await loadInfraccionByUuid(row.uuid);
+    return 'retomada' in row ? { ...acta, retomada: true } : acta;
   }, 'labrar');
 }

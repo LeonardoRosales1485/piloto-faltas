@@ -105,7 +105,7 @@ export function TarjetaPresentacion({ p, causa, adjuntos = [], gestion, destacad
           campos={[
             ...(resolver === 'aceptar' && p.tipo === 'cuotas' ? [{ k: 'cuotas', t: 'Cantidad de cuotas otorgadas', tipo: 'numero' as const, req: true, valor: String(p.cuotas_solicitadas ?? 3) }] : []),
             // Descuento (decisión 22/10): 50 % si no presentó descargo y no hay fallo; se quita solo si lo decide el agente o la Dirección.
-            ...(resolver === 'aceptar' && (p.tipo === 'pago_voluntario' || p.tipo === 'boleta') ? [{ k: 'descuento', t: 'Monto a cobrar', tipo: 'select' as const, req: true, valor: 'regla', opciones: [{ v: 'regla', t: 'Según corresponda: 50 % si no presentó descargo' }, { v: 'quitar', t: 'Quitar el descuento (monto pleno)' }], ayuda: 'Para quitar el descuento, explique el motivo en la respuesta (queda en el historial).' }] : []),
+            ...(resolver === 'aceptar' && (p.tipo === 'pago_voluntario' || p.tipo === 'boleta' || p.tipo === 'cuotas') ? [{ k: 'descuento', t: 'Monto a cobrar', tipo: 'select' as const, req: true, valor: 'regla', opciones: [{ v: 'regla', t: 'Según corresponda: 50 % si no presentó descargo' }, { v: 'quitar', t: 'Quitar el descuento (monto pleno)' }], ayuda: 'Para quitar el descuento, explique el motivo en la respuesta (queda en el historial).' }] : []),
             ...(resolver === 'observar' ? [{ k: 'pedido', t: 'Documentación que falta', tipo: 'multi' as const, opciones: PEDIDOS_DOC.map((x) => ({ v: x, t: x })), ayuda: 'Se agrega a la respuesta. Opcional.' }] : []),
             { k: 'respuesta', t: 'Respuesta al infractor', tipo: 'area' as const, req: resolver !== 'aceptar' && resolver !== 'observar' },
           ]}

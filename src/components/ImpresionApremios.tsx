@@ -3,12 +3,12 @@
 
 import { useEffect, useState } from 'react';
 import { http } from '@/lib/api-client';
-import { CSS_HOJA, membreteHtml, pieHtml } from '@/lib/membrete';
+import { cargarMembretes, CSS_HOJA, membreteHtml, pieHtml } from '@/lib/membrete';
 import { fechaCorta, fechaHora, pesos } from '@/lib/dominio';
 import { partesLegajo } from './Impresion';
 
 type R = Record<string, any>;
-export type ExportApremios = { lote: string; fecha: number; usuario: string; causas: { uuid: string; multa: number; pagado: number; saldo: number; uf: number; unidades: number; derivada: boolean }[] };
+export type ExportApremios = { lote: string; fecha: number; usuario: string; piezas?: Record<string, string[]>; causas: { uuid: string; multa: number; pagado: number; saldo: number; uf: number; unidades: number; derivada: boolean }[] };
 export const claveExport = (lote: string) => `faltas:apremios:${lote}`;
 
 const e = (s: unknown) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -24,12 +24,12 @@ function falloDe(d: R) {
 function caratula(d: R, x: ExportApremios['causas'][number], lote: string) {
   const a = d.actaVigente ?? d.acta;
   const { fallo, notif } = falloDe(d);
-  const titular = a.infractorRazonSocial || a.infractorNombre || 'NN';
+  const titular = a.infractorRazonSocial || a.infractorNombre || 'Sin identificar';
   const docu = a.infractorCuit ? `CUIT ${a.infractorCuit}` : `${a.infractorDocumentoTipoNombre || 'DNI'} ${a.infractorDocumentoNumero ?? ''}`;
   const dom = [a.infractorDomicilio, a.infractorCalleAltura, a.infractorDepartamento, a.infractorLocalidadNombre, a.infractorPartidoNombre, a.infractorProvinciaNombre].filter(Boolean).join(', ');
   const leyes = (d.valorizacion?.leyes ?? []) as R[];
   const pagos = (d.boletas as R[]).filter((b) => b.estado === 'definitiva');
-  return `<section class="hoja">${membreteHtml()}
+  return `<section class="hoja">${membreteHtml('', 'Apremios (remito y carátula)')}
     <p class="apr-titulo">CAUSA ${e(a.legajoNumeroActa)} · REMITIDA A APREMIOS</p>
     <p class="apr-sub">Lote ${e(lote)} · Legajo ${e(a.legajoNumber)}/${e(a.legajoAnio)}</p>
     <h3>Deudor</h3>
@@ -52,10 +52,10 @@ function caratula(d: R, x: ExportApremios['causas'][number], lote: string) {
 /** Portada de cada causa dentro del informe: separa visualmente una causa de la siguiente. */
 function portadaCausa(d: R, x: ExportApremios['causas'][number], n: number, total: number, lote: string, secciones: string[]) {
   const a = d.actaVigente ?? d.acta;
-  return `<section class="hoja apr-portada">${membreteHtml()}
+  return `<section class="hoja apr-portada">${membreteHtml('', 'Apremios (remito y carátula)')}
     <p class="apr-portada-n">CAUSA ${n} DE ${total}</p>
     <p class="apr-portada-acta">${e(a.legajoNumeroActa)}</p>
-    <p class="apr-portada-deudor">${e(a.infractorRazonSocial || a.infractorNombre || 'NN')}</p>
+    <p class="apr-portada-deudor">${e(a.infractorRazonSocial || a.infractorNombre || 'Sin identificar')}</p>
     <p class="apr-portada-saldo">Saldo adeudado: <strong>${pesos(x.saldo)}</strong></p>
     <p class="apr-sub">Lote ${e(lote)} · Legajo ${e(a.legajoNumber)}/${e(a.legajoAnio)}</p>
     <h3>Contenido de esta causa</h3>
@@ -64,10 +64,17 @@ function portadaCausa(d: R, x: ExportApremios['causas'][number], n: number, tota
 }
 
 /** Títulos de las hojas del legajo, en el mismo orden que partesLegajo (para el índice de la portada). */
-function titulosLegajo(d: R) {
-  const t = ['Carátula de deuda (deudor, acta, fallo, artículos y saldo)', 'Acta de infracción'];
-  for (const doc of [...d.documentos].reverse()) t.push(`${doc.tipo === 'adjunto' ? 'Adjunto' : 'Escrito'}: ${doc.titulo}${doc.numero ? ` N.° ${doc.numero}` : ''}`);
-  t.push('Historial de la causa');
+function titulosLegajo(d: R, piezas?: string[]) {
+  const t = ['Carátula de deuda (deudor, acta, fallo, artículos y saldo)'];
+  const orden = piezas ?? ['acta', ...[...d.documentos].reverse().map((x: R) => `doc:${x.uuid}`), 'historial'];
+  for (const pz of orden) {
+    if (pz === 'acta') t.push('Acta de infracción');
+    else if (pz === 'historial') t.push('Historial de la causa');
+    else if (pz.startsWith('doc:')) {
+      const doc = (d.documentos as R[]).find((x) => x.uuid === pz.slice(4));
+      if (doc) t.push(`${doc.tipo === 'adjunto' ? 'Adjunto' : 'Escrito'}: ${doc.titulo}${doc.numero ? ` N.° ${doc.numero}` : ''}`);
+    }
+  }
   return t;
 }
 
@@ -75,9 +82,9 @@ function remito(ex: ExportApremios, ds: R[]) {
   const total = ex.causas.reduce((s, c) => s + c.saldo, 0);
   const filas = ex.causas.map((c, i) => {
     const a = ds[i].actaVigente ?? ds[i].acta;
-    return `<tr><td>${i + 1}</td><td>${e(a.legajoNumeroActa)}</td><td>${e(a.legajoNumber)}/${e(a.legajoAnio)}</td><td>${e(a.infractorRazonSocial || a.infractorNombre || 'NN')}</td><td>${e(a.infractorCuit || a.infractorDocumentoNumero)}</td><td class="r">${pesos(c.saldo)}</td></tr>`;
+    return `<tr><td>${i + 1}</td><td>${e(a.legajoNumeroActa)}</td><td>${e(a.legajoNumber)}/${e(a.legajoAnio)}</td><td>${e(a.infractorRazonSocial || a.infractorNombre || 'Sin identificar')}</td><td>${e(a.infractorCuit || a.infractorDocumentoNumero)}</td><td class="r">${pesos(c.saldo)}</td></tr>`;
   }).join('');
-  return `<section class="hoja">${membreteHtml()}
+  return `<section class="hoja">${membreteHtml('', 'Apremios (remito y carátula)')}
     <p class="apr-titulo">REMITO A LA DIRECCIÓN DE APREMIOS</p>
     <p class="apr-sub">Lote ${e(ex.lote)} · ${fechaHora(ex.fecha)} · ${ex.causas.length} causa(s)</p>
     <p>Se remiten las causas detalladas, con fallo firme, vencido el plazo sin pago ni apelación, para su cobro por vía de apremio. </p><p><strong>Cómo leer este informe:</strong> después de este remito, cada causa empieza con una portada (número de causa, deudor, saldo e índice de su contenido), sigue la carátula de deuda y luego, cada uno en su hoja, el acta, los escritos y adjuntos en orden y el historial.</p>
@@ -95,13 +102,15 @@ export function ImpresionApremios({ lote }: { lote: string }) {
       let ex: ExportApremios | null = null;
       try { ex = JSON.parse(localStorage.getItem(claveExport(lote)) ?? 'null'); } catch { ex = null; }
       if (!ex) throw new Error('No se encontraron los datos de la exportación en este navegador. Vuelva a exportar desde las causas.');
+      await cargarMembretes();
       const ds: R[] = [];
       for (const c of ex.causas) ds.push(await http.get<R>(`/api/causa/${c.uuid}`));
       const partes = [remito(ex, ds)];
       for (let i = 0; i < ex.causas.length; i++) {
-        partes.push(portadaCausa(ds[i], ex.causas[i], i + 1, ex.causas.length, ex.lote, titulosLegajo(ds[i])));
+        const piezas = ex.piezas?.[ex.causas[i].uuid];
+        partes.push(portadaCausa(ds[i], ex.causas[i], i + 1, ex.causas.length, ex.lote, titulosLegajo(ds[i], piezas)));
         partes.push(caratula(ds[i], ex.causas[i], ex.lote));
-        partes.push(...(await partesLegajo(ds[i], { memos: false })));
+        partes.push(...(await partesLegajo(ds[i], { memos: false, piezas })));
       }
       // Cada sección en su propia hoja (también en pantalla), aunque el CSS del acta cambie los saltos.
       setHtml(partes.map((p) => `<div class="apr-pagina">${p}</div>`).join(''));

@@ -7,7 +7,7 @@ export async function GET(req: NextRequest) {
   const estado = req.nextUrl.searchParams.get('estado') || 'en_revision';
   const texto = (req.nextUrl.searchParams.get('texto') || '').trim();
   return handle(req, async ({ db, user }) => {
-    let q = db.from('documento').select('uuid, titulo, estado, numero, creado_por, firmado_por, firmado_at, date_created, date_updated, observacion, plantilla(categoria), infraccion(infraccion_tipo_id, uuid, legajo_numero_acta, infractor_nombre, infractor_razon_social, estado_faltas)').eq('tipo', 'escrito').order('id', { ascending: false }).limit(300);
+    let q = db.from('documento').select('uuid, titulo, estado, numero, creado_por, firmado_por, firmado_at, date_created, date_updated, observacion, plantilla(categoria, codigo), infraccion(infraccion_tipo_id, uuid, legajo_numero_acta, infractor_nombre, infractor_razon_social, estado_faltas)').eq('tipo', 'escrito').order('id', { ascending: false }).limit(300);
     if (estado !== 'todos') q = q.eq('estado', estado);
     if (texto) q = q.ilike('titulo', `%${texto}%`);
     const { data, error } = await q;

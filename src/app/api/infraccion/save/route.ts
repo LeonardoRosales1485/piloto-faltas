@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { iniciarActa } from '@/lib/acta-srv';
+import { controlarPlazo, iniciarActa } from '@/lib/acta-srv';
 import { syncInfraccionRelations } from '@/lib/infraccion-relations';
 import { loadInfraccionByUuid } from '@/lib/load-infraccion';
 import { infraccionToRow } from '@/lib/mappers';
@@ -27,6 +27,7 @@ export async function POST(req: NextRequest) {
       existing = data as InfraccionRow;
     }
     check(existing.estado_faltas === 'Borrador', 'El acta ya fue firmada: es inmutable. Use «Subsanar» desde la causa para dejar constancia de una corrección.', 409);
+    await controlarPlazo(db, user, existing as unknown as { id: number; estado_faltas: string });
 
     const row = infraccionToRow({ ...dto, uuid: existing.uuid }) as Record<string, unknown>;
     for (const k of PROTEGIDOS) delete row[k];

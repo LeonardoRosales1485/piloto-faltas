@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
     const html = aplicarValores(prep.html, prep.valores);
     return {
       html,
-      causa: { uuid: c.uuid, acta: c.legajo_numero_acta, titular: c.infractor_razon_social || c.infractor_nombre || 'NN', estado: c.estado_faltas, tipo: tipoActa(c.infraccion_tipo_nombre) },
+      causa: { uuid: c.uuid, acta: c.legajo_numero_acta, titular: c.infractor_razon_social || c.infractor_nombre || 'Sin identificar', estado: c.estado_faltas, tipo: tipoActa(c.infraccion_tipo_nombre) },
       otroTipo: !tipos.includes(tipoActa(c.infraccion_tipo_nombre)),
     };
   }, 'verCausas');

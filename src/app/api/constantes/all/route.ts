@@ -28,6 +28,8 @@ export async function GET(req: NextRequest) {
       'tipo_societario',
       'motivo_archivo',
       'municipio',
+      'alcoholimetro_marca',
+      'alcoholimetro_modelo',
     ] as const;
 
     const byTipo: Record<string, { id: number; nombre: string }[]> = {};
@@ -52,6 +54,8 @@ export async function GET(req: NextRequest) {
       tiposSocietarios: byTipo.tipo_societario ?? [],
       motivosArchivo: byTipo.motivo_archivo ?? [],
       municipios: byTipo.municipio ?? [],
+      alcoholimetroMarcas: byTipo.alcoholimetro_marca ?? [],
+      alcoholimetroModelos: byTipo.alcoholimetro_modelo ?? [],
     } as Constantes;
     return jsonOk(dto);
   } catch (e) {

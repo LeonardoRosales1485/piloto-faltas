@@ -1,7 +1,7 @@
 import type { CausaRow, Db } from './srv';
 
 /**
- * Subsanación de datos (una por causa). El acta firmada no se toca: las correcciones se guardan aparte
+ * Subsanación de datos (varias por causa desde la reunión 27/10: p. ej. transferencias sucesivas del vehículo). El acta firmada no se toca: las correcciones se guardan aparte
  * ({campo: {antes, despues}}) y se aplican al «dato vigente» que usan escritos, boletas, notificaciones y el portal.
  */
 export type CampoSub = { k: string; t: string; grupo: string };
@@ -29,7 +29,9 @@ export const CAMPOS_SUBSANABLES: CampoSub[] = [
 ];
 
 export type Cambio = { antes: string; despues: string };
-export type Subsanacion = { id: number; uuid: string; infraccion_id: number; campos: Record<string, Cambio>; motivo: string; usuario: string; documento_id: number | null; date_created: number };
+export type SubsanacionFila = { id: number; uuid: string; infraccion_id: number; campos: Record<string, Cambio>; motivo: string; usuario: string; documento_id: number | null; date_created: number };
+/** Subsanaciones acumuladas: `campos` = del acta original («antes») al dato vigente («despues»); `lista` = cada una. */
+export type Subsanacion = SubsanacionFila & { lista: SubsanacionFila[] };
 
 function meta(row: { metadata_json?: string | null }): Record<string, string> {
   try { return JSON.parse(String(row.metadata_json ?? '{}')) as Record<string, string>; } catch { return {}; }
@@ -43,12 +45,21 @@ export function valorDe(row: Record<string, unknown>, k: string, leyes: string[]
 }
 
 export async function subsanacionDe(d: Db, infraccionId: number): Promise<Subsanacion | null> {
-  const { data } = await d.from('subsanacion').select('*').eq('infraccion_id', infraccionId).maybeSingle();
-  if (!data) return null;
-  const r = data as Record<string, unknown>;
-  let campos: Record<string, Cambio> = {};
-  try { campos = JSON.parse(String(r.campos_json)) as Record<string, Cambio>; } catch { /* vacío */ }
-  return { ...(r as unknown as Subsanacion), campos };
+  const { data } = await d.from('subsanacion').select('*').eq('infraccion_id', infraccionId).order('date_created', { ascending: true });
+  const filas = ((data ?? []) as Record<string, unknown>[]).map((r) => {
+    let campos: Record<string, Cambio> = {};
+    try { campos = JSON.parse(String(r.campos_json)) as Record<string, Cambio>; } catch { /* vacío */ }
+    return { ...(r as unknown as SubsanacionFila), campos };
+  });
+  if (!filas.length) return null;
+  // Acumula: el «antes» es el del acta original (primera vez que se tocó el campo); el «despues», el último.
+  const campos: Record<string, Cambio> = {};
+  for (const f of filas) {
+    for (const [k, c] of Object.entries(f.campos)) campos[k] = { antes: campos[k]?.antes ?? c.antes, despues: c.despues };
+  }
+  for (const k of Object.keys(campos)) if (campos[k].antes.trim() === campos[k].despues.trim()) delete campos[k];
+  const ultima = filas[filas.length - 1];
+  return { ...ultima, campos, lista: filas.slice().reverse() };
 }
 
 /** Fila del acta con los datos subsanados aplicados (dato vigente). No se guarda: es solo lectura. */

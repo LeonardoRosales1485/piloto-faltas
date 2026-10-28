@@ -4,7 +4,7 @@ import { loadInfraccionByUuid } from '@/lib/load-infraccion';
 import { causaPorUuid, handle } from '@/lib/srv';
 import { conBandejas } from '@/lib/bandejas-srv';
 import type { FilaCausa } from '@/lib/bandejas';
-import { CAMPOS_SUBSANABLES, subsanacionDe, valorDe } from '@/lib/subsanacion';
+import { aplicarSubsanacion, CAMPOS_SUBSANABLES, leyesVigentes, subsanacionDe, valorDe } from '@/lib/subsanacion';
 
 type Ctx = { params: Promise<{ uuid: string }> };
 
@@ -37,8 +37,11 @@ export async function GET(req: NextRequest, ctx: Ctx) {
       memos: memos.data ?? [],
       // Sin sql/032 la tabla no existe: la solapa queda vacía.
       recursos: rec.error ? [] : (rec.data ?? []),
-      // Valores actuales (originales) de los campos corregibles, para precargar «Subsanar datos».
-      subsanables: CAMPOS_SUBSANABLES.map((f) => ({ ...f, valor: valorDe(c as unknown as Record<string, unknown>, f.k, acta?.leyesNombre ?? []) })),
+      // Valores vigentes (ya subsanados si hubo otra subsanación) de los campos corregibles, para precargar «Subsanar datos».
+      subsanables: CAMPOS_SUBSANABLES.map((f) => ({ ...f, valor: valorDe(aplicarSubsanacion(c as unknown as Record<string, unknown>, sub), f.k, leyesVigentes(acta?.leyesNombre ?? [], sub)) })),
+      // Reunión 27/10: responsable de la causa (último usuario que la trabajó, o asignado fijo).
+      responsable: (c as unknown as { responsable?: string | null }).responsable ?? null,
+      responsableFijo: Number((c as unknown as { responsable_fijo?: number }).responsable_fijo ?? 0) === 1,
       historial: hist.data ?? [],
       documentos: docs.data ?? [],
       presentaciones: pres.data ?? [],

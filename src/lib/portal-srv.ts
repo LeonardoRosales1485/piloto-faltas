@@ -118,3 +118,33 @@ export function accionesDisponibles(c: CausaRow, pres: Presentacion[], boletasAc
 
   return out;
 }
+
+const soloDigitos = (x: unknown) => String(x ?? '').replace(/\D/g, '');
+
+/**
+ * Reunión 27/10: el usuario del portal es titular del acta solo si su DNI o CUIT coincide con el del acta vigente
+ * (con las subsanaciones aplicadas). Sin coincidencia ve el acta, pero no queda notificado ni puede presentar nada.
+ */
+export function esTitular(ciu: Ciudadano, causa: object): boolean {
+  const vigente = causa as { infractor_documento_numero?: unknown; infractor_cuit?: unknown };
+  const mios = [soloDigitos(ciu.documento_numero), soloDigitos(ciu.cuit)].filter((x) => x.length >= 6);
+  const delActa = [soloDigitos(vigente.infractor_documento_numero), soloDigitos(vigente.infractor_cuit)].filter((x) => x.length >= 6);
+  // El CUIT contiene al DNI (XX-DNI-X): también cuenta como coincidencia.
+  return mios.some((m) => delActa.some((a) => a === m || (a.length === 11 && a.slice(2, 10) === m.padStart(8, '0')) || (m.length === 11 && m.slice(2, 10) === a.padStart(8, '0'))));
+}
+
+/** DNI/CUIT vigentes por causa según las subsanaciones (solo las causas que tienen alguna). */
+export async function documentosSubsanados(d: Db, ids: number[]): Promise<Map<number, { doc?: string; cuit?: string }>> {
+  const out = new Map<number, { doc?: string; cuit?: string }>();
+  if (!ids.length) return out;
+  const { data } = await d.from('subsanacion').select('infraccion_id, campos_json, date_created').in('infraccion_id', ids).order('date_created', { ascending: true });
+  for (const r of (data ?? []) as { infraccion_id: number; campos_json: string }[]) {
+    let campos: Record<string, { despues: string }> = {};
+    try { campos = JSON.parse(r.campos_json) as typeof campos; } catch { /* vacío */ }
+    const prev = out.get(r.infraccion_id) ?? {};
+    if (campos.infractor_documento_numero) prev.doc = campos.infractor_documento_numero.despues;
+    if (campos.infractor_cuit) prev.cuit = campos.infractor_cuit.despues;
+    if (prev.doc !== undefined || prev.cuit !== undefined) out.set(r.infraccion_id, prev);
+  }
+  return out;
+}

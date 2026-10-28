@@ -18,6 +18,14 @@ export async function POST(req: NextRequest) {
     const uuids = [...new Set((body.uuids ?? []).filter(Boolean))];
     check(uuids.length > 0, 'Seleccione al menos una causa');
     check(uuids.length <= 200, 'Máximo 200 causas por exportación');
+    // Reunión 27/10: no se exporta a Apremios sin la nota de Apremios firmada (o definitiva).
+    const sinNota: string[] = [];
+    for (const u of uuids) {
+      const c = await causaPorUuid(db, u);
+      const { data: notas } = await db.from('documento').select('id, plantilla!inner(codigo)').eq('infraccion_id', c.id).like('plantilla.codigo', 'NOTA_APREMIOS%').in('estado', ['firmado', 'definitivo']).limit(1);
+      if (!(notas ?? []).length) sinNota.push(String(c.legajo_numero_acta));
+    }
+    check(!sinNota.length, `Falta la nota de Apremios firmada en: ${sinNota.join(', ')}. Hágala desde la causa («Nota de Apremios») y vuelva a exportar.`, 409);
     const anio = new Date().getFullYear();
     const lote = `APR-${anio}-${String(await reservar(db, `APR-${anio}`)).padStart(4, '0')}`;
     const ahora = Date.now();

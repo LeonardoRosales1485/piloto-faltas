@@ -8,10 +8,10 @@ export type Paso = { id: 'acta' | 'lugar' | 'infractor' | 'vehiculo' | 'articulo
 const TODOS: Paso[] = [
   { id: 'acta', corto: 'Acta', titulo: 'Datos del acta', ayuda: 'Número, legajo y fecha se asignan solos' },
   { id: 'lugar', corto: 'Lugar de infracción', titulo: 'Lugar de infracción', ayuda: 'Use el GPS para completar la ubicación' },
-  { id: 'infractor', corto: 'Infractor', titulo: 'Datos del infractor', ayuda: 'Indique primero si el infractor está presente, ausente o no identificado' },
+  { id: 'infractor', corto: 'Infractor', titulo: 'Datos del infractor', ayuda: 'Indique primero la situación de la persona: presente, ausente, no aporta datos, de oficio o se dio a la fuga' },
   { id: 'vehiculo', corto: 'Vehículo', titulo: 'Datos del vehículo', ayuda: 'Vehículo involucrado' },
   { id: 'articulos', corto: 'Artículos', titulo: 'Artículos y medidas', ayuda: 'Normas infringidas y medidas adoptadas' },
-  { id: 'fotos', corto: 'Fotos', titulo: 'Imágenes y observaciones', ayuda: 'Hasta 5 imágenes' },
+  { id: 'fotos', corto: 'Fotos', titulo: 'Imágenes y observaciones', ayuda: 'Hasta 5 imágenes (obligatorias solo si algún artículo las pide)' },
   { id: 'firma', corto: 'Firma', titulo: 'Revisión y firma', ayuda: 'Revise los datos antes de firmar: después no se pueden modificar' },
 ];
 
@@ -120,21 +120,20 @@ export function readImageFile(file: File): Promise<string> {
 /**
  * Datos obligatorios que faltan para poder firmar, agrupados por paso del wizard.
  * Mismas reglas que valida `firmarActa` en el servidor (src/lib/acta-srv.ts): mantener ambas en sintonía.
+ * Reunión 27/10: el sentido de circulación es opcional; la foto es obligatoria solo si algún artículo la pide
+ * (`fotoRequerida`); los datos de la persona se exigen solo si está presente.
  */
-export function faltantesPorPaso(form: Partial<Infraccion>, firma: string | null, cantImagenes = 0): Partial<Record<Paso['id'], string[]>> {
+export function faltantesPorPaso(form: Partial<Infraccion>, firma: string | null, cantImagenes = 0, fotoRequerida = false): Partial<Record<Paso['id'], string[]>> {
   const out: Partial<Record<Paso['id'], string[]>> = {};
   const add = (p: Paso['id'], t: string) => { (out[p] ??= []).push(t); };
   const txt = (v: unknown) => String(v ?? '').trim();
   const sit = form.situacionInfractor ?? '';
-  if (!sit) add('infractor', 'situación del infractor');
+  if (!sit) add('infractor', 'situación de la persona');
   if (!txt(form.domicilioInfraccionCalle)) add('lugar', 'calle del lugar de infracción');
-  if (form.infraccionTipoNombre === 'multas' && !txt(form.metadata?.sentidoCirculacion)) add('lugar', 'sentido de circulación');
-  if (sit !== 'nn') {
-    // Ausente: nombre y documento pueden no conocerse en el momento; se cargan si se pueden constatar.
-    if (sit !== 'ausente' && !txt(form.infractorNombre) && !txt(form.infractorRazonSocial)) add('infractor', 'nombre o razón social');
-    // Ausente: el documento (o CUIT) puede no conocerse en el momento; se carga si se puede constatar.
-    if (sit !== 'ausente' && !txt(form.infractorDocumentoNumero) && !txt(form.infractorCuit)) add('infractor', 'documento o CUIT');
-    if ((sit === 'presente' || sit === 'se_niega') && !txt(form.infractorDomicilio)) add('infractor', 'domicilio');
+  if (sit === 'presente' || sit === 'se_niega') {
+    if (!txt(form.infractorNombre) && !txt(form.infractorRazonSocial)) add('infractor', 'nombre o razón social');
+    if (!txt(form.infractorDocumentoNumero) && !txt(form.infractorCuit)) add('infractor', 'documento o CUIT');
+    if (!txt(form.infractorDomicilio)) add('infractor', 'domicilio');
   }
   if (form.infraccionTipoNombre !== 'contravenciones') {
     if (!txt(form.vehiculoNumeroDominio)) add('vehiculo', 'dominio');
@@ -144,32 +143,40 @@ export function faltantesPorPaso(form: Partial<Infraccion>, firma: string | null
       if (!txt(form.metadata?.modelo)) add('vehiculo', 'modelo');
     }
   }
-  if (!(form.leyesNombre ?? []).length) add('articulos', 'al menos un artículo');
-  if (cantImagenes < 1) add('fotos', 'al menos una foto');
+  if (!(form.leyesNombre ?? []).length) add('articulos', ARTICULO);
+  if (fotoRequerida && cantImagenes < 1) add('fotos', FOTO);
   if (sit === 'presente' && !firma) add('firma', 'firma del infractor (o marcar que se negó)');
   return out;
 }
 
+/** Faltantes que no se pueden completar con «Desconocido»: hay que cargarlos sí o sí. */
+export const ARTICULO = 'al menos un artículo';
+export const FOTO = 'al menos una foto (la pide un artículo)';
+export const NO_COMPLETABLES = [ARTICULO, FOTO];
+
 export const DESCONOCIDO = 'Desconocido';
+export const MOTIVOS_INCOMPLETA = [
+  { v: 'fuga', t: 'Se dio a la fuga' },
+  { v: 'no_aporta', t: 'No aporta datos' },
+  { v: 'de_oficio', t: 'De oficio' },
+  { v: 'otro', t: 'Otro' },
+] as const;
 
 /**
- * Completa con «Desconocido» los datos obligatorios que faltan (mismas reglas que faltantesPorPaso).
- * Sin identificación de la persona → «No identificado». No toca artículos, fotos ni firma.
- * Se usa para registrar un «Acta incompleta» (número anulado, no se firma).
+ * Completa con «Desconocido» los datos obligatorios que faltan (mismas reglas que faltantesPorPaso). No toca artículos,
+ * fotos ni firma. Reunión 27/10: el acta se firma igual, con el motivo registrado (no se anula).
  */
 export function completarConDesconocido(form: Partial<Infraccion>): Partial<Infraccion> {
   const f: Partial<Infraccion> = { ...form, metadata: { ...(form.metadata ?? {}) } };
   const txt = (v: unknown) => String(v ?? '').trim();
-  if (!f.situacionInfractor) f.situacionInfractor = 'nn';
   const sit = f.situacionInfractor;
   if (!txt(f.domicilioInfraccionCalle)) f.domicilioInfraccionCalle = DESCONOCIDO;
-  if (f.infraccionTipoNombre === 'multas' && !txt(f.metadata!.sentidoCirculacion)) f.metadata!.sentidoCirculacion = DESCONOCIDO;
-  if (sit !== 'nn') {
-    if (sit !== 'ausente' && !txt(f.infractorNombre) && !txt(f.infractorRazonSocial)) {
+  if (sit === 'presente' || sit === 'se_niega') {
+    if (!txt(f.infractorNombre) && !txt(f.infractorRazonSocial)) {
       if (f.infractorPersonaTipo === 1) f.infractorRazonSocial = DESCONOCIDO; else f.infractorNombre = DESCONOCIDO;
     }
-    if (sit !== 'ausente' && !txt(f.infractorDocumentoNumero) && !txt(f.infractorCuit)) f.infractorDocumentoNumero = DESCONOCIDO;
-    if ((sit === 'presente' || sit === 'se_niega') && !txt(f.infractorDomicilio)) f.infractorDomicilio = DESCONOCIDO;
+    if (!txt(f.infractorDocumentoNumero) && !txt(f.infractorCuit)) f.infractorDocumentoNumero = DESCONOCIDO;
+    if (!txt(f.infractorDomicilio)) f.infractorDomicilio = DESCONOCIDO;
   }
   if (f.infraccionTipoNombre !== 'contravenciones') {
     if (!txt(f.vehiculoNumeroDominio)) f.vehiculoNumeroDominio = DESCONOCIDO;

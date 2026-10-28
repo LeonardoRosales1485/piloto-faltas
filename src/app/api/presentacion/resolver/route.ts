@@ -30,7 +30,8 @@ export async function POST(req: NextRequest) {
     if (body.accion === 'aceptar') {
       if (tipo === 'pago_voluntario' || tipo === 'boleta' || tipo === 'cuotas') {
         // 50 % si no presentó descargo (y sin fallo); se quita solo por decisión del agente o la Dirección, con motivo.
-        const corresponde = tipo !== 'cuotas' && await correspondeDescuento(db, c);
+        // Reunión 27/10: también para el plan de cuotas.
+        const corresponde = await correspondeDescuento(db, c);
         check(!(body.conDescuento === true && !corresponde), 'No corresponde el descuento: el infractor presentó descargo o la causa ya tiene fallo', 409);
         const quitar = corresponde && body.conDescuento === false;
         if (quitar) check(respuesta, 'Indique en la respuesta por qué se quita el descuento');
@@ -38,12 +39,12 @@ export async function POST(req: NextRequest) {
         if (quitar) await historial(db, c.id, quien, 'Descuento del pago voluntario quitado', respuesta);
         const modo = tipo === 'cuotas' ? 'cuotas' : conDescuento ? 'voluntario' : 'total';
         const cuotas = tipo === 'cuotas' ? Number(body.cuotas ?? p.cuotas_solicitadas ?? 1) : 1;
-        const emision = await emitirBoletas(db, c, modo, cuotas, aNombre, quien);
+        const emision = await emitirBoletas(db, c, modo, cuotas, aNombre, quien, { cuotasConDescuento: tipo === 'cuotas' && conDescuento });
         if ('constancia' in emision) constancia = emision.constancia ?? null;
         // Compromiso de pago desde plantilla, a nombre de quien firma (SF-52, SF-53)
         const codigo = esContravencional(c.infraccion_tipo_nombre)
           ? (c.estado_faltas === 'Fallo notificado' ? 'COMPROMISO_FALLO_CONTRAVENCION' : 'COMPROMISO_CONTRAVENCION_PV')
-          : (modo === 'voluntario' ? 'COMPROMISO_TRANSITO_INFRACTOR_PV' : 'COMPROMISO_FALLO_TRANSITO');
+          : (conDescuento ? 'COMPROMISO_TRANSITO_INFRACTOR_PV' : 'COMPROMISO_FALLO_TRANSITO');
         // Cobro por $0: no hay compromiso de pago, solo la constancia (emitirBoletas ya la generó).
         const { data: pl } = 'constancia' in emision ? { data: null } : await db.from('plantilla').select('id').eq('codigo', codigo).maybeSingle();
         if (pl) {

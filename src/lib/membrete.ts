@@ -1,8 +1,39 @@
 /** Membrete y pie institucional de los escritos (A4, Times New Roman 12, interlineado sencillo). */
 export const PIE_INSTITUCIONAL = 'San Martín 2670. Ciudad de Los Polvorines. C.P.: 1613 - Tel.: 4660-9000 INT. 2079';
 
-export function membreteHtml(origen = '') {
-  return `<div class="membrete"><img src="${origen}/images/Municipio_malvinas_argentinas_logo.png" alt="" style="height:48px"/><strong>MUNICIPALIDAD DE MALVINAS ARGENTINAS</strong>DIRECCIÓN DE FALTAS</div>`;
+/** Membrete configurable (Configuración → Membretes, reunión 27/10). `categorias` vacío = el de por defecto. */
+export type Membrete = { id: number; nombre: string; categorias: string; imagen_raw: string | null; titulo: string; subtitulo: string; activo: number };
+
+/** Categorías extra (además de las de plantilla) para las hojas que no son escritos. */
+export const CATEGORIAS_MEMBRETE_EXTRA = ['Legajo (adjuntos e historial)', 'Apremios (remito y carátula)', 'Juzgado de Paz (carátula)'];
+
+let cache: Membrete[] | null = null;
+
+/** Carga los membretes una vez por página (las hojas se arman de forma sincrónica después). */
+export async function cargarMembretes(force = false): Promise<Membrete[]> {
+  if (cache && !force) return cache;
+  try {
+    const { http } = await import('./api-client');
+    cache = await http.get<Membrete[]>('/api/membretes');
+  } catch {
+    cache = [];
+  }
+  return cache;
+}
+
+function elegir(categoria?: string): Membrete | null {
+  const activos = (cache ?? []).filter((m) => Number(m.activo) === 1);
+  const cats = (m: Membrete) => String(m.categorias ?? '').split(',').map((x) => x.trim()).filter(Boolean);
+  return (categoria ? activos.find((m) => cats(m).includes(categoria)) : undefined) ?? activos.find((m) => !cats(m).length) ?? null;
+}
+
+const esc = (x: string) => x.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+
+export function membreteHtml(origen = '', categoria?: string) {
+  const m = elegir(categoria);
+  if (!m) return `<div class="membrete"><img src="${origen}/images/Municipio_malvinas_argentinas_logo.png" alt="" style="height:48px"/><strong>MUNICIPALIDAD DE MALVINAS ARGENTINAS</strong>DIRECCIÓN DE FALTAS</div>`;
+  const img = m.imagen_raw || `${origen}/images/Municipio_malvinas_argentinas_logo.png`;
+  return `<div class="membrete"><img src="${img}" alt="" style="height:48px"/><strong>${esc(m.titulo || '')}</strong>${esc(m.subtitulo || '')}</div>`;
 }
 
 export function pieHtml() {

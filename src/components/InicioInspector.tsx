@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { TIPOS_ACTA, modulosDe, type ModuloActa } from '@/lib/dominio';
+import { puede, TIPOS_ACTA, modulosDe, type ModuloActa } from '@/lib/dominio';
 import { useAuthUser } from '@/lib/use-auth-user';
 import { imprimirUltimoTicket, leerUltimoTicket } from '@/lib/print';
 import { fechaHora } from '@/lib/dominio';
@@ -62,6 +62,12 @@ export function InicioInspector() {
             <span>Imprimir último ticket</span>
             {ultimo ? <small>{ultimo.t.numero} · {fechaHora(ultimo.at)}</small> : null}
           </button>
+          {puede(user, 'portalInspectores') ? (
+            <button type="button" className="inicio-inspector-boton" onClick={() => router.push('/private/inspeccion')}>
+              <i className="fa-solid fa-binoculars" aria-hidden="true" />
+              <span>Consultar actas, retenciones y playón</span>
+            </button>
+          ) : null}
         </>
       )}
     </div>

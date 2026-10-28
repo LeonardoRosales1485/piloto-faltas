@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server';
-import { accionesDisponibles, handlePortal, nombreCiudadano, type Presentacion } from '@/lib/portal-srv';
+import { accionesDisponibles, esTitular, handlePortal, nombreCiudadano, type Presentacion } from '@/lib/portal-srv';
+import { causaVigente } from '@/lib/subsanacion';
 import { causaPorUuid, check, historial, uuid } from '@/lib/srv';
 import { controlarAdjuntos } from '@/lib/adjuntos-srv';
 
@@ -12,6 +13,7 @@ export async function POST(req: NextRequest) {
   const b = (await req.json()) as Body;
   return handlePortal(req, async ({ ciu, db }) => {
     const c = await causaPorUuid(db, b.causaUuid);
+    check(esTitular(ciu, await causaVigente(db, c)), 'El acta no está a nombre de su DNI/CUIT: no puede hacer presentaciones.', 403);
     const { data: pres } = await db.from('presentacion').select('id, tipo, estado, reenvio_de').eq('infraccion_id', c.id);
     const { count } = await db.from('boleta').select('*', { count: 'exact', head: true }).eq('infraccion_id', c.id).in('estado', ['emitida', 'a_verificar', 'definitiva']);
     const acc = accionesDisponibles(c, (pres ?? []) as Presentacion[], count ?? 0)[b.tipo];

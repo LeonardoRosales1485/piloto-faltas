@@ -142,6 +142,12 @@ export function OrdenanzasView({ uuidProp }: { uuidProp?: string }) {
                 </div>
               </div>
               <div className="col-12">
+                <label className="form-check">
+                  <input id="leyRequiereFoto" type="checkbox" className="form-check-input" checked={Boolean(form.requiereFoto)} onChange={(e) => setForm({ ...form, requiereFoto: e.target.checked })} />
+                  <span className="form-check-label">Requiere foto (si el acta tiene este artículo, la foto es obligatoria en el POS)</span>
+                </label>
+              </div>
+              <div className="col-12">
                 <div className="form-group">
                   <label htmlFor="leyDescripcion">Descripción</label>
                   <textarea id="leyDescripcion" className="form-control" rows={4} value={form.descripcion ?? ''} onChange={(e) => setForm({ ...form, descripcion: e.target.value })} />
@@ -197,6 +203,12 @@ export function OrdenanzasView({ uuidProp }: { uuidProp?: string }) {
                     ))}
                   </select>
                 </div>
+              </div>
+              <div className="col-12">
+                <label className="form-check">
+                  <input id="nuevaRequiereFoto" type="checkbox" className="form-check-input" checked={Boolean(form.requiereFoto)} onChange={(e) => setForm({ ...form, requiereFoto: e.target.checked })} />
+                  <span className="form-check-label">Requiere foto (si el acta tiene este artículo, la foto es obligatoria en el POS)</span>
+                </label>
               </div>
               <div className="col-12 col-md-3 d-flex align-items-end">
                 <button type="button" className="btn btn-success w-100" disabled={guardando} onClick={guardar}>
@@ -279,6 +291,7 @@ export function OrdenanzasView({ uuidProp }: { uuidProp?: string }) {
                         <li><strong>Nombre:</strong> {l.nombre}</li>
                         <li><strong>Categoría:</strong> {l.categoriaNombre}</li>
                         <li><strong>Unidades (UF):</strong> {l.multiplicador}</li>
+                        {l.requiereFoto ? <li><i className="fa-solid fa-camera" aria-hidden="true" /> Requiere foto</li> : null}
                         <li>
                           <strong>Descripción:</strong>
                           <textarea className="form-control mt-1" rows={2} value={l.descripcion ?? ''} disabled readOnly />
@@ -303,7 +316,7 @@ export function OrdenanzasView({ uuidProp }: { uuidProp?: string }) {
                   <tr key={l.uuid}>
                     <td><strong>{l.articulo}</strong></td>
                     <td>{l.nombre}</td>
-                    <td>{l.descripcion}</td>
+                    <td>{l.descripcion}{l.requiereFoto ? <div className="texto-ayuda"><i className="fa-solid fa-camera" aria-hidden="true" /> Requiere foto</div> : null}</td>
                     <td><span className="chip-categoria">{l.categoriaNombre}</span></td>
                     <td><strong>{l.multiplicador}</strong></td>
                     <td className="td-acciones">

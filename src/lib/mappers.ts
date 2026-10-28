@@ -33,6 +33,7 @@ export function leyFromRow(l: LeyRow): Ley {
     categoriaNombre: l.categoria_nombre ?? undefined,
     multiplicador: l.multiplicador == null ? undefined : Number(l.multiplicador),
     infraccionTipoNombre: l.infraccion_tipo_nombre,
+    requiereFoto: Number(l.requiere_foto ?? 0) === 1,
   };
 }
 
@@ -103,6 +104,7 @@ export function infraccionFromRow(
     firmaInfractor: i.firma_infractor ?? undefined,
     firmaInspectorHash: i.firma_inspector_hash ?? undefined,
     firmadaAt: i.firmada_at ?? null,
+    labradoVenceAt: i.labrado_vence_at ?? null,
     anuladaMotivo: i.anulada_motivo ?? undefined,
     notificadaAt: i.notificada_at ?? null,
     vencePlazoAt: i.vence_plazo_at ?? null,
@@ -190,6 +192,7 @@ export function leyToRow(d: Ley, existing?: Partial<LeyRow>): Partial<LeyRow> {
     multiplicador: d.multiplicador ?? 1,
     infraccion_tipo_nombre: tipoNombre,
     infraccion_tipo_id: tipoNombre === 'contravenciones' ? 2 : tipoNombre === 'sustancias' ? 3 : 1,
+    ...(d.requiereFoto !== undefined ? { requiere_foto: d.requiereFoto ? 1 : 0 } : {}),
   };
 }
 

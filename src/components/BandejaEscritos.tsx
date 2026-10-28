@@ -21,6 +21,22 @@ const ESTADOS = [
   { v: 'todos', t: 'Todos' },
 ];
 
+/**
+ * «Gavetas» de la bandeja de firma (reunión 27/10): la Directora separa lo que firma por tipo de escrito, como en papel.
+ * Apremios y Juzgado de Paz se reconocen por el código de la plantilla; el resto, por la categoría.
+ */
+const GAVETAS: { v: string; t: string; es: (x: R) => boolean }[] = [
+  { v: '', t: 'Todas', es: () => true },
+  { v: 'cedulas', t: 'Cédulas', es: (x) => x.plantilla?.categoria === 'Notificación' },
+  { v: 'fallos', t: 'Fallos', es: (x) => x.plantilla?.categoria === 'Fallo' },
+  { v: 'resoluciones', t: 'Resoluciones', es: (x) => x.plantilla?.categoria === 'Resolución' },
+  { v: 'disposiciones', t: 'Disposiciones', es: (x) => x.plantilla?.categoria === 'Disposición' },
+  { v: 'apremios', t: 'Apremios', es: (x) => String(x.plantilla?.codigo ?? '').startsWith('NOTA_APREMIOS') },
+  { v: 'juzgado', t: 'Juzgado de Paz', es: (x) => x.plantilla?.codigo === 'JUZGADO_DE_PAZ' },
+  { v: 'pagos', t: 'Compromisos de pago', es: (x) => x.plantilla?.categoria === 'Pago' },
+  { v: 'otros', t: 'Otros', es: (x) => !['Notificación', 'Fallo', 'Resolución', 'Disposición', 'Pago'].includes(x.plantilla?.categoria) && !String(x.plantilla?.codigo ?? '').startsWith('NOTA_APREMIOS') && x.plantilla?.codigo !== 'JUZGADO_DE_PAZ' },
+];
+
 /** Bandeja de escritos; para la Directora, separada por tipo de escrito (SF-38). */
 export function BandejaEscritos() {
   const user = useAuthUser();
@@ -36,7 +52,9 @@ export function BandejaEscritos() {
   }, [url, seguir]);
   useRefresco(() => { http.get<{ items: R[]; conteos: Record<string, number> }>(url).then(setR).catch(() => undefined); });
 
-  const grupos = (r?.items ?? []).reduce<Record<string, R[]>>((acc, x) => { const k = x.plantilla?.categoria ?? 'Otros'; (acc[k] ??= []).push(x); return acc; }, {});
+  const [gaveta, setGaveta] = useState('');
+  const filtrar = GAVETAS.find((g) => g.v === gaveta)?.es ?? (() => true);
+  const grupos = (r?.items ?? []).filter(filtrar).reduce<Record<string, R[]>>((acc, x) => { const k = x.plantilla?.categoria ?? 'Otros'; (acc[k] ??= []).push(x); return acc; }, {});
 
   return (
     <div className="pagina">
@@ -49,6 +67,12 @@ export function BandejaEscritos() {
         <label className="form-label-v2" htmlFor="esc-t">Buscar escrito por título</label>
         <input id="esc-t" className="form-control form-control-sm" value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="Fallo, resolución, compromiso..." />
       </div></div>
+      <div className="filtros-chips mb-2" role="group" aria-label="Tipo de escrito">
+        {GAVETAS.map((g) => {
+          const n = (r?.items ?? []).filter(g.es).length;
+          return <button key={g.v || 'todas'} type="button" className={`filtro-chip ${gaveta === g.v ? 'activo' : ''}`} onClick={() => setGaveta(g.v)}>{g.t} <span className="n">{n}</span></button>;
+        })}
+      </div>
       {puede(user?.rol, 'firmar') && estado === 'en_revision' ? <div className="aviso aviso-info">Revise cada escrito: puede corregirlo, devolverlo con observación o firmarlo digitalmente.</div> : null}
       {cargando ? <div className="card-step"><LoaderLogo tam={56} texto="Cargando…" /></div> : null}
       {!cargando && Object.entries(grupos).map(([cat, items]) => (
