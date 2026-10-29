@@ -153,3 +153,10 @@ Avance: **20 / 20**
 ## Fuera del alcance del prototipo
 
 - Comparación del ejido contra la capa de Pablo.
+
+## Versión congelada (rama `congelado`, piloto-faltas.vercel.app) — 29/10/2026
+
+- Solo el alcance de la lista «1ra». Lo de «2da» y «3ra» queda desarrollado pero oculto en la interfaz con `src/lib/alcance.ts`
+  (alcoholímetros desde listas, botón «Se dio a la fuga» del paso final, tickets de retención aparte, «Requiere foto» por artículo,
+  PIN para salir de la firma). Para mostrar alguno, poner su opción en `true`.
+- Esta rama no se vuelve a tocar salvo fixes. Los cambios nuevos se hacen en `monorepo-post`.

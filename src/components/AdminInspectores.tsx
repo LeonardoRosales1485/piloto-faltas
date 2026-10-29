@@ -1,5 +1,6 @@
 'use client';
 
+import { ALCANCE } from '@/lib/alcance';
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { http } from '@/lib/api-client';
@@ -46,7 +47,7 @@ export function AdminInspectores() {
     { k: 'modulos_acta', t: 'Tipo de inspector (módulos autorizados)', tipo: 'multi', req: true, opciones: MODULOS_ACTA.map((m) => ({ v: m.v, t: m.t })), valor: i ? modulosDe({ rol: 'Inspector', modulos_acta: i.modulos_acta, sector: i.sector }).join(',') : 'multas', ayuda: 'Solo puede labrar y ver los borradores de los tipos de acta marcados.' },
     { k: 'sector', t: 'Dependencia', tipo: 'select', req: true, opciones: DEPENDENCIAS.map((d) => ({ v: d, t: d })), valor: i?.sector ?? DEPENDENCIAS[0] },
     { k: 'terminal', t: 'Terminal asignada', tipo: 'texto', valor: i?.terminal ?? '', ayuda: 'Identificador del dispositivo (ej.: T-03). Vacío = sin terminal.' },
-    { k: 'pin', t: 'PIN (para salir de la firma)', tipo: 'texto', ayuda: 'De 4 a 8 números. Vacío = no cambia (por defecto 1234).' },
+    ...(ALCANCE.pinFirma ? [{ k: 'pin', t: 'PIN (para salir de la firma)', tipo: 'texto' as const, ayuda: 'De 4 a 8 números. Vacío = no cambia (por defecto 1234).' }] : []),
     { k: 'email', t: 'Correo', tipo: 'texto', valor: i?.email ?? '' },
     { k: 'password', t: i ? 'Nueva contraseña (opcional)' : 'Contraseña', tipo: 'clave', req: !i, ayuda: 'Mínimo 6 caracteres.' },
   ];

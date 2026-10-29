@@ -1,6 +1,7 @@
 'use client';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+import { ALCANCE } from '@/lib/alcance';
 import { ESTADO_RECURSO, INSTANCIAS_RECURSO, movimientosDe, RESULTADOS_RECURSO } from '@/lib/recursos';
 import { exportarApremios } from '@/lib/apremios-client';
 import { ExportarLegajo } from './ExportarLegajo';
@@ -533,8 +534,8 @@ export function CausaDetalle({ embebida }: { embebida?: { uuid: string; onCambio
                     })}><i className="fa-solid fa-file-circle-check" aria-hidden="true" /> Acta con correcciones (PDF)</button>
                   ) : null}
                   <button type="button" className="btn btn-outline-secondary" onClick={() => void printTicket(c)}><i className="fa-solid fa-print" aria-hidden="true" /> Ticket</button>
-                  {c.retencionDeLicencia ? <button type="button" className="btn btn-outline-secondary" onClick={() => void printTicketRetencion(c, 'licencia')}><i className="fa-solid fa-id-card" aria-hidden="true" /> Ticket de retención (licencia)</button> : null}
-                  {c.retencionDeVehiculo ? <button type="button" className="btn btn-outline-secondary" onClick={() => void printTicketRetencion(c, 'vehiculo')}><i className="fa-solid fa-car" aria-hidden="true" /> Ticket de retención (vehículo)</button> : null}
+                  {ALCANCE.ticketsRetencion && c.retencionDeLicencia ? <button type="button" className="btn btn-outline-secondary" onClick={() => void printTicketRetencion(c, 'licencia')}><i className="fa-solid fa-id-card" aria-hidden="true" /> Ticket de retención (licencia)</button> : null}
+                  {ALCANCE.ticketsRetencion && c.retencionDeVehiculo ? <button type="button" className="btn btn-outline-secondary" onClick={() => void printTicketRetencion(c, 'vehiculo')}><i className="fa-solid fa-car" aria-hidden="true" /> Ticket de retención (vehículo)</button> : null}
                   <a className="btn btn-outline-secondary" href={`/imprimir/legajo/${uuid}`} target="_blank" rel="noreferrer"><i className="fa-solid fa-book" aria-hidden="true" /> Legajo completo (PDF)</a>
                 </div>
               </>

@@ -1,4 +1,5 @@
 import type { Infraccion } from './types';
+import { ALCANCE } from '@/lib/alcance';
 import { LEYENDAS_DEFECTO, leyendasDelActa, textosLeyendas } from './leyendas';
 import { actaHtmlPorTipo, actaPublicaUrl, svgQr, type ActaExtras } from './acta-oficial';
 
@@ -331,6 +332,7 @@ export function ticketsDelActa(infraccion: Infraccion, textos: Record<string, st
  * (va adjunto con la VTV). Vacío si el acta no tiene retenciones. El infractor recibe un único ticket (printTicket).
  */
 export function datosTicketsRetencion(infraccion: Infraccion, textos: Record<string, string> = {}): DatosTicket[] {
+  if (!ALCANCE.ticketsRetencion) return [];
   const base = datosTicket(infraccion, textos);
   const comun = { ...base, tituloArticulos: 'RETENCIÓN', medidas: [], leyendas: [`Corresponde al acta ${base.numero}.`] };
   const titular = `Titular: ${infraccion.infractorNombre || infraccion.infractorRazonSocial || '-'}`;
