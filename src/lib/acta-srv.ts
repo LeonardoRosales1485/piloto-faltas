@@ -114,6 +114,16 @@ export async function montoEstimado(d: Db, infraccionId: number): Promise<number
 }
 
 /** Valida y firma el acta. A partir de acá es inmutable y entra como causa «Iniciado». */
+/** true si alguno de los artículos del acta exige foto. */
+async function fotoRequeridaPor(d: Db, infraccionId: number): Promise<boolean> {
+  const { data: rel } = await d.from('infraccion_ley').select('ley_nombre').eq('infraccion_id', infraccionId);
+  const nombres = ((rel ?? []) as { ley_nombre: string }[]).map((r) => r.ley_nombre);
+  if (!nombres.length) return false;
+  const { data: leyes, error } = await d.from('ley').select('nombre, articulo, multiplicador, requiere_foto');
+  if (error) return false; // sin sql/034
+  return resolverLeyes(nombres, (leyes ?? []) as { nombre: string; articulo: string; multiplicador: number; requiere_foto?: number }[]).some((l) => Number((l as { requiere_foto?: number }).requiere_foto) === 1);
+}
+
 export async function firmarActa(d: Db, user: UsuarioRow, uuidActa: string, firmaInfractor: string | null) {
   const c = await causaPorUuid(d, uuidActa);
   check(c.estado_faltas === 'Borrador', 'El acta ya fue firmada o anulada', 409);
@@ -140,7 +150,11 @@ export async function firmarActa(d: Db, user: UsuarioRow, uuidActa: string, firm
   }
   const { count } = await d.from('infraccion_ley').select('*', { count: 'exact', head: true }).eq('infraccion_id', c.id);
   check((count ?? 0) > 0, 'Seleccione al menos un artículo');
-  // Reunión de validación: la foto es siempre opcional (el «Requiere foto» de Ordenanzas queda como recomendación).
+  // La foto es obligatoria solo si algún artículo la pide (Ordenanzas → «Requiere foto», sql/034).
+  if (await fotoRequeridaPor(d, c.id)) {
+    const { count: fotos } = await d.from('infraccion_imagen').select('*', { count: 'exact', head: true }).eq('infraccion_id', c.id);
+    check((fotos ?? 0) > 0, 'Suba al menos una foto: la pide uno de los artículos');
+  }
   if (sit === 'presente') check(firmaInfractor && firmaInfractor.startsWith('data:image'), 'Falta la firma del infractor');
 
   const medidas = (() => { try { return JSON.parse(String(c.medidas_preventivas ?? '[]')) as string[]; } catch { return []; } })();
@@ -157,7 +171,7 @@ export async function firmarActa(d: Db, user: UsuarioRow, uuidActa: string, firm
       estado_faltas: 'Iniciado',
       medida_vigente: conMedida ? 1 : 0,
       monto_estimado: monto,
-      legajo_caratula: `${c.legajo_numero_acta} · ${c.infractor_nombre || c.infractor_razon_social || 'No identificado'}`,
+      legajo_caratula: `${c.legajo_numero_acta} · ${c.infractor_nombre || c.infractor_razon_social || 'Sin identificar'}`,
     })
     .eq('id', c.id);
   if (error) throw new HttpError(500, error.message);

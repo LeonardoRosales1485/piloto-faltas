@@ -11,7 +11,7 @@ const TODOS: Paso[] = [
   { id: 'infractor', corto: 'Infractor', titulo: 'Datos del infractor', ayuda: 'Indique primero la situación de la persona: de oficio, presente, se dio a la fuga o no aporta datos' },
   { id: 'vehiculo', corto: 'Vehículo', titulo: 'Datos del vehículo', ayuda: 'Vehículo involucrado' },
   { id: 'articulos', corto: 'Artículos', titulo: 'Artículos y medidas', ayuda: 'Normas infringidas y medidas adoptadas' },
-  { id: 'fotos', corto: 'Fotos', titulo: 'Imágenes y observaciones', ayuda: 'Hasta 5 imágenes (opcionales)' },
+  { id: 'fotos', corto: 'Fotos', titulo: 'Imágenes y observaciones', ayuda: 'Hasta 5 imágenes (obligatorias solo si algún artículo las pide)' },
   { id: 'firma', corto: 'Firma', titulo: 'Revisión y firma', ayuda: 'Revise los datos antes de firmar: después no se pueden modificar' },
 ];
 
@@ -120,10 +120,10 @@ export function readImageFile(file: File): Promise<string> {
 /**
  * Datos obligatorios que faltan para poder firmar, agrupados por paso del wizard.
  * Mismas reglas que valida `firmarActa` en el servidor (src/lib/acta-srv.ts): mantener ambas en sintonía.
- * Reunión 27/10: el sentido de circulación es opcional; la foto es siempre opcional (aunque un artículo la recomiende);
- * los datos de la persona se exigen solo si está presente.
+ * Reunión 27/10: el sentido de circulación es opcional; la foto es obligatoria solo si algún artículo la pide
+ * (`fotoRequerida`); los datos de la persona se exigen solo si está presente.
  */
-export function faltantesPorPaso(form: Partial<Infraccion>, firma: string | null): Partial<Record<Paso['id'], string[]>> {
+export function faltantesPorPaso(form: Partial<Infraccion>, firma: string | null, cantImagenes = 0, fotoRequerida = false): Partial<Record<Paso['id'], string[]>> {
   const out: Partial<Record<Paso['id'], string[]>> = {};
   const add = (p: Paso['id'], t: string) => { (out[p] ??= []).push(t); };
   const txt = (v: unknown) => String(v ?? '').trim();
@@ -144,13 +144,15 @@ export function faltantesPorPaso(form: Partial<Infraccion>, firma: string | null
     }
   }
   if (!(form.leyesNombre ?? []).length) add('articulos', ARTICULO);
+  if (fotoRequerida && cantImagenes < 1) add('fotos', FOTO);
   if (sit === 'presente' && !firma) add('firma', 'firma del infractor (o marcar que se negó)');
   return out;
 }
 
 /** Faltantes que no se pueden completar con «Desconocido»: hay que cargarlos sí o sí. */
 export const ARTICULO = 'al menos un artículo';
-export const NO_COMPLETABLES = [ARTICULO];
+export const FOTO = 'al menos una foto (la pide un artículo)';
+export const NO_COMPLETABLES = [ARTICULO, FOTO];
 
 export const DESCONOCIDO = 'Desconocido';
 export const MOTIVOS_INCOMPLETA = [

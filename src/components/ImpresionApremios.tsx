@@ -24,7 +24,7 @@ function falloDe(d: R) {
 function caratula(d: R, x: ExportApremios['causas'][number], lote: string) {
   const a = d.actaVigente ?? d.acta;
   const { fallo, notif } = falloDe(d);
-  const titular = a.infractorRazonSocial || a.infractorNombre || 'No identificado';
+  const titular = a.infractorRazonSocial || a.infractorNombre || 'Sin identificar';
   const docu = a.infractorCuit ? `CUIT ${a.infractorCuit}` : `${a.infractorDocumentoTipoNombre || 'DNI'} ${a.infractorDocumentoNumero ?? ''}`;
   const dom = [a.infractorDomicilio, a.infractorCalleAltura, a.infractorDepartamento, a.infractorLocalidadNombre, a.infractorPartidoNombre, a.infractorProvinciaNombre].filter(Boolean).join(', ');
   const leyes = (d.valorizacion?.leyes ?? []) as R[];
@@ -55,7 +55,7 @@ function portadaCausa(d: R, x: ExportApremios['causas'][number], n: number, tota
   return `<section class="hoja apr-portada">${membreteHtml('', 'Apremios (remito y carátula)')}
     <p class="apr-portada-n">CAUSA ${n} DE ${total}</p>
     <p class="apr-portada-acta">${e(a.legajoNumeroActa)}</p>
-    <p class="apr-portada-deudor">${e(a.infractorRazonSocial || a.infractorNombre || 'No identificado')}</p>
+    <p class="apr-portada-deudor">${e(a.infractorRazonSocial || a.infractorNombre || 'Sin identificar')}</p>
     <p class="apr-portada-saldo">Saldo adeudado: <strong>${pesos(x.saldo)}</strong></p>
     <p class="apr-sub">Lote ${e(lote)} · Legajo ${e(a.legajoNumber)}/${e(a.legajoAnio)}</p>
     <h3>Contenido de esta causa</h3>
@@ -82,7 +82,7 @@ function remito(ex: ExportApremios, ds: R[]) {
   const total = ex.causas.reduce((s, c) => s + c.saldo, 0);
   const filas = ex.causas.map((c, i) => {
     const a = ds[i].actaVigente ?? ds[i].acta;
-    return `<tr><td>${i + 1}</td><td>${e(a.legajoNumeroActa)}</td><td>${e(a.legajoNumber)}/${e(a.legajoAnio)}</td><td>${e(a.infractorRazonSocial || a.infractorNombre || 'No identificado')}</td><td>${e(a.infractorCuit || a.infractorDocumentoNumero)}</td><td class="r">${pesos(c.saldo)}</td></tr>`;
+    return `<tr><td>${i + 1}</td><td>${e(a.legajoNumeroActa)}</td><td>${e(a.legajoNumber)}/${e(a.legajoAnio)}</td><td>${e(a.infractorRazonSocial || a.infractorNombre || 'Sin identificar')}</td><td>${e(a.infractorCuit || a.infractorDocumentoNumero)}</td><td class="r">${pesos(c.saldo)}</td></tr>`;
   }).join('');
   return `<section class="hoja">${membreteHtml('', 'Apremios (remito y carátula)')}
     <p class="apr-titulo">REMITO A LA DIRECCIÓN DE APREMIOS</p>

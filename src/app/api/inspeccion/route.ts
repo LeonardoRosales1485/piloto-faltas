@@ -41,7 +41,7 @@ export async function GET(req: NextRequest) {
     const base = (f: Fila) => ({
       uuid: f.uuid, acta: f.legajo_numero_acta, tipo: f.infraccion_tipo_nombre, fecha: f.legajo_fecha, firmadaAt: f.firmada_at,
       inspector: f.inspector_nombre || f.inspector_username, legajoInspector: f.inspector_legajo, dominio: f.vehiculo_numero_dominio,
-      vehiculo: f.vehiculo_tipo_nombre, licencia: f.vehiculo_numero_licencia, infractor: f.infractor_razon_social || f.infractor_nombre || 'No identificado',
+      vehiculo: f.vehiculo_tipo_nombre, licencia: f.vehiculo_numero_licencia, infractor: f.infractor_razon_social || f.infractor_nombre || 'Sin identificar',
       documento: f.infractor_documento_numero, lugar: [f.domicilio_infraccion_calle, f.domicilio_infraccion_numero].filter(Boolean).join(' '),
       retieneLicencia: Number(f.retencion_de_licencia) === 1, retieneVehiculo: Number(f.retencion_de_vehiculo) === 1,
     });

@@ -62,7 +62,7 @@ function caratulaJuzgado(d: R): string {
   const rec = (d.recursos ?? []).find((r: R) => r.estado !== 'resuelto') ?? (d.recursos ?? [])[0];
   return `<section class="hoja">${membreteHtml('', 'Juzgado de Paz (carátula)')}<p style="text-align:center;font-size:14pt"><strong>REMISIÓN AL JUZGADO DE PAZ</strong></p>
     <p><strong>Acta:</strong> ${a.legajoNumeroActa} · <strong>Legajo:</strong> ${a.legajoNumber}/${a.legajoAnio}</p>
-    <p><strong>Imputado:</strong> ${a.infractorRazonSocial || a.infractorNombre || 'No identificado'} · ${a.infractorCuit ? `CUIT ${a.infractorCuit}` : `${a.infractorDocumentoTipoNombre || 'DNI'} ${a.infractorDocumentoNumero ?? ''}`}</p>
+    <p><strong>Imputado:</strong> ${a.infractorRazonSocial || a.infractorNombre || 'Sin identificar'} · ${a.infractorCuit ? `CUIT ${a.infractorCuit}` : `${a.infractorDocumentoTipoNombre || 'DNI'} ${a.infractorDocumentoNumero ?? ''}`}</p>
     ${rec ? `<p><strong>Recurso:</strong> ${rec.tipo ?? 'apelación'} · ${rec.instancia ?? ''}${rec.expediente ? ` · Expte. ${rec.expediente}` : ''}</p>` : ''}
     <p>Se remiten las actuaciones en el orden que sigue.</p>${pieHtml()}</section>`;
 }

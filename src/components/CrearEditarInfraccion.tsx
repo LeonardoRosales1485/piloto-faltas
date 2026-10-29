@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { apiClient, http } from '@/lib/api-client';
 import { useLayout } from '@/lib/layout-context';
-import { guardarUltimoTicket, hayImpresoraPos, printTicket, printTicketRetencion, tomarFotosPos } from '@/lib/print';
+import { guardarUltimoTicket, hayImpresoraPos, printTicket, printTicketInspector, tomarFotosPos } from '@/lib/print';
 import { CATEGORIAS_LICENCIA, esDeOficio, ordenarCategoriasLicencia, puede, SENTIDOS_CIRCULACION, SITUACIONES, TIPOS_ACTA, claveLey, fechaHora, textoSituacion, tipoActa } from '@/lib/dominio';
 import type { ImgModel, Infraccion, Ley, OpcionCatalogo } from '@/lib/types';
 import { type Paso, MAX_IMAGENES, MOTIVOS_INCOMPLETA, NO_COMPLETABLES, completarConDesconocido, ejidoPorGps, faltantesPorPaso, pasosPara, readImageFile, toDateTimeLocal, vacia } from './crear-editar-utils';
@@ -146,9 +146,9 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
   const vencida = esInspector && !soloLectura && !recienFirmada && restanMs !== null && restanMs <= 0;
   const habilitado = !soloLectura && !guardando;
   const pasos = useMemo(() => pasosPara(tipo, form.situacionInfractor), [tipo, form.situacionInfractor]);
-  // Artículos que recomiendan foto (Ordenanzas → «Requiere foto»): solo se avisa, la foto es siempre opcional.
+  // Foto obligatoria solo si algún artículo elegido la pide (Ordenanzas → «Requiere foto»).
   const leyesConFoto = useMemo(() => leyes.filter((l) => l.requiereFoto && (form.leyesNombre ?? []).includes(claveLey(l))), [leyes, form.leyesNombre]);
-  const faltantes = useMemo(() => faltantesPorPaso(form, firma), [form, firma]);
+  const faltantes = useMemo(() => faltantesPorPaso(form, firma, imagenes.length, leyesConFoto.length > 0), [form, firma, imagenes.length, leyesConFoto.length]);
   const paso = pasos[Math.min(idx, pasos.length - 1)];
 
   const patch = useCallback((partial: Partial<Infraccion>) => setForm((prev) => ({ ...prev, ...partial })), []);
@@ -356,7 +356,7 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
     setIntentoFirma(true);
     let f = form;
     const pendientes = pasos.filter((p) => p.id !== 'firma' && faltantes[p.id]?.length);
-    // El artículo es obligatorio sí o sí.
+    // Artículo (y la foto que pide un artículo) son obligatorios sí o sí.
     const duros = pendientes.flatMap((p) => (faltantes[p.id] ?? []).filter((t) => NO_COMPLETABLES.includes(t)).map((t) => `${p.corto}: ${t}`));
     if (duros.length) { notify.error('Falta completar', duros.join(' · ')); return; }
     if (pendientes.length && !motivoIncompleta) {
@@ -488,14 +488,9 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
               <button type="button" className="btn btn-outline-primary btn-lg" onClick={() => void printTicket(paraTicket())}>
                 <i className="fa-solid fa-print" aria-hidden="true" /> Imprimir ticket
               </button>
-              {form.retencionDeLicencia ? (
-                <button type="button" className="btn btn-outline-warning btn-lg" onClick={() => void printTicketRetencion(paraTicket(), 'licencia')}>
-                  <i className="fa-solid fa-id-card" aria-hidden="true" /> Ticket de retención (licencia)
-                </button>
-              ) : null}
-              {form.retencionDeVehiculo ? (
-                <button type="button" className="btn btn-outline-warning btn-lg" onClick={() => void printTicketRetencion(paraTicket(), 'vehiculo')}>
-                  <i className="fa-solid fa-car" aria-hidden="true" /> Ticket de retención (vehículo)
+              {form.retencionDeVehiculo || form.retencionDeLicencia ? (
+                <button type="button" className="btn btn-outline-warning btn-lg" onClick={() => void printTicketInspector(paraTicket())}>
+                  <i className="fa-solid fa-id-card" aria-hidden="true" /> Ticket del inspector (va con la {form.retencionDeLicencia ? 'licencia' : 'VTV'})
                 </button>
               ) : null}
             </div>
@@ -585,14 +580,9 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
                   <button type="button" className="btn btn-primary btn-lg" onClick={() => void printTicket(paraTicket())}>
                     <i className="fa-solid fa-print" aria-hidden="true" /> Imprimir ticket
                   </button>
-                  {form.retencionDeLicencia ? (
-                    <button type="button" className="btn btn-outline-warning btn-lg" onClick={() => void printTicketRetencion(paraTicket(), 'licencia')}>
-                      <i className="fa-solid fa-id-card" aria-hidden="true" /> Ticket de retención (licencia)
-                    </button>
-                  ) : null}
-                  {form.retencionDeVehiculo ? (
-                    <button type="button" className="btn btn-outline-warning btn-lg" onClick={() => void printTicketRetencion(paraTicket(), 'vehiculo')}>
-                      <i className="fa-solid fa-car" aria-hidden="true" /> Ticket de retención (vehículo)
+                  {form.retencionDeVehiculo || form.retencionDeLicencia ? (
+                    <button type="button" className="btn btn-outline-warning btn-lg" onClick={() => void printTicketInspector(paraTicket())}>
+                      <i className="fa-solid fa-id-card" aria-hidden="true" /> Ticket del inspector (va con la {form.retencionDeLicencia ? 'licencia' : 'VTV'})
                     </button>
                   ) : null}
                   <BotonVerActa acta={form as Infraccion} imagenes={imagenes.map((x) => x.previewRaw ?? '').filter(Boolean)} className="btn btn-outline-primary btn-lg" />
@@ -873,7 +863,7 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
                   </div>
                   <div className="col-7 col-md-4">
                     <Campo id="infractorDocumentoNumero" label="Número de documento" req={form.situacionInfractor === 'presente' || form.situacionInfractor === 'se_niega'}>
-                      {/* Reunión 27/10: el DNI completa el N.° de licencia y viceversa (es el mismo número), solo si el otro estaba vacío o era igual. */}
+                      {/* Reunión 27/10: el DNI completa el N.° de licencia (es el mismo número); borrar la licencia no toca el DNI. */}
                       {inp('infractorDocumentoNumero', { inputMode: 'numeric', onChange: (e) => { const v = e.target.value; setForm((prev) => ({ ...prev, infractorDocumentoNumero: v, vehiculoNumeroLicencia: tipo === 'multas' && (!prev.vehiculoNumeroLicencia || prev.vehiculoNumeroLicencia === String(prev.infractorDocumentoNumero ?? '').replace(/\D/g, '')) ? v.replace(/\D/g, '') : prev.vehiculoNumeroLicencia })); } })}
                     </Campo>
                   </div>
@@ -924,7 +914,7 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
                 <>
                 <div className="col-12 col-md-4">
                   <Campo id="vehiculoNumeroLicencia" label="N.° de licencia de conducir">
-                    {inp('vehiculoNumeroLicencia', { ...soloNumeros('vehiculoNumeroLicencia'), onChange: (e) => { const v = e.target.value.replace(/\D/g, ''); setForm((prev) => ({ ...prev, vehiculoNumeroLicencia: v, infractorDocumentoNumero: !prev.infractorDocumentoNumero || String(prev.infractorDocumentoNumero).replace(/\D/g, '') === (prev.vehiculoNumeroLicencia ?? '') ? v : prev.infractorDocumentoNumero })); } })}
+                    {inp('vehiculoNumeroLicencia', soloNumeros('vehiculoNumeroLicencia'))}
                   </Campo>
                 </div>
                 {/* Municipio que emitió la licencia (minuta 20/10: pasa del paso «Vehículo» a este). */}
@@ -1134,8 +1124,8 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
             <div className="row g-3">
               <div className="col-12">
                 {leyesConFoto.length
-                  ? <div className={`aviso ${imagenes.length ? 'aviso-ok' : 'aviso-info'}`}><i className="fa-solid fa-camera" aria-hidden="true" /> Foto recomendada para {leyesConFoto.map((l) => l.descripcion || claveLey(l)).join(', ')}. Es opcional.</div>
-                  : <p className="texto-ayuda mb-0">Las fotos son opcionales.</p>}
+                  ? <div className={`aviso ${imagenes.length ? 'aviso-ok' : 'aviso-alerta'}`}><i className="fa-solid fa-camera" aria-hidden="true" /> La foto es obligatoria: la pide {leyesConFoto.map((l) => l.descripcion || claveLey(l)).join(', ')}.</div>
+                  : <p className="texto-ayuda mb-0">Las fotos son opcionales para estos artículos.</p>}
               </div>
               <div className="col-12">
                 {!imagenes.length ? (
@@ -1210,7 +1200,7 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
                         </li>
                       ))}
                     </ul>
-                    <span className="texto-ayuda">El artículo es obligatorio. El resto, si no se puede cargar, se completa con «Desconocido» al firmar, indicando el motivo.</span>
+                    <span className="texto-ayuda">El artículo{leyesConFoto.length ? ' y la foto que pide' : ''} es obligatorio. El resto, si no se puede cargar, se completa con «Desconocido» al firmar, indicando el motivo.</span>
                   </div>
                 </div>
               ) : null}

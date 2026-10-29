@@ -7,7 +7,6 @@ import { useAuthUser } from '@/lib/use-auth-user';
 import { printTicketsDelActa } from '@/lib/print';
 import type { Infraccion } from '@/lib/types';
 import { useNotify } from './NotifyProvider';
-import { TablaVista } from './TablaVista';
 
 type Fila = {
   uuid: string; acta: string; tipo: string; fecha: string | null; firmadaAt: number | null; inspector: string | null; legajoInspector: string | null;
@@ -23,12 +22,12 @@ const VISTAS: { v: Vista; t: string; i: string }[] = [
 ];
 
 const LIBERACION: Record<string, { t: string; c: string }> = {
-  retenido: { t: 'Retenido · sin boleta', c: 'retenido' },
-  pendiente_pago: { t: 'Boleta emitida · falta el pago', c: 'retenido' },
-  autorizar: { t: 'Pagado · falta la disposición', c: 'retenido' },
-  vigente: { t: 'Liberación vigente: puede retirarse', c: 'liberado' },
-  vencida: { t: 'Liberación vencida', c: 'retenido' },
-  entregado: { t: 'Entregado', c: 'liberado' },
+  retenido: { t: 'Retenido · sin boleta', c: 'bg-secondary' },
+  pendiente_pago: { t: 'Boleta emitida · falta el pago', c: 'bg-warning text-dark' },
+  autorizar: { t: 'Pagado · falta la disposición', c: 'bg-info text-dark' },
+  vigente: { t: 'Liberación vigente: puede retirarse', c: 'bg-success' },
+  vencida: { t: 'Liberación vencida', c: 'bg-danger' },
+  entregado: { t: 'Entregado', c: 'bg-dark' },
 };
 
 const aMs = (d: string, fin = false) => (d ? new Date(`${d}T${fin ? '23:59:59' : '00:00:00'}-03:00`).getTime() : 0);
@@ -44,7 +43,7 @@ export function PortalInspectores() {
   const notify = useNotify();
   const [imprimiendo, setImprimiendo] = useState('');
 
-  /** Reimprime el ticket del acta y, si hubo retenciones, también sus tickets de retención (van con lo retenido). */
+  /** Reimprime el ticket del acta y, si hubo retención, también el del inspector (va con lo retenido). */
   async function imprimir(f: Fila) {
     setImprimiendo(f.uuid);
     try {
@@ -57,10 +56,10 @@ export function PortalInspectores() {
     }
   }
   const botonTicket = (f: Fila) => {
-    const n = 1 + Number(f.retieneLicencia) + Number(f.retieneVehiculo);
+    const dos = f.retieneLicencia || f.retieneVehiculo;
     return (
-      <button type="button" className="btn btn-sm btn-outline-primary text-nowrap" disabled={imprimiendo === f.uuid} onClick={() => void imprimir(f)} title={n > 1 ? 'Ticket del infractor y tickets de retención (van con lo retenido)' : 'Ticket del infractor'}>
-        {imprimiendo === f.uuid ? <i className="fa-solid fa-spinner fa-spin" aria-hidden="true" /> : <i className="fa-solid fa-print" aria-hidden="true" />} {n > 1 ? `Imprimir tickets (${n})` : 'Imprimir ticket'}
+      <button type="button" className="btn btn-sm btn-outline-primary text-nowrap" disabled={imprimiendo === f.uuid} onClick={() => void imprimir(f)} title={dos ? 'Ticket del infractor y ticket del inspector (va con lo retenido)' : 'Ticket del infractor'}>
+        {imprimiendo === f.uuid ? <i className="fa-solid fa-spinner fa-spin" aria-hidden="true" /> : <i className="fa-solid fa-print" aria-hidden="true" />} {dos ? 'Imprimir tickets (2)' : 'Imprimir ticket'}
       </button>
     );
   };
@@ -125,46 +124,44 @@ export function PortalInspectores() {
       {error ? <div className="aviso aviso-peligro">{error}</div> : null}
       {lista === null ? <p className="texto-ayuda">Cargando…</p> : !filas.length ? <p className="texto-ayuda">No hay resultados.</p> : (
         <div className="card-step">
-          <div className="card-step-body">
-            <TablaVista>
-              <table className="table custom-table align-middle">
-                <thead>
-                  <tr>
-                    <th>Acta</th><th>Fecha</th><th>Inspector</th>
-                    {vista === 'actas' ? <><th>Infractor</th><th>Dominio</th><th>Lugar</th></> : null}
-                    {vista === 'retenciones' ? <><th>Infractor</th><th>Retuvo</th><th>Licencia / Dominio</th></> : null}
-                    {vista === 'playon' ? <><th>Dominio</th><th>Vehículo</th><th>Días</th><th>Liberación</th></> : null}
-                    <th className="th-acciones">Tickets</th>
+          <div className="table-responsive">
+            <table className="table table-sm align-middle mb-0">
+              <thead>
+                <tr>
+                  <th>Acta</th><th>Fecha</th><th>Inspector</th>
+                  {vista === 'actas' ? <><th>Infractor</th><th>Dominio</th><th>Lugar</th></> : null}
+                  {vista === 'retenciones' ? <><th>Infractor</th><th>Retuvo</th><th>Licencia / Dominio</th></> : null}
+                  {vista === 'playon' ? <><th>Dominio</th><th>Vehículo</th><th>Días</th><th>Liberación</th></> : null}
+                  <th>Tickets</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filas.map((f) => (
+                  <tr key={f.uuid}>
+                    <td><strong>{f.acta}</strong><div className="texto-ayuda">{f.tipo}</div></td>
+                    <td>{fechaHora(f.firmadaAt)}</td>
+                    <td>{f.inspector ?? '-'}{f.legajoInspector ? <div className="texto-ayuda">Leg. {f.legajoInspector}</div> : null}</td>
+                    {vista === 'actas' ? <><td>{f.infractor}{f.documento ? <div className="texto-ayuda">DNI {f.documento}</div> : null}</td><td>{f.dominio ?? '-'}</td><td>{f.lugar || '-'}</td></> : null}
+                    {vista === 'retenciones' ? (
+                      <>
+                        <td>{f.infractor}</td>
+                        <td>{[f.retieneLicencia ? 'Licencia' : '', f.retieneVehiculo ? 'Vehículo' : ''].filter(Boolean).join(' y ')}</td>
+                        <td>{f.retieneLicencia ? <div>Lic. {f.licencia ?? '-'}</div> : null}{f.retieneVehiculo ? <div>{f.dominio ?? '-'}</div> : null}</td>
+                      </>
+                    ) : null}
+                    {vista === 'playon' ? (
+                      <>
+                        <td><strong>{f.dominio ?? '-'}</strong></td>
+                        <td>{f.vehiculo ?? '-'}</td>
+                        <td>{f.dias ?? '-'}</td>
+                        <td><span className={`badge ${LIBERACION[f.liberacion ?? '']?.c ?? 'bg-secondary'}`}>{LIBERACION[f.liberacion ?? '']?.t ?? f.liberacion}</span>{f.liberacion === 'vigente' && f.vigenteHasta ? <div className="texto-ayuda">Hasta {fechaHora(f.vigenteHasta)}</div> : null}</td>
+                      </>
+                    ) : null}
+                    <td>{botonTicket(f)}</td>
                   </tr>
-                </thead>
-                <tbody>
-                  {filas.map((f) => (
-                    <tr key={f.uuid}>
-                      <td><span className="fw-semibold">{f.acta}</span><div className="texto-ayuda">{f.tipo}</div></td>
-                      <td>{fechaHora(f.firmadaAt)}</td>
-                      <td>{f.inspector ?? '-'}{f.legajoInspector ? <div className="texto-ayuda">Leg. {f.legajoInspector}</div> : null}</td>
-                      {vista === 'actas' ? <><td>{f.infractor}{f.documento ? <div className="texto-ayuda">DNI {f.documento}</div> : null}</td><td>{f.dominio ?? '-'}</td><td>{f.lugar || '-'}</td></> : null}
-                      {vista === 'retenciones' ? (
-                        <>
-                          <td>{f.infractor}</td>
-                          <td>{[f.retieneLicencia ? 'Licencia' : '', f.retieneVehiculo ? 'Vehículo' : ''].filter(Boolean).join(' y ')}</td>
-                          <td>{f.retieneLicencia ? <div>Lic. {f.licencia ?? '-'}</div> : null}{f.retieneVehiculo ? <div>{f.dominio ?? '-'}</div> : null}</td>
-                        </>
-                      ) : null}
-                      {vista === 'playon' ? (
-                        <>
-                          <td><strong>{f.dominio ?? '-'}</strong></td>
-                          <td>{f.vehiculo ?? '-'}</td>
-                          <td>{f.dias ?? '-'}</td>
-                          <td><span className={`chip-ret ${LIBERACION[f.liberacion ?? '']?.c ?? 'retenido'}`}>{LIBERACION[f.liberacion ?? '']?.t ?? f.liberacion}</span>{f.liberacion === 'vigente' && f.vigenteHasta ? <div className="texto-ayuda">Hasta {fechaHora(f.vigenteHasta)}</div> : null}</td>
-                        </>
-                      ) : null}
-                      <td className="td-acciones">{botonTicket(f)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </TablaVista>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       )}
