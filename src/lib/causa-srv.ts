@@ -125,7 +125,7 @@ export async function camposDeCausa(d: Db, c0: CausaRow, user?: UsuarioRow) {
     const { data: cat } = await d.from('catalogo').select('nombre').in('id', ids);
     dependencia = ((cat ?? []) as { nombre: string }[]).map((x) => x.nombre).join(', ');
   }
-  const titular = c.infractor_razon_social || c.infractor_nombre || 'Sin identificar';
+  const titular = c.infractor_razon_social || c.infractor_nombre || 'No identificado';
   return {
     'Acta:Numero': c.legajo_numero_acta,
     'Acta:Expediente': `${c.legajo_number ?? ''}/${c.legajo_anio ?? ''}`,

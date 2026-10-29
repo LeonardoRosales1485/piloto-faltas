@@ -25,7 +25,7 @@ export default async function ActaPublicaPage({ params }: { params: Promise<{ uu
         <div className="portal-header-inner">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/images/Municipio_malvinas_argentinas_logo.png" alt="Municipalidad de Malvinas Argentinas" />
-          <div><strong>Consulta de acta</strong><span>Dirección de Faltas · Malvinas Argentinas</span></div>
+          <div><strong>Consulta de acta</strong><span>Municipio Malvinas Argentinas</span></div>
         </div>
       </header>
       <main className="portal-main" style={{ maxWidth: 560 }}>
@@ -46,7 +46,7 @@ export default async function ActaPublicaPage({ params }: { params: Promise<{ uu
             <>
               <i className="fa-solid fa-circle-xmark" style={{ fontSize: 48, color: '#dc2626' }} aria-hidden="true" />
               <h1 className="mt-2">Acta no encontrada</h1>
-              <p className="texto-ayuda mb-0">No existe un acta firmada para este código. Si recibió un ticket, comuníquese con la Dirección de Faltas.</p>
+              <p className="texto-ayuda mb-0">No existe un acta firmada para este código. Si recibió un ticket, comuníquese con el Municipio.</p>
             </>
           )}
         </div>

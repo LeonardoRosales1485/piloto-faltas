@@ -20,7 +20,7 @@ export async function GET(req: NextRequest, ctx: Ctx) {
       documento: { uuid: doc.uuid, titulo: doc.titulo, estado: doc.estado, numero: doc.numero, contenido_html: doc.contenido_html, valores_json: doc.valores_json, firmado_por: doc.firmado_por, firmado_at: doc.firmado_at, firmado_cargo: doc.firmado_cargo, hash: doc.hash, hash_por: doc.hash_por, hash_at: doc.hash_at, categoria: (doc.plantilla as { categoria?: string } | null)?.categoria ?? null },
       causa: {
         acta: c.legajo_numero_acta, tipo: TIPOS_ACTA[tipoActa(String(c.infraccion_tipo_nombre))].titulo, estado: c.estado_faltas,
-        infractor: c.infractor_razon_social || c.infractor_nombre || 'Sin identificar', dominio: c.vehiculo_numero_dominio || null,
+        infractor: c.infractor_razon_social || c.infractor_nombre || 'No identificado', dominio: c.vehiculo_numero_dominio || null,
         monto: c.monto_estimado != null ? pesos(Number(c.monto_estimado)) : null,
       },
     };

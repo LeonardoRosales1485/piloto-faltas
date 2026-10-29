@@ -10,7 +10,7 @@ import { LoaderLogo } from './LoaderLogo';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { http } from '@/lib/api-client';
-import { printActa, printTicket, printTicketInspector } from '@/lib/print';
+import { printActa, printTicket, printTicketRetencion } from '@/lib/print';
 import { ESTADOS_CAUSA, TIPOS_ACTA, claveLey, esBoletaLiberacion, estadoFinal, fechaCorta, fechaHora, infoEstado, esDeOficio, ordenarCategoriasLicencia, pagoAConciliar, pesos, puede, tipoActa } from '@/lib/dominio';
 import { useAuthUser } from '@/lib/use-auth-user';
 import type { Infraccion } from '@/lib/types';
@@ -399,7 +399,7 @@ export function CausaDetalle({ embebida }: { embebida?: { uuid: string; onCambio
           <EstadoChip estado={estado} medida={c.medidaVigente === 1} />
           <Plazo vence={c.vencePlazoAt} estado={estado} ocultarSinPlazo />
           <span className="sub">
-            {TIPOS_ACTA[tipo].titulo} · Legajo {c.legajoNumber}/{c.legajoAnio} · {c.infractorRazonSocial || c.infractorNombre || 'Sin identificar'} · En el portal se ve como «{infoEstado(estado).portal}»
+            {TIPOS_ACTA[tipo].titulo} · Legajo {c.legajoNumber}/{c.legajoAnio} · {c.infractorRazonSocial || c.infractorNombre || 'No identificado'} · En el portal se ve como «{infoEstado(estado).portal}»
           </span>
           <span className="sub d-flex flex-wrap align-items-center gap-3">
             <span className="causa-inspector" title="Inspector que labró y firmó el acta"><i className="fa-solid fa-id-badge" aria-hidden="true" /> Labró: <strong>{c.inspectorNombre || '-'}</strong>{c.inspectorLegajo ? ` · legajo ${c.inspectorLegajo}` : ''}</span>
@@ -533,7 +533,8 @@ export function CausaDetalle({ embebida }: { embebida?: { uuid: string; onCambio
                     })}><i className="fa-solid fa-file-circle-check" aria-hidden="true" /> Acta con correcciones (PDF)</button>
                   ) : null}
                   <button type="button" className="btn btn-outline-secondary" onClick={() => void printTicket(c)}><i className="fa-solid fa-print" aria-hidden="true" /> Ticket</button>
-                  {c.retencionDeVehiculo || c.retencionDeLicencia ? <button type="button" className="btn btn-outline-secondary" onClick={() => void printTicketInspector(c)}><i className="fa-solid fa-id-card" aria-hidden="true" /> Ticket del inspector</button> : null}
+                  {c.retencionDeLicencia ? <button type="button" className="btn btn-outline-secondary" onClick={() => void printTicketRetencion(c, 'licencia')}><i className="fa-solid fa-id-card" aria-hidden="true" /> Ticket de retención (licencia)</button> : null}
+                  {c.retencionDeVehiculo ? <button type="button" className="btn btn-outline-secondary" onClick={() => void printTicketRetencion(c, 'vehiculo')}><i className="fa-solid fa-car" aria-hidden="true" /> Ticket de retención (vehículo)</button> : null}
                   <a className="btn btn-outline-secondary" href={`/imprimir/legajo/${uuid}`} target="_blank" rel="noreferrer"><i className="fa-solid fa-book" aria-hidden="true" /> Legajo completo (PDF)</a>
                 </div>
               </>
