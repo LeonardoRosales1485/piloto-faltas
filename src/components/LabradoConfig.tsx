@@ -1,5 +1,6 @@
 'use client';
 
+import { ALCANCE } from '@/lib/alcance';
 import { useCallback, useEffect, useState } from 'react';
 import { http } from '@/lib/api-client';
 import type { ConfiguracionItem } from '@/lib/types';
@@ -69,7 +70,7 @@ export function LabradoConfig() {
           </div>
         </div>
       </article>
-      <article className="card-step">
+      <article className="card-step" hidden={!ALCANCE.alcoholimetroLista}>
         <div className="card-step-header">
           <h2>Alcoholímetros</h2>
           <p>Marcas y modelos que el inspector elige en el control de alcoholemia.</p>

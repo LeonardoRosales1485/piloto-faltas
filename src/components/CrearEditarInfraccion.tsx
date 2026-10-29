@@ -1,4 +1,5 @@
 'use client';
+import { ALCANCE } from '@/lib/alcance';
 import Link from 'next/link';
 import { LoaderLogo } from './LoaderLogo';
 import { useParams, useRouter } from 'next/navigation';
@@ -147,7 +148,7 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
   const habilitado = !soloLectura && !guardando;
   const pasos = useMemo(() => pasosPara(tipo, form.situacionInfractor), [tipo, form.situacionInfractor]);
   // Artículos que recomiendan foto (Ordenanzas → «Requiere foto»): solo se avisa, la foto es siempre opcional.
-  const leyesConFoto = useMemo(() => leyes.filter((l) => l.requiereFoto && (form.leyesNombre ?? []).includes(claveLey(l))), [leyes, form.leyesNombre]);
+  const leyesConFoto = useMemo(() => leyes.filter((l) => ALCANCE.fotoPorArticulo && l.requiereFoto && (form.leyesNombre ?? []).includes(claveLey(l))), [leyes, form.leyesNombre]);
   const faltantes = useMemo(() => faltantesPorPaso(form, firma), [form, firma]);
   const paso = pasos[Math.min(idx, pasos.length - 1)];
 
@@ -371,7 +372,7 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
       setForm(f);
     }
     if (f.situacionInfractor === 'presente' && !firma) {
-      notify.error('Falta la firma', 'El infractor presente debe firmar el acta. Si se niega, marque «Se negó a firmar» debajo del recuadro; si se fue, use «Se dio a la fuga».');
+      notify.error('Falta la firma', 'El infractor presente debe firmar el acta. Si se niega, marque «Se negó a firmar» debajo del recuadro; si se fue, elija «Se dio a la fuga» en «Datos del infractor».');
       return;
     }
     setGuardando(true);
@@ -488,12 +489,12 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
               <button type="button" className="btn btn-outline-primary btn-lg" onClick={() => void printTicket(paraTicket())}>
                 <i className="fa-solid fa-print" aria-hidden="true" /> Imprimir ticket
               </button>
-              {form.retencionDeLicencia ? (
+              {ALCANCE.ticketsRetencion && form.retencionDeLicencia ? (
                 <button type="button" className="btn btn-outline-warning btn-lg" onClick={() => void printTicketRetencion(paraTicket(), 'licencia')}>
                   <i className="fa-solid fa-id-card" aria-hidden="true" /> Ticket de retención (licencia)
                 </button>
               ) : null}
-              {form.retencionDeVehiculo ? (
+              {ALCANCE.ticketsRetencion && form.retencionDeVehiculo ? (
                 <button type="button" className="btn btn-outline-warning btn-lg" onClick={() => void printTicketRetencion(paraTicket(), 'vehiculo')}>
                   <i className="fa-solid fa-car" aria-hidden="true" /> Ticket de retención (vehículo)
                 </button>
@@ -585,12 +586,12 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
                   <button type="button" className="btn btn-primary btn-lg" onClick={() => void printTicket(paraTicket())}>
                     <i className="fa-solid fa-print" aria-hidden="true" /> Imprimir ticket
                   </button>
-                  {form.retencionDeLicencia ? (
+                  {ALCANCE.ticketsRetencion && form.retencionDeLicencia ? (
                     <button type="button" className="btn btn-outline-warning btn-lg" onClick={() => void printTicketRetencion(paraTicket(), 'licencia')}>
                       <i className="fa-solid fa-id-card" aria-hidden="true" /> Ticket de retención (licencia)
                     </button>
                   ) : null}
-                  {form.retencionDeVehiculo ? (
+                  {ALCANCE.ticketsRetencion && form.retencionDeVehiculo ? (
                     <button type="button" className="btn btn-outline-warning btn-lg" onClick={() => void printTicketRetencion(paraTicket(), 'vehiculo')}>
                       <i className="fa-solid fa-car" aria-hidden="true" /> Ticket de retención (vehículo)
                     </button>
@@ -1025,7 +1026,7 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
                       <tr key={claveLey(l)}>
                         <td>{l.articulo || '-'}</td>
                         <td>{l.nombre}</td>
-                        <td>{l.descripcion || '-'}{l.requiereFoto ? <div className="texto-ayuda"><i className="fa-solid fa-camera" aria-hidden="true" /> Requiere foto</div> : null}</td>
+                        <td>{l.descripcion || '-'}{ALCANCE.fotoPorArticulo && l.requiereFoto ? <div className="texto-ayuda"><i className="fa-solid fa-camera" aria-hidden="true" /> Requiere foto</div> : null}</td>
                         <td className="text-end">
                           <button type="button" className="btn btn-outline-danger btn-sm" aria-label={`Quitar artículo ${l.articulo}`} title="Quitar artículo" disabled={!habilitado} onClick={() => patch({ leyesNombre: (form.leyesNombre ?? []).filter((k) => k !== claveLey(l) && k !== l.nombre) })}>
                             <i className="fa-solid fa-trash" aria-hidden="true" />
@@ -1086,14 +1087,14 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
                       ].map(([k, t]) => (
                         <div key={k} className="col-6 col-md-4">
                           <Campo id={k} label={t}>
-                            {k === 'alcoholimetroMarca'
+                            {ALCANCE.alcoholimetroLista && k === 'alcoholimetroMarca'
                               // Reunión 27/10: marca y modelo del equipo desde listas (Configuración → Labrado en el POS).
                               ? <select id={k} className="form-select" disabled={!habilitado} value={form.metadata?.[k] ?? ''} onChange={(e) => setForm((prev) => ({ ...prev, metadata: { ...(prev.metadata ?? {}), alcoholimetroMarca: e.target.value, alcoholimetroModelo: '' } }))}>
                                   <option value="">Seleccionar...</option>
                                   {(cat.alcMarca ?? []).map((m) => <option key={m.id} value={m.nombre}>{m.nombre}</option>)}
                                   {form.metadata?.[k] && !(cat.alcMarca ?? []).some((m) => m.nombre === form.metadata?.[k]) ? <option value={form.metadata[k]}>{form.metadata[k]}</option> : null}
                                 </select>
-                              : k === 'alcoholimetroModelo'
+                              : ALCANCE.alcoholimetroLista && k === 'alcoholimetroModelo'
                               ? <select id={k} className="form-select" disabled={!habilitado || !form.metadata?.alcoholimetroMarca} value={form.metadata?.[k] ?? ''} onChange={(e) => patchMeta(k, e.target.value)}>
                                   <option value="">{form.metadata?.alcoholimetroMarca ? 'Seleccionar...' : 'Elija la marca'}</option>
                                   {(cat.alcModelo ?? []).filter((m) => m.nombre.startsWith(`${form.metadata?.alcoholimetroMarca} · `)).map((m) => { const mod = m.nombre.slice(`${form.metadata?.alcoholimetroMarca} · `.length); return <option key={m.id} value={mod}>{mod}</option>; })}
@@ -1219,7 +1220,7 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
                   <h3 className="subtitulo-paso">1. Firma del infractor</h3>
                   {/* El infractor firma a pantalla completa (el equipo lo tiene él o lo sostiene el inspector). */}
                   <div className="firma-opciones">
-                    <button type="button" className="firma-abrir" disabled={!habilitado || form.situacionInfractor === 'se_niega'} onClick={() => { if (esInspector) setBloqueoPin(true); setPadAbierto(true); }}>
+                    <button type="button" className="firma-abrir" disabled={!habilitado || form.situacionInfractor === 'se_niega'} onClick={() => { if (esInspector && ALCANCE.pinFirma) setBloqueoPin(true); setPadAbierto(true); }}>
                       {firma && form.situacionInfractor !== 'se_niega' ? (
                         <>
                           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -1240,9 +1241,11 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
                       <span>El infractor se niega a firmar</span>
                     </label>
                     {/* Reunión 27/10: si la persona se va sin firmar, firma solo el inspector. */}
+                    {ALCANCE.botonFugaFinal ? (
                     <button type="button" className="btn btn-outline-danger btn-lg w-100" disabled={!habilitado} onClick={() => conPin(seDioALaFuga)}>
                       <i className="fa-solid fa-person-running" aria-hidden="true" /> Se dio a la fuga
                     </button>
+                    ) : null}
                   </div>
                   {/* Al pasar el equipo al infractor para firmar, salir de la firma pide el PIN del inspector. */}
                   {padAbierto ? <FirmaPantallaCompleta onCancelar={() => setPadAbierto(false)} onListo={(f) => { setFirma(f); setPadAbierto(false); }} /> : null}
@@ -1427,7 +1430,7 @@ export function CrearEditarInfraccion({ uuidProp }: { uuidProp?: string }) {
                       <div>
                         <strong>{l.articulo || '-'} · {l.nombre}</strong>
                         {l.descripcion ? <span>{l.descripcion}</span> : null}
-                        {l.requiereFoto ? <span className="texto-ayuda"><i className="fa-solid fa-camera" aria-hidden="true" /> Requiere foto</span> : null}
+                        {ALCANCE.fotoPorArticulo && l.requiereFoto ? <span className="texto-ayuda"><i className="fa-solid fa-camera" aria-hidden="true" /> Requiere foto</span> : null}
                       </div>
                       <button type="button" className={`btn btn-sm ${agregado ? 'btn-secondary' : 'btn-primary'}`} disabled={agregado || !habilitado}
                         onClick={() => patch({ leyesNombre: [...(form.leyesNombre ?? []), claveLey(l)] })}>
