@@ -32,7 +32,7 @@ export default async function LiberacionPage({ params }: { params: Promise<{ uui
         <div className="portal-header-inner">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/images/Municipio_malvinas_argentinas_logo.png" alt="Municipalidad de Malvinas Argentinas" />
-          <div><strong>Control de liberación</strong><span>Dirección de Faltas · Depósito municipal</span></div>
+          <div><strong>Control de liberación</strong><span>Municipio Malvinas Argentinas · Depósito municipal</span></div>
         </div>
       </header>
       <main className="portal-main" style={{ maxWidth: 560 }}>

@@ -144,7 +144,7 @@ export function OrdenanzasView({ uuidProp }: { uuidProp?: string }) {
               <div className="col-12">
                 <label className="form-check">
                   <input id="leyRequiereFoto" type="checkbox" className="form-check-input" checked={Boolean(form.requiereFoto)} onChange={(e) => setForm({ ...form, requiereFoto: e.target.checked })} />
-                  <span className="form-check-label">Requiere foto (si el acta tiene este artículo, la foto es obligatoria en el POS)</span>
+                  <span className="form-check-label">Requiere foto (si el acta tiene este artículo, el POS recomienda sacar una foto; no impide firmar)</span>
                 </label>
               </div>
               <div className="col-12">
@@ -207,7 +207,7 @@ export function OrdenanzasView({ uuidProp }: { uuidProp?: string }) {
               <div className="col-12">
                 <label className="form-check">
                   <input id="nuevaRequiereFoto" type="checkbox" className="form-check-input" checked={Boolean(form.requiereFoto)} onChange={(e) => setForm({ ...form, requiereFoto: e.target.checked })} />
-                  <span className="form-check-label">Requiere foto (si el acta tiene este artículo, la foto es obligatoria en el POS)</span>
+                  <span className="form-check-label">Requiere foto (si el acta tiene este artículo, el POS recomienda sacar una foto; no impide firmar)</span>
                 </label>
               </div>
               <div className="col-12 col-md-3 d-flex align-items-end">

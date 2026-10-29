@@ -240,7 +240,7 @@ export function CausasBandeja() {
                   </td>
                   <td>{c.legajo_number}/{c.legajo_anio}</td>
                   <td>{fechaCorta(String(c.legajo_fecha ?? ''))}</td>
-                  <td>{c.infractor_razon_social || c.infractor_nombre || 'Sin identificar'}<div className="texto-ayuda">{c.infractor_cuit || c.infractor_documento_numero}</div></td>
+                  <td>{c.infractor_razon_social || c.infractor_nombre || 'No identificado'}<div className="texto-ayuda">{c.infractor_cuit || c.infractor_documento_numero}</div></td>
                   <td><span className="fw-semibold"><i className="fa-solid fa-id-badge" aria-hidden="true" /> {String(c.inspector_nombre || '-')}</span>{c.inspector_legajo ? <div className="texto-ayuda">Legajo {String(c.inspector_legajo)}</div> : null}</td>
                   <td>{c.vehiculo_numero_dominio || '-'}</td>
                   <td><EstadoChip estado={String(c.estado_faltas)} medida={Number(c.medida_vigente) === 1} />{c.marca ? <div className="marca-causa">{String(c.marca)}</div> : null}{c.bandeja && (!trabajo || texto) ? <div className="texto-ayuda">Bandeja: {infoBandeja(String(c.bandeja))?.titulo}</div> : null}{c.responsable ? <div className="texto-ayuda"><i className="fa-solid fa-user-check" aria-hidden="true" /> {String(c.responsable)}</div> : null}</td>
