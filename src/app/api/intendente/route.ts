@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
     const fila = (d: Fila) => ({
       uuid: d.uuid, titulo: d.titulo, numero: d.numero, categoria: d.plantilla?.categoria ?? null, desde: d.date_updated ?? d.date_created, firmadoAt: d.firmado_at,
       acta: d.infraccion?.legajo_numero_acta ?? '-', tipo: TIPOS_ACTA[tipoActa(String(d.infraccion?.infraccion_tipo_nombre ?? ''))].corto,
-      infractor: d.infraccion?.infractor_razon_social || d.infraccion?.infractor_nombre || 'No identificado',
+      infractor: d.infraccion?.infractor_razon_social || d.infraccion?.infractor_nombre || 'Sin identificar',
     });
     return { pendientes: ((pend.data ?? []) as unknown as Fila[]).map(fila), firmados: ((firm.data ?? []) as unknown as Fila[]).map(fila) };
   }, 'firmaIntendente');
